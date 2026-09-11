@@ -35,7 +35,10 @@ export function useKoreaMap() {
   const { sidos, sigungu, loading, error, preloadSigungu } =
     useMapData(selectedSido);
 
-  const regions = selectedSido ? sigungu : sidos;
+  // sigungu 로딩 중에는 sidos를 폴백으로 표시 (빈 화면 방지)
+  const regions = selectedSido
+    ? (sigungu.length > 0 ? sigungu : sidos)
+    : sidos;
   const activeRegion =
     regions.find(({ code }) => code === hoveredCode) ??
     regions.find(({ code }) => code === selectedCode) ??
@@ -161,7 +164,7 @@ export function useKoreaMap() {
     const seoul = sidos.find(({ code }) => code === '11')
     if (seoul) focus(seoul)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sidos.length === 0])
+  }, [sidos])
 
   useEffect(() => {
     const svg = svgRef.current;
