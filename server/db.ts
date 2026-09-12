@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-// DATABASE_PATH 환경변수가 있으면 해당 경로 사용, 없으면 기본 data/weather.sqlite
 const dbPath = process.env.DATABASE_PATH
   ? resolve(process.cwd(), process.env.DATABASE_PATH)
   : resolve(process.cwd(), "data", "weather.sqlite");
@@ -14,12 +13,10 @@ mkdirSync(dirname(dbPath), { recursive: true });
 
 export const db = new Database(dbPath);
 
-// 멀티 프로세스 동시성 및 초고속 읽기/쓰기 최적화 PRAGMA
 db.pragma("journal_mode = WAL");
 db.pragma("synchronous = NORMAL");
-db.pragma("busy_timeout = 5000"); // 다른 프로세스가 쓸 때 5초간 대기 (충돌 방지)
+db.pragma("busy_timeout = 5000");
 
-// 테이블 및 인덱스 초기화
 db.exec(`
   -- 1. 실황 테이블 (1시간마다 실제 관측된 비/기온 데이터)
   CREATE TABLE IF NOT EXISTS weather_observations (

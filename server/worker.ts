@@ -18,9 +18,9 @@ console.log(`=============================================`);
 let isSyncing = false;
 let lastSyncedBaseTime = "";
 
-// 1. [매시간 실황 수집] 매시 15~40분 사이 3분 간격 카나리 감시
-// ⚠️ 단기예보는 호출하지 않고 오직 초단기실황(238콜)만 호출!
-cron.schedule("15-40/3 * * * *", async () => {
+// 1. [매시간 실황 수집] 매시 40~58분 사이 2분 간격 카나리 감시
+// 초단기실황은 매시 30분 생성 후 40분 이후 제공되므로 40분부터 확인
+cron.schedule("40-58/2 * * * *", async () => {
   if (isSyncing) return;
   const canary = await checkCanaryNcstUpdated(lastSyncedBaseTime);
   if (canary.updated) {

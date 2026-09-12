@@ -15,13 +15,18 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 const BASE_URL =
   "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0";
 
-const SERVICE_KEY =
-  process.env.KMA_SERVICE_KEY || "bYThO5gPTpyE4TuYDw6cbg";
+const SERVICE_KEY = process.env.KMA_SERVICE_KEY || "bYThO5gPTpyE4TuYDw6cbg";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchKmaWithRetry(url: string, maxTries = 4, initialDelay = 500) {
+async function fetchKmaWithRetry(
+  url: string,
+  maxTries = 3,
+  initialDelay = 400,
+): Promise<any[]> {
   let delay = initialDelay;
+  let lastErrMsg = "";
+
   for (let tries = 1; tries <= maxTries; tries++) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -31,18 +36,35 @@ async function fetchKmaWithRetry(url: string, maxTries = 4, initialDelay = 500) 
       const data = await res.json();
       const header = data?.response?.header;
       if (!header) {
-        throw new Error("No response header in KMA reply");
+        throw new Error("응답 헤더 없음");
       }
-      if (header.resultCode !== "00") {
-        throw new Error(`KMA Error [${header.resultCode}]: ${header.resultMsg}`);
+
+      const code = header.resultCode;
+
+      // 00: 정상 응답 -> 데이터 반환
+      if (code === "00") {
+        return data.response.body?.items?.item ?? [];
       }
-      return data.response.body?.items?.item ?? [];
+
+      // 03: NODATA_ERROR - 데이터가 아직 없거나 관측값 없음 (정상 대기 상태, 재시도 없이 즉시 소모)
+      if (code === "03") {
+        return [];
+      }
+
+      // 그 외 00이 아닌 모든 코드는 에러로 간주하여 catch에서 재시도 진행
+      throw new Error(`[${code}] ${header.resultMsg}`);
     } catch (err: any) {
-      if (tries === maxTries) throw err;
-      await sleep(delay);
-      delay *= 2;
+      lastErrMsg = err?.message || String(err);
+      if (tries < maxTries) {
+        await sleep(delay);
+        delay *= 2;
+      }
     }
   }
+
+  // ⚠️ maxTries까지 끝까지 재시도했음에도 실패한 경우:
+  // 에러를 밖으로 던지지 않고 그 자리에서 소모하여 빈 배열([]) 반환
+  console.warn(`[KMA 재시도 실패 / 에러 소모] 최종 실패 (${lastErrMsg}) -> [] 반환`);
   return [];
 }
 
@@ -51,7 +73,9 @@ export function getNcstBaseDateTime(d = new Date()) {
   let hours = kst.getUTCHours();
   let minutes = kst.getUTCMinutes();
 
-  if (minutes < 15) {
+  // 초단기실황: 매시 30분 생성, 40분 이후 API 제공
+  // 따라서 40분 이전에는 직전 시간대 정시 데이터가 최신
+  if (minutes < 40) {
     hours -= 1;
     if (hours < 0) {
       hours = 23;
@@ -114,7 +138,8 @@ function calculateLeadHours(baseStr: string, targetStr: string): number {
   return Math.max(0, Math.round(diffMs / (1000 * 60 * 60)));
 }
 
-// 카나리(종로) 갱신 체크 (실황만 체크)
+// 카나리 방식으로 찔러보는 용도
+// 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
 export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -131,14 +156,13 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
 
   const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${SERVICE_KEY}`;
 
-  try {
-    const items = await fetchKmaWithRetry(url, 2, 300);
-    if (items.length > 0) {
-      console.log(`[카나리 감지] 종로구에 신규 실황 오픈! (${baseDate} ${candidateBaseTime})`);
-      return { updated: true, baseDate, baseTime: candidateBaseTime };
-    }
-  } catch (err) {
-    // 대기
+  // 재시도 2회 수행 후 실패해도 그 자리에서 []로 소모되므로 try-catch 불필요
+  const items = await fetchKmaWithRetry(url, 2, 300);
+  if (items.length > 0) {
+    console.log(
+      `[카나리 감지] 종로구에 실황 오픈 (${baseDate} ${candidateBaseTime})`,
+    );
+    return { updated: true, baseDate, baseTime: candidateBaseTime };
   }
 
   return { updated: false, baseDate, baseTime: candidateBaseTime };
@@ -167,24 +191,21 @@ export async function syncObservations(): Promise<number> {
         let rn1 = 0;
         let tmp: number | null = null;
 
-        try {
-          const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
-          const items = await fetchKmaWithRetry(ncstUrl, 3, 400);
-          for (const item of items) {
-            const val = parseFloat(item.obsrValue);
-            if (item.category === "PTY") {
-              if (val === 1 || val === 5) pty = 1;
-              else if (val === 2 || val === 6) pty = 2;
-              else if (val === 3 || val === 7) pty = 3;
-              else pty = 0;
-            } else if (item.category === "RN1") {
-              rn1 = isNaN(val) ? 0 : val;
-            } else if (item.category === "T1H") {
-              tmp = isNaN(val) ? null : val;
-            }
+        const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
+        // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
+        const items = await fetchKmaWithRetry(ncstUrl, 3, 400);
+        for (const item of items) {
+          const val = parseFloat(item.obsrValue);
+          if (item.category === "PTY") {
+            if (val === 1 || val === 5) pty = 1;
+            else if (val === 2 || val === 6) pty = 2;
+            else if (val === 3 || val === 7) pty = 3;
+            else pty = 0;
+          } else if (item.category === "RN1") {
+            rn1 = isNaN(val) || val <= -900 || val >= 900 ? 0 : val;
+          } else if (item.category === "T1H") {
+            tmp = isNaN(val) || val <= -900 || val >= 900 ? null : val;
           }
-        } catch (err) {
-          // 실황 조회 실패 시 패스
         }
 
         const isRaining = pty > 0 || rn1 > 0 ? 1 : 0;
@@ -265,31 +286,32 @@ export async function syncForecasts(): Promise<number> {
 
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
-        const targetMap = new Map<string, { pop: number; sky: number; tmp: number | null }>();
+        const targetMap = new Map<
+          string,
+          { pop: number; sky: number; tmp: number | null }
+        >();
 
-        try {
-          const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
-          const items = await fetchKmaWithRetry(fcstUrl, 2, 400);
-          for (const item of items) {
-            const fDate = item.fcstDate;
-            const fTime = item.fcstTime;
-            const targetTimeStr = `${fDate.slice(0, 4)}-${fDate.slice(4, 6)}-${fDate.slice(6, 8)} ${fTime.slice(0, 2)}:00`;
+        const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
+        // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
+        const items = await fetchKmaWithRetry(fcstUrl, 2, 400);
+        for (const item of items) {
+          const fDate = item.fcstDate;
+          const fTime = item.fcstTime;
+          const targetTimeStr = `${fDate.slice(0, 4)}-${fDate.slice(4, 6)}-${fDate.slice(6, 8)} ${fTime.slice(0, 2)}:00`;
 
-            if (!targetMap.has(targetTimeStr)) {
-              targetMap.set(targetTimeStr, { pop: 0, sky: 1, tmp: null });
-            }
-            const currentEntry = targetMap.get(targetTimeStr)!;
-
-            if (item.category === "POP") {
-              currentEntry.pop = parseInt(item.fcstValue, 10);
-            } else if (item.category === "SKY") {
-              currentEntry.sky = parseInt(item.fcstValue, 10);
-            } else if (item.category === "TMP") {
-              currentEntry.tmp = parseFloat(item.fcstValue);
-            }
+          if (!targetMap.has(targetTimeStr)) {
+            targetMap.set(targetTimeStr, { pop: 0, sky: 1, tmp: null });
           }
-        } catch (err) {
-          // 예보 오류 시 패스
+          const currentEntry = targetMap.get(targetTimeStr)!;
+
+          if (item.category === "POP") {
+            currentEntry.pop = parseInt(item.fcstValue, 10);
+          } else if (item.category === "SKY") {
+            currentEntry.sky = parseInt(item.fcstValue, 10);
+          } else if (item.category === "TMP") {
+            const val = parseFloat(item.fcstValue);
+            currentEntry.tmp = isNaN(val) || val <= -900 || val >= 900 ? null : val;
+          }
         }
 
         const fcstList: ForecastRecord[] = [];

@@ -18,8 +18,11 @@ export interface DistinctGrid {
   sigunguCodes: string[];
 }
 
-// 기상청 LCC 표준 좌표 변환 (위경도 -> nx, ny)
-export function latLonToGrid(lat: number, lon: number): { nx: number; ny: number } {
+// 위경도 => nx, ny
+export function latLonToGrid(
+  lat: number,
+  lon: number,
+): { nx: number; ny: number } {
   const RE = 6371.00877; // 지구 반경(km)
   const GRID = 5.0; // 격자 간격(km)
   const SLAT1 = 30.0; // 투영 위도1(degree)
@@ -64,7 +67,14 @@ function loadSigunguGrids(): {
   distinctGrids: DistinctGrid[];
 } {
   const root = process.cwd();
-  const topoPath = resolve(root, "public", "map-source", "korea-sigungu.topo.json");
+  const topoPath = resolve(
+    root,
+    "public",
+    "map-source",
+    "korea-sigungu.topo.json",
+  );
+
+  // topojson => 위경도
   const topo = JSON.parse(readFileSync(topoPath, "utf8"));
   const { scale, translate } = topo.transform;
 
@@ -80,6 +90,7 @@ function loadSigunguGrids(): {
 
   const joinRing = (indexes: number[]) =>
     indexes.flatMap((index, pos) => {
+      // ~index => abs(index)
       const src = arcs[index < 0 ? ~index : index];
       const pts = index < 0 ? [...src].reverse() : src;
       return pos === 0 ? pts : pts.slice(1);
@@ -92,12 +103,12 @@ function loadSigunguGrids(): {
       properties: { SIG_CD: string; SIG_KOR_NM: string };
     }>;
   };
-
-  const sigunguList: SigunguGrid[] = obj.geometries.map((g) => {
+  // 가장 큰 ring을 구심점으로 (울릉군등 ring이 여러개일때)
+  const sigunguList: SigunguGrid[] = obj.geometries.map((geo) => {
     const rings =
-      g.type === "Polygon"
-        ? g.arcs.map(joinRing)
-        : g.arcs.flatMap((p: number[][]) => p.map(joinRing));
+      geo.type === "Polygon"
+        ? geo.arcs.map(joinRing)
+        : geo.arcs.flatMap((p: number[][]) => p.map(joinRing));
 
     let maxRing = rings[0];
     for (const r of rings) {
@@ -112,8 +123,8 @@ function loadSigunguGrids(): {
     }
     const lon = sumLon / maxRing.length;
     const lat = sumLat / maxRing.length;
-    const code = g.properties.SIG_CD;
-    const name = g.properties.SIG_KOR_NM;
+    const code = geo.properties.SIG_CD;
+    const name = geo.properties.SIG_KOR_NM;
     const sidoCode = code.slice(0, 2);
     const { nx, ny } = latLonToGrid(lat, lon);
 
