@@ -127,13 +127,10 @@ export function useMapData(sidoCode: string | undefined) {
     });
   }, [sidos, sidoStatsMap]);
 
-  const rawSigungu =
-    sidoCode !== undefined ? (sigunguCache[sidoCode] ?? []) : [];
-
-  const enrichedSigungu = useMemo(
-    () => enrichSigungu(rawSigungu),
-    [rawSigungu, enrichSigungu],
-  );
+  const enrichedSigungu = useMemo(() => {
+    if (!sidoCode || !sigunguCache[sidoCode]) return [];
+    return enrichSigungu(sigunguCache[sidoCode]);
+  }, [sidoCode, sigunguCache, enrichSigungu]);
 
   const loading =
     sidos.length === 0 ||
