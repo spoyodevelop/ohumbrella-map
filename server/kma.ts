@@ -103,10 +103,8 @@ export function getVilageBaseDateTime(d = new Date()) {
   return { baseDate, baseTime };
 }
 
-// 시간 문자열(YYYYMMDD HHmm) 사이의 시간 차이(lead_hours) 계산
 function calculateLeadHours(baseStr: string, targetStr: string): number {
   const parseTime = (str: string) => {
-    // str: '2026-09-12 15:00'
     const [d, t] = str.split(" ");
     const [year, mon, day] = d.split("-").map(Number);
     const [hour, min] = t.split(":").map(Number);
@@ -116,7 +114,7 @@ function calculateLeadHours(baseStr: string, targetStr: string): number {
   return Math.max(0, Math.round(diffMs / (1000 * 60 * 60)));
 }
 
-// 카나리(종로) 갱신 체크
+// 카나리(종로) 갱신 체크 (실황만 체크)
 export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -146,25 +144,18 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
   return { updated: false, baseDate, baseTime: candidateBaseTime };
 }
 
-// 전국 실황 & 예보 일괄 수집
-export async function syncAllWeather(): Promise<{
-  obsCount: number;
-  fcstCount: number;
-}> {
+// --------------------------------------------------------------------------
+// 1. [실황 전용 수집] 1시간마다 1회만 호출 (getUltraSrtNcst만 238콜)
+// --------------------------------------------------------------------------
+export async function syncObservations(): Promise<number> {
   const { baseDate: ncstDate, baseTime: ncstTime } = getNcstBaseDateTime();
-  const { baseDate: fcstDate, baseTime: fcstTime } = getVilageBaseDateTime();
-  
   const obsTimeStr = `${ncstDate.slice(0, 4)}-${ncstDate.slice(4, 6)}-${ncstDate.slice(6, 8)} ${ncstTime.slice(0, 2)}:00`;
-  const baseTimeStr = `${fcstDate.slice(0, 4)}-${fcstDate.slice(4, 6)}-${fcstDate.slice(6, 8)} ${fcstTime.slice(0, 2)}:00`;
   const createdAt = new Date().toISOString();
 
-  console.log(`[수집 시작] 관측기준: ${obsTimeStr} | 예보발표기준: ${baseTimeStr}`);
-  console.log(`[수집 대상] 238개 고유 격자...`);
+  console.log(`[실황 수집] 관측기준: ${obsTimeStr} (238개 격자)`);
 
   const observationsToInsert: ObservationRecord[] = [];
-  const forecastsToInsert: ForecastRecord[] = [];
   const hourlyToInsert: WeatherRecord[] = [];
-
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -172,7 +163,6 @@ export async function syncAllWeather(): Promise<{
 
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
-        // --- 1. 실황 (UltraSrtNcst) ---
         let pty = 0;
         let rn1 = 0;
         let tmp: number | null = null;
@@ -194,17 +184,90 @@ export async function syncAllWeather(): Promise<{
             }
           }
         } catch (err) {
-          // 실황 오류 시 기본값 유지
+          // 실황 조회 실패 시 패스
         }
 
         const isRaining = pty > 0 || rn1 > 0 ? 1 : 0;
 
-        // --- 2. 미래 시간대별 예보 (VilageFcst) ---
-        // 시간대별로 맵핑: Map<targetTime, { pop, sky, tmp }>
+        const obsList: ObservationRecord[] = [];
+        const hourList: WeatherRecord[] = [];
+
+        for (const code of grid.sigunguCodes) {
+          const sigungu = sigunguMap.get(code);
+          const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
+          const name = sigungu?.name ?? code;
+
+          obsList.push({
+            time: obsTimeStr,
+            sigunguCode: code,
+            sidoCode,
+            name,
+            isRaining,
+            pty,
+            rn1,
+            tmp,
+            createdAt,
+          });
+
+          // 지도 렌더링용 실황 업데이트
+          hourList.push({
+            time: obsTimeStr,
+            sidoCode,
+            sigunguCode: code,
+            name,
+            pop: null, // 기존 POP 보존(COALESCE)
+            pty,
+            rn1,
+            tmp,
+            sky: 1,
+            updatedAt: createdAt,
+          });
+        }
+
+        return { obsList, hourList };
+      }),
+    );
+
+    for (const res of chunkResults) {
+      observationsToInsert.push(...res.obsList);
+      hourlyToInsert.push(...res.hourList);
+    }
+
+    process.stdout.write(
+      `\r[실황 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료...`,
+    );
+    await sleep(150);
+  }
+
+  console.log(`\n[실황 저장] ${observationsToInsert.length}건 DB 저장 완료!`);
+  upsertObservationsBatch(observationsToInsert);
+  upsertWeatherBatch(hourlyToInsert);
+
+  return observationsToInsert.length;
+}
+
+// --------------------------------------------------------------------------
+// 2. [단기예보 전용 수집] 3시간마다 딱 1회만 호출 (getVilageFcst만 238콜)
+// --------------------------------------------------------------------------
+export async function syncForecasts(): Promise<number> {
+  const { baseDate: fcstDate, baseTime: fcstTime } = getVilageBaseDateTime();
+  const baseTimeStr = `${fcstDate.slice(0, 4)}-${fcstDate.slice(4, 6)}-${fcstDate.slice(6, 8)} ${fcstTime.slice(0, 2)}:00`;
+  const createdAt = new Date().toISOString();
+
+  console.log(`[단기예보 수집] 발표기준: ${baseTimeStr} (238개 격자)`);
+
+  const forecastsToInsert: ForecastRecord[] = [];
+  const hourlyToInsert: WeatherRecord[] = [];
+  const chunkSize = 12;
+
+  for (let i = 0; i < distinctGrids.length; i += chunkSize) {
+    const chunk = distinctGrids.slice(i, i + chunkSize);
+
+    const chunkResults = await Promise.all(
+      chunk.map(async (grid: DistinctGrid) => {
         const targetMap = new Map<string, { pop: number; sky: number; tmp: number | null }>();
 
         try {
-          // 향후 24시간 치 예보 수집 (numOfRows: 150)
           const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
           const items = await fetchKmaWithRetry(fcstUrl, 2, 400);
           for (const item of items) {
@@ -229,14 +292,11 @@ export async function syncAllWeather(): Promise<{
           // 예보 오류 시 패스
         }
 
-        // 해당 격자의 소속 구들에게 각각 매핑
-        const obsList: ObservationRecord[] = [];
         const fcstList: ForecastRecord[] = [];
         const hourList: WeatherRecord[] = [];
 
-        // 가장 첫 번째(직전/현재) 예보값 추출
         const firstFcst = targetMap.values().next().value;
-        const currentPop = firstFcst ? firstFcst.pop : (isRaining ? 80 : 20);
+        const currentPop = firstFcst ? firstFcst.pop : 20;
         const currentSky = firstFcst ? firstFcst.sky : 1;
 
         for (const code of grid.sigunguCodes) {
@@ -244,20 +304,6 @@ export async function syncAllWeather(): Promise<{
           const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
           const name = sigungu?.name ?? code;
 
-          // 실황 레코드
-          obsList.push({
-            time: obsTimeStr,
-            sigunguCode: code,
-            sidoCode,
-            name,
-            isRaining,
-            pty,
-            rn1,
-            tmp,
-            createdAt,
-          });
-
-          // 미래 시간대별 예보 레코드들 (시계열 N개)
           for (const [targetTimeStr, val] of targetMap.entries()) {
             const leadHours = calculateLeadHours(baseTimeStr, targetTimeStr);
             fcstList.push({
@@ -274,47 +320,50 @@ export async function syncAllWeather(): Promise<{
             });
           }
 
-          // 지도 렌더링용 기존 스냅샷
+          // 지도 렌더링용 POP 업데이트
           hourList.push({
-            time: obsTimeStr,
+            time: baseTimeStr,
             sidoCode,
             sigunguCode: code,
             name,
             pop: currentPop,
-            pty,
-            rn1,
-            tmp,
+            pty: 0,
+            rn1: 0,
+            tmp: null,
             sky: currentSky,
             updatedAt: createdAt,
           });
         }
 
-        return { obsList, fcstList, hourList };
+        return { fcstList, hourList };
       }),
     );
 
     for (const res of chunkResults) {
-      observationsToInsert.push(...res.obsList);
       forecastsToInsert.push(...res.fcstList);
       hourlyToInsert.push(...res.hourList);
     }
 
     process.stdout.write(
-      `\r[수집 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료...`,
+      `\r[단기예보 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료...`,
     );
-    await sleep(200);
+    await sleep(150);
   }
 
-  console.log(
-    `\n[DB 저장] 실황 ${observationsToInsert.length}건, 미래 예보 ${forecastsToInsert.length}건 저장 중...`,
-  );
-  upsertObservationsBatch(observationsToInsert);
+  console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
   upsertForecastsBatch(forecastsToInsert);
   upsertWeatherBatch(hourlyToInsert);
-  console.log(`[DB 저장 완료] 실황 & 시계열 미래예보 모두 완벽 저장 완료!`);
 
-  return {
-    obsCount: observationsToInsert.length,
-    fcstCount: forecastsToInsert.length,
-  };
+  return forecastsToInsert.length;
+}
+
+// 초기화 또는 전체 수동 동기화용 함수
+export async function syncAllWeather(): Promise<{
+  obsCount: number;
+  fcstCount: number;
+}> {
+  console.log(`[전체 동기화] 실황 및 단기예보 순차 실행...`);
+  const obsCount = await syncObservations();
+  const fcstCount = await syncForecasts();
+  return { obsCount, fcstCount };
 }
