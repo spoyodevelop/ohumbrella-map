@@ -23,43 +23,45 @@ app.use(cors());
 app.use(express.json());
 
 // --- 1. 지도 렌더링용 API ---
-app.get("/api/weather/current", (req, res) => {
+app.get("/api/weather/current", async (req, res) => {
   try {
-    res.json(getLatestWeather());
+    const data = await getLatestWeather();
+    res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/api/weather/sido-stats", (req, res) => {
+app.get("/api/weather/sido-stats", async (req, res) => {
   try {
-    res.json(getSidoStats());
+    const data = await getSidoStats();
+    res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/api/weather/timeseries/:code", (req, res) => {
+app.get("/api/weather/timeseries/:code", async (req, res) => {
   try {
     const { code } = req.params;
     const hours = req.query.hours
       ? parseInt(req.query.hours as string, 10)
       : 48;
-    const result = getTimeSeries(code, hours);
+    const result = await getTimeSeries(code, hours);
     res.json({ sigunguCode: code, count: result.length, history: result });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 단기예보 24시간 타임라인 API (가장 최근에 성공한 회차 기준 미러링)
-app.get("/api/weather/forecast/:code", (req, res) => {
+// 단기예보 24시간 타임라인 API
+app.get("/api/weather/forecast/:code", async (req, res) => {
   try {
     const { code } = req.params;
     const hours = req.query.hours
       ? parseInt(req.query.hours as string, 10)
       : 24;
-    const result = getForecastTimeline(code, hours);
+    const result = await getForecastTimeline(code, hours);
     res.json({ sigunguCode: code, count: result.length, forecasts: result });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -67,8 +69,7 @@ app.get("/api/weather/forecast/:code", (req, res) => {
 });
 
 // 특정 시군구 코드 & 강수확률(POP) 기준 실측/경험적 강수 확률 및 현재 현황 API
-// 예: /api/weather/probability?code=11240&pop=30
-app.get("/api/weather/probability", (req, res) => {
+app.get("/api/weather/probability", async (req, res) => {
   try {
     const code = req.query.code as string | undefined;
     if (!code) {
@@ -80,7 +81,7 @@ app.get("/api/weather/probability", (req, res) => {
       ? parseInt(req.query.pop as string, 10)
       : undefined;
 
-    const insight = getRegionProbabilityInsight(code, pop);
+    const insight = await getRegionProbabilityInsight(code, pop);
     if (!insight) {
       return res
         .status(404)
@@ -94,7 +95,7 @@ app.get("/api/weather/probability", (req, res) => {
 });
 
 // --- 2. 예보 vs 실황 검증 및 신뢰도 분석 API ---
-app.get("/api/analysis/empirical-probability", (req, res) => {
+app.get("/api/analysis/empirical-probability", async (req, res) => {
   try {
     const minLead = req.query.minLead
       ? parseInt(req.query.minLead as string, 10)
@@ -102,24 +103,26 @@ app.get("/api/analysis/empirical-probability", (req, res) => {
     const maxLead = req.query.maxLead
       ? parseInt(req.query.maxLead as string, 10)
       : 24;
-    const stats = getEmpiricalProbabilityStats(minLead, maxLead);
+    const stats = await getEmpiricalProbabilityStats(minLead, maxLead);
     res.json({ minLeadHours: minLead, maxLeadHours: maxLead, stats });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/api/analysis/sido-reliability", (req, res) => {
+app.get("/api/analysis/sido-reliability", async (req, res) => {
   try {
-    res.json({ stats: getSidoReliabilityStats() });
+    const stats = await getSidoReliabilityStats();
+    res.json({ stats });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/api/analysis/lead-time", (req, res) => {
+app.get("/api/analysis/lead-time", async (req, res) => {
   try {
-    res.json({ stats: getLeadTimeAccuracyStats() });
+    const stats = await getLeadTimeAccuracyStats();
+    res.json({ stats });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

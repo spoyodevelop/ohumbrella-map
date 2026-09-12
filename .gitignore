@@ -30,3 +30,4 @@ dist-ssr
 # Database
 data/
 *.sqlite*
+*.db

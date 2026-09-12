@@ -271,8 +271,8 @@ export async function syncObservations(): Promise<number> {
   }
 
   console.log(`\n[실황 저장] ${observationsToInsert.length}건 DB 저장 완료!`);
-  upsertObservationsBatch(observationsToInsert);
-  upsertWeatherBatch(hourlyToInsert);
+  await upsertObservationsBatch(observationsToInsert);
+  await upsertWeatherBatch(hourlyToInsert);
 
   return observationsToInsert.length;
 }
@@ -382,8 +382,8 @@ export async function syncForecasts(): Promise<number> {
   }
 
   console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
-  upsertForecastsBatch(forecastsToInsert);
-  upsertWeatherBatch(hourlyToInsert);
+  await upsertForecastsBatch(forecastsToInsert);
+  await upsertWeatherBatch(hourlyToInsert);
 
   return forecastsToInsert.length;
 }
