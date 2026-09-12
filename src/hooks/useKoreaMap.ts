@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMapData } from "../lib/useMapData";
+import { useMapData } from "./useMapData";
 import { useMapView } from "./useMapView";
 import { useMapSelection } from "./useMapSelection";
 import { useMapHover } from "./useMapHover";
@@ -10,8 +10,10 @@ const INITIAL_SELECTION: SelectionState = { level: "national" };
 export function useKoreaMap() {
   const [selection, setSelection] = useState<SelectionState>(INITIAL_SELECTION);
 
-  const sidoCode = selection.level !== "national" ? selection.sidoCode : undefined;
-  const sigunguCode = selection.level === "sigungu" ? selection.sigunguCode : undefined;
+  const sidoCode =
+    selection.level !== "national" ? selection.sidoCode : undefined;
+  const sigunguCode =
+    selection.level === "sigungu" ? selection.sigunguCode : undefined;
 
   const mapData = useMapData(sidoCode);
   const regions = mapData.sigungu.length > 0 ? mapData.sigungu : mapData.sidos;
