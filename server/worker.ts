@@ -8,6 +8,7 @@ import {
   syncAllWeather,
   getNcstBaseDateTime,
 } from "./kma.ts";
+import { initDb } from "./db.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -56,6 +57,8 @@ cron.schedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
 (async () => {
   isSyncing = true;
   try {
+    console.log("[워커 초기화] DB 스키마 확인 및 초기화...");
+    await initDb();
     console.log("[워커 초기화] 시작 시점 실황 및 예보 초기 동기화 실행...");
     await syncAllWeather();
     const { baseTime } = getNcstBaseDateTime();

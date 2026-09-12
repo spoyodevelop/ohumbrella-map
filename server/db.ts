@@ -27,9 +27,14 @@ if (tursoUrl) {
 
 export const db = client;
 
+let initPromise: Promise<void> | null = null;
+
 // 초기 테이블 생성 (원격 DB 또는 로컬 DB에 없을 경우 생성)
 export async function initDb() {
-  await db.execute(`
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    await db.execute(`
     CREATE TABLE IF NOT EXISTS weather_observations (
       time          TEXT NOT NULL,
       sigungu_code  TEXT NOT NULL,
@@ -127,4 +132,11 @@ export async function initDb() {
       ON f.target_time = o.time 
      AND f.sigungu_code = o.sigungu_code;
   `);
+  })().catch((err) => {
+    initPromise = null;
+    throw err;
+  });
+
+  return initPromise;
 }
+
