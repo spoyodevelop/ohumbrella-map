@@ -25,7 +25,6 @@ export function useMapData(sidoCode: string | undefined) {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     if (sidoCode === undefined || sidoCode in sigunguCache) return;
     let active = true;
     loadRegionFile(sigunguFile(sidoCode))
@@ -40,21 +39,25 @@ export function useMapData(sidoCode: string | undefined) {
     return () => {
       active = false;
     };
-  }, [sidoCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sidoCode]);
+  const sigungu = sidoCode !== undefined ? (sigunguCache[sidoCode] ?? []) : [];
+  const loading =
+    sidos.length === 0 ||
+    (sidoCode !== undefined && !(sidoCode in sigunguCache));
+
+  const preloadSigungu = (code: string): Promise<MapRegion[]> => {
+    if (code in sigunguCache) return Promise.resolve(sigunguCache[code]!);
+    return loadRegionFile(sigunguFile(code)).then((regions) => {
+      setSigunguCache((prev) => ({ ...prev, [code]: regions }));
+      return regions;
+    });
+  };
 
   return {
     sidos,
-    sigungu: sidoCode !== undefined ? (sigunguCache[sidoCode] ?? []) : [],
-    loading:
-      sidos.length === 0 ||
-      (sidoCode !== undefined && !(sidoCode in sigunguCache)),
+    sigungu,
+    loading,
     error,
-    preloadSigungu: (code: string): Promise<MapRegion[]> => {
-      if (code in sigunguCache) return Promise.resolve(sigunguCache[code]!);
-      return loadRegionFile(sigunguFile(code)).then((regions) => {
-        setSigunguCache((prev) => ({ ...prev, [code]: regions }));
-        return regions;
-      });
-    },
+    preloadSigungu,
   };
 }

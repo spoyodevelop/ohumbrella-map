@@ -38,6 +38,10 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        "/api/weather": {
+          target: "http://localhost:3001",
+          changeOrigin: true,
+        },
       },
     },
   };

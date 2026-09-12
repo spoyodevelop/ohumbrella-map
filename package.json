@@ -11,6 +11,8 @@
     "map:build": "node --experimental-strip-types scripts/build-map-data.mjs",
     "predev": "npm run map:build",
     "dev": "vite",
+    "server": "tsx server/index.ts",
+    "server:watch": "tsx watch server/index.ts",
     "build": "npm run map:build && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -19,16 +21,26 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "babel-plugin-react-compiler": "^1.0.0",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "node-cron": "^4.6.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@emotion/babel-plugin": "^11.13.5",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.13.3",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "6.1.1",
     "oxlint": "1.81.0",
+    "tsx": "^4.23.13",
     "typescript": "7.0.2",
     "vite": "8.3.0"
   }
