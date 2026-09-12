@@ -1,4 +1,4 @@
-import type { MapRegion } from './types'
+import type { MapRegion } from '../types'
 
 const cache = new Map<string, Promise<MapRegion[]>>()
 

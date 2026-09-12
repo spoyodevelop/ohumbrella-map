@@ -1,0 +1,35 @@
+/* SVG 내부 요소 — Emotion styled로 처리 불가한 SVG 전용 속성들만 global로 유지 */
+
+.region {
+  stroke: #111723;
+  stroke-width: 0.9;
+  cursor: pointer;
+  transition: filter 100ms ease, opacity 100ms ease;
+}
+
+.region:hover {
+  filter: brightness(1.32) saturate(1.2);
+}
+
+.region.is-selected {
+  stroke: #fff;
+  stroke-width: 2.2;
+  filter: brightness(1.2);
+}
+
+.region-label {
+  font: 600 11px/1 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+  fill: rgb(255 255 255 / 0.85);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke fill;
+  stroke: rgb(0 0 0 / 0.45);
+  stroke-width: 8px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .region { transition: none; }
+}

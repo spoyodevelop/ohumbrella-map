@@ -14,3 +14,8 @@ export type MapRegion = {
   bounds: [number, number, number, number]
   label: { x: number; y: number }
 }
+
+export type SelectionState =
+  | { level: "national" }
+  | { level: "sido"; sidoCode: string }
+  | { level: "sigungu"; sidoCode: string; sigunguCode: string }

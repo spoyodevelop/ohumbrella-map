@@ -1,5 +1,5 @@
-import { KoreaMap } from './features/korea-map/KoreaMap'
+import { KoreaMap } from "./KoreaMap";
 
 export default function App() {
-  return <KoreaMap />
+  return <KoreaMap />;
 }
