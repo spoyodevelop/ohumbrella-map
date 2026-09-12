@@ -4,7 +4,7 @@ import {
   MAP_HEIGHT,
   MAP_PADDING,
   MAP_WIDTH,
-} from "../src/constants/map.ts";
+} from "../client/constants/map.ts";
 
 const root = process.cwd();
 
@@ -158,7 +158,7 @@ function toSvgRegions(features, project) {
 
 async function readTopology(filename) {
   return JSON.parse(
-    await readFile(resolve(root, "map-source", filename), "utf8"),
+    await readFile(resolve(root, "public", "map-source", filename), "utf8"),
   );
 }
 
