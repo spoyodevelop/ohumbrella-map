@@ -2,12 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import type { MapPoint, MapRegion, MapView } from "../types";
 import { MAP_CENTER } from "../constants/map";
 
-const INITIAL_VIEW: MapView = { x: 0, y: 0, scale: 1 };
+const INITIAL_SCALE = 1.65;
+const INITIAL_VIEW: MapView = {
+  scale: INITIAL_SCALE,
+  x: MAP_CENTER.x - MAP_CENTER.x * INITIAL_SCALE + 60.0,
+  y: MAP_CENTER.y - MAP_CENTER.y * INITIAL_SCALE + 100.0,
+};
 const MIN_SCALE = 0.8;
 const MAX_SCALE = 12;
 
 function zoomView(current: MapView, point: MapPoint, factor: number): MapView {
-  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale * factor));
+  const scale = Math.min(
+    MAX_SCALE,
+    Math.max(MIN_SCALE, current.scale * factor),
+  );
   const ratio = scale / current.scale;
   return {
     scale,
@@ -78,11 +86,15 @@ export function useMapView(): UseMapViewResult {
   }
 
   function handlePointerDown(event: React.PointerEvent<SVGSVGElement>) {
-    pointers.current.set(event.pointerId, toMapPoint(event.clientX, event.clientY));
+    pointers.current.set(
+      event.pointerId,
+      toMapPoint(event.clientX, event.clientY),
+    );
     dragDistance.current = 0;
     dragged.current = false;
     if (pointers.current.size === 2) {
-      for (const id of pointers.current.keys()) event.currentTarget.setPointerCapture(id);
+      for (const id of pointers.current.keys())
+        event.currentTarget.setPointerCapture(id);
       dragged.current = true;
       lastPinchDistance.current = 0;
       setIsPinching(true);
@@ -106,7 +118,11 @@ export function useMapView(): UseMapViewResult {
         event.currentTarget.setPointerCapture(event.pointerId);
         setIsDragging(true);
       }
-      setView((current) => ({ ...current, x: current.x + dx, y: current.y + dy }));
+      setView((current) => ({
+        ...current,
+        x: current.x + dx,
+        y: current.y + dy,
+      }));
       return;
     }
 
@@ -121,7 +137,10 @@ export function useMapView(): UseMapViewResult {
 
   function handlePointerUp(event: React.PointerEvent<SVGSVGElement>) {
     pointers.current.delete(event.pointerId);
-    if (pointers.current.size < 2) { lastPinchDistance.current = 0; setIsPinching(false); }
+    if (pointers.current.size < 2) {
+      lastPinchDistance.current = 0;
+      setIsPinching(false);
+    }
     if (pointers.current.size === 0) setIsDragging(false);
   }
 
@@ -133,17 +152,26 @@ export function useMapView(): UseMapViewResult {
       const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(
         svg.getScreenCTM()?.inverse(),
       );
-      setView((current) => zoomView(current, point, Math.exp(-event.deltaY * 0.0014)));
+      setView((current) =>
+        zoomView(current, point, Math.exp(-event.deltaY * 0.0014)),
+      );
     };
     svg.addEventListener("wheel", handleWheel, { passive: false });
     return () => svg.removeEventListener("wheel", handleWheel);
   }, []);
 
   return {
-    svgRef, dragged, view, isDragging, isPinching,
+    svgRef,
+    dragged,
+    view,
+    isDragging,
+    isPinching,
     zoomIn: () => zoomAt(MAP_CENTER, 2.25),
     zoomOut: () => zoomAt(MAP_CENTER, 1 / 2.25),
-    focus, resetView,
-    handlePointerDown, handlePointerMove, handlePointerUp,
+    focus,
+    resetView,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
   };
 }
