@@ -1,7 +1,10 @@
 import type { MapRegion, MapView } from "../../types";
 import styled from "@emotion/styled";
-
-const VIEW_BOX = "0 0 780 900";
+import {
+  MAP_HEIGHT,
+  MAP_VIEWBOX,
+  MAP_WIDTH,
+} from "../../constants/map";
 
 function chanceColor(chance: number) {
   return `hsl(211 ${35 + chance * 0.45}% ${78 - chance * 0.42}%)`;
@@ -96,7 +99,7 @@ export function MapSvg({
   return (
     <SvgRoot
       ref={svgRef}
-      viewBox={VIEW_BOX}
+      viewBox={MAP_VIEWBOX}
       role="img"
       aria-label={
         sidoCode !== undefined
@@ -108,7 +111,11 @@ export function MapSvg({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <MapBackground width="780" height="900" onClick={onBackgroundClick} />
+      <MapBackground
+        width={MAP_WIDTH}
+        height={MAP_HEIGHT}
+        onClick={onBackgroundClick}
+      />
 
       <MapLayer
         $dragging={isDragging}

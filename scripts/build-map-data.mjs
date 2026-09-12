@@ -1,9 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import {
+  MAP_HEIGHT,
+  MAP_PADDING,
+  MAP_WIDTH,
+} from "../src/constants/map.ts";
 
-const WIDTH = 780;
-const HEIGHT = 900;
-const PADDING = 28;
 const root = process.cwd();
 
 function decode(topology) {
@@ -62,11 +64,11 @@ function createProjector(features) {
   const projectedWidth = (maxLongitude - minLongitude) * longitudeScale;
   const projectedHeight = maxLatitude - minLatitude;
   const scale = Math.min(
-    (WIDTH - PADDING * 2) / projectedWidth,
-    (HEIGHT - PADDING * 2) / projectedHeight,
+    (MAP_WIDTH - MAP_PADDING * 2) / projectedWidth,
+    (MAP_HEIGHT - MAP_PADDING * 2) / projectedHeight,
   );
-  const offsetX = (WIDTH - projectedWidth * scale) / 2;
-  const offsetY = (HEIGHT - projectedHeight * scale) / 2;
+  const offsetX = (MAP_WIDTH - projectedWidth * scale) / 2;
+  const offsetY = (MAP_HEIGHT - projectedHeight * scale) / 2;
 
   return ([longitude, latitude]) => [
     offsetX + (longitude - minLongitude) * longitudeScale * scale,
@@ -126,8 +128,9 @@ function toSvgRegions(features, project) {
 
     const path = projectedRings
       .map((ring) => {
-        const commands = ring.map(([x, y], index) =>
-          `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`
+        const commands = ring.map(
+          ([x, y], index) =>
+            `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`,
         );
         return `${commands.join("")}Z`;
       })
@@ -145,7 +148,10 @@ function toSvgRegions(features, project) {
       path,
       rainChance: rainChance(code),
       bounds: [minX, minY, maxX, maxY],
-      label: { x: Math.round(label.x * 100) / 100, y: Math.round(label.y * 100) / 100 },
+      label: {
+        x: Math.round(label.x * 100) / 100,
+        y: Math.round(label.y * 100) / 100,
+      },
     };
   });
 }

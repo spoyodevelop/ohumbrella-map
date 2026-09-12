@@ -11,10 +11,7 @@ export function KoreaMap() {
 
   return (
     <Shell>
-      <MapHeader
-        currentSido={map.currentSido}
-        regionCount={map.regions.length}
-      />
+      <MapHeader currentSido={map.currentSido} />
 
       <Stage aria-label="대한민국 행정구역 강수 확률 지도">
         <MapToolbar

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { MapPoint, MapRegion, MapView } from "../types";
+import { MAP_CENTER } from "../constants/map";
 
 const INITIAL_VIEW: MapView = { x: 0, y: 0, scale: 1 };
-const MAP_CENTER: MapPoint = { x: 390, y: 450 };
 const MIN_SCALE = 0.8;
 const MAX_SCALE = 12;
 

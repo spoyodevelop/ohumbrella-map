@@ -3,19 +3,15 @@ import type { MapRegion } from "../../types";
 
 interface MapHeaderProps {
   currentSido: MapRegion | undefined;
-  regionCount: number;
 }
 
-export function MapHeader({ currentSido, regionCount }: MapHeaderProps) {
+export function MapHeader({ currentSido }: MapHeaderProps) {
   return (
     <Header>
       <div>
         <Eyebrow>OH UMBRELLA / MAP SPIKE</Eyebrow>
         <Title>{currentSido?.name ?? "전국"} 강수 확률</Title>
       </div>
-      <Status aria-live="polite">
-        <strong>{regionCount || "—"}</strong> visible · LOD
-      </Status>
     </Header>
   );
 }
