@@ -6,6 +6,8 @@ import {
   getLatestWeather,
   getSidoStats,
   getTimeSeries,
+  getForecastTimeline,
+  getRegionProbabilityInsight,
   getEmpiricalProbabilityStats,
   getSidoReliabilityStats,
   getLeadTimeAccuracyStats,
@@ -45,6 +47,47 @@ app.get("/api/weather/timeseries/:code", (req, res) => {
       : 48;
     const result = getTimeSeries(code, hours);
     res.json({ sigunguCode: code, count: result.length, history: result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 단기예보 24시간 타임라인 API (가장 최근에 성공한 회차 기준 미러링)
+app.get("/api/weather/forecast/:code", (req, res) => {
+  try {
+    const { code } = req.params;
+    const hours = req.query.hours
+      ? parseInt(req.query.hours as string, 10)
+      : 24;
+    const result = getForecastTimeline(code, hours);
+    res.json({ sigunguCode: code, count: result.length, forecasts: result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 특정 시군구 코드 & 강수확률(POP) 기준 실측/경험적 강수 확률 및 현재 현황 API
+// 예: /api/weather/probability?code=11240&pop=30
+app.get("/api/weather/probability", (req, res) => {
+  try {
+    const code = req.query.code as string | undefined;
+    if (!code) {
+      return res
+        .status(400)
+        .json({ error: "code 쿼리 파라미터(예: 11240)가 필요합니다." });
+    }
+    const pop = req.query.pop
+      ? parseInt(req.query.pop as string, 10)
+      : undefined;
+
+    const insight = getRegionProbabilityInsight(code, pop);
+    if (!insight) {
+      return res
+        .status(404)
+        .json({ error: `코드 '${code}'에 해당하는 시군구를 찾을 수 없습니다.` });
+    }
+
+    res.json(insight);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
