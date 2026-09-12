@@ -11,13 +11,18 @@ export function KoreaMap() {
 
   return (
     <Shell>
-      <MapHeader currentSido={map.currentSido} />
+      <MapHeader
+        currentSido={map.currentSido}
+        weatherTime={map.weatherTime}
+      />
 
       <Stage aria-label="대한민국 행정구역 강수 확률 지도">
         <MapToolbar
           onZoomIn={map.zoomIn}
           onZoomOut={map.zoomOut}
           onShowNational={map.showNationalMap}
+          onLocate={map.locateUser}
+          isLocating={map.isLocating}
         />
 
         {map.loading && <LoadState>지도 불러오는 중…</LoadState>}
@@ -38,7 +43,11 @@ export function KoreaMap() {
           onPointerMove={map.handlePointerMove}
           onPointerUp={map.handlePointerUp}
           onBackgroundClick={() => {
-            if (map.sidoCode !== undefined) map.showNationalMap();
+            if (map.sigunguCode !== undefined) {
+              map.clearSelection();
+            } else if (map.sidoCode !== undefined) {
+              map.showNationalMap();
+            }
           }}
           onRegionEnter={map.handleRegionEnter}
           onRegionLeave={map.handleRegionLeave}
@@ -46,11 +55,14 @@ export function KoreaMap() {
         />
 
         <MapOverlay
-          activeRegion={map.activeRegion}
+          selectedRegion={map.selectedRegion}
+          hoveredRegion={map.hoveredRegion}
           sidoCode={map.sidoCode}
           scale={map.view.scale}
           isSimgunguLod={map.sidoCode !== undefined}
+          onCloseDetail={map.clearSelection}
         />
+
       </Stage>
     </Shell>
   );

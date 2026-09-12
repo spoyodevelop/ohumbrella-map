@@ -3,15 +3,22 @@ import type { MapRegion } from "../../types";
 
 interface MapHeaderProps {
   currentSido: MapRegion | undefined;
+  weatherTime?: string;
 }
 
-export function MapHeader({ currentSido }: MapHeaderProps) {
+export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
   return (
     <Header>
       <div>
-        <Eyebrow>OH UMBRELLA / MAP SPIKE</Eyebrow>
-        <Title>{currentSido?.name ?? "전국"} 강수 확률</Title>
+        <Eyebrow>OH UMBRELLA / LIVE ACCURACY</Eyebrow>
+        <Title>{currentSido?.name ?? "전국"} 실시간 날씨 & 강수 확률</Title>
       </div>
+      {weatherTime && (
+        <Status>
+          <div>관측 기준시각</div>
+          <strong>{weatherTime}</strong>
+        </Status>
+      )}
     </Header>
   );
 }

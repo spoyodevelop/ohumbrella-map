@@ -35,9 +35,7 @@ function RegionPath({
       onPointerLeave={onLeave}
       onClick={onSelect}
     >
-      <title>
-        {region.name} · 강수확률 {region.rainChance}%
-      </title>
+      <title>{region.name}</title>
     </path>
   );
 }
