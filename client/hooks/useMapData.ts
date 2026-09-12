@@ -132,7 +132,7 @@ export function useMapData(sidoCode: string | undefined) {
 
   const enrichedSigungu = useMemo(
     () => enrichSigungu(rawSigungu),
-    [enrichSigungu],
+    [rawSigungu, enrichSigungu],
   );
 
   const loading =
