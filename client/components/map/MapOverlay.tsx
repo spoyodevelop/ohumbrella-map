@@ -1,4 +1,4 @@
-import type { MapRegion } from "../../types";
+import type { MapRegion, RegionWeatherInfo } from "../../types";
 import styled from "@emotion/styled";
 
 interface MapOverlayProps {
@@ -6,7 +6,7 @@ interface MapOverlayProps {
   hoveredRegion: MapRegion | undefined;
   sidoCode: string | undefined;
   scale: number;
-  isSimgunguLod: boolean;
+  isSimgunguLod?: boolean;
   onCloseDetail?: () => void;
 }
 
@@ -25,20 +25,102 @@ function getPtyText(pty?: number) {
   return "강수 없음";
 }
 
+type WeatherStatus =
+  | "rain"
+  | "snow"
+  | "cloudy"
+  | "partly_cloudy"
+  | "sunny"
+  | "summary";
+
+interface WeatherVisual {
+  status: WeatherStatus;
+  icon: string;
+  title: string;
+  sub: string;
+}
+
+function getWeatherVisual(
+  weather?: RegionWeatherInfo,
+  fallbackRainChance = 0,
+): WeatherVisual {
+  if (!weather) {
+    return {
+      status: "summary",
+      icon: "📍",
+      title: `지역 평균 강수확률 ${fallbackRainChance}%`,
+      sub: "구/군을 선택하면 실시간 실황을 확인합니다",
+    };
+  }
+
+  // 1. 적설/강수(PTY)
+  if (weather.pty === 3 || weather.pty === 7) {
+    return {
+      status: "snow",
+      icon: "❄️",
+      title: "현재 눈 내리는 중",
+      sub: `실시간 적설/강수량 ${weather.rn1 ?? 0}mm/h (${getPtyText(weather.pty)})`,
+    };
+  }
+  if (weather.pty === 2 || weather.pty === 6) {
+    return {
+      status: "snow",
+      icon: "🌨️",
+      title: "현재 눈/비 내리는 중",
+      sub: `실시간 강수량 ${weather.rn1 ?? 0}mm/h (${getPtyText(weather.pty)})`,
+    };
+  }
+  if (weather.isRaining === 1 || weather.pty > 0 || (weather.rn1 ?? 0) > 0) {
+    return {
+      status: "rain",
+      icon: "🌧️",
+      title: "현재 비 내리는 중",
+      sub: `실시간 강수량 ${weather.rn1 ?? 0}mm/h (${getPtyText(weather.pty)})`,
+    };
+  }
+
+  // 2. 하늘 상태(SKY: 1 맑음, 3 구름많음, 4 흐림)
+  const skyDesc = getSkyText(weather.sky);
+  if (weather.sky === 4) {
+    return {
+      status: "cloudy",
+      icon: "☁️",
+      title: "현재 흐림",
+      sub: `하늘 상태: ${skyDesc} · 비 오지 않음`,
+    };
+  }
+  if (weather.sky === 3) {
+    return {
+      status: "partly_cloudy",
+      icon: "⛅",
+      title: "현재 구름 많음",
+      sub: `하늘 상태: ${skyDesc} · 비 오지 않음`,
+    };
+  }
+
+  return {
+    status: "sunny",
+    icon: "☀️",
+    title: "현재 맑음",
+    sub: `하늘 상태: ${skyDesc} · 쾌청함`,
+  };
+}
+
 export function MapOverlay({
   selectedRegion,
   hoveredRegion,
   sidoCode,
   scale,
-  isSimgunguLod,
+
   onCloseDetail,
 }: MapOverlayProps) {
   const weather = selectedRegion?.weather;
-  const isRaining = weather?.isRaining === 1;
+  const visual = selectedRegion
+    ? getWeatherVisual(weather, selectedRegion.rainChance)
+    : null;
 
   return (
     <>
-      {/* 1. 호버 시: 어떤 구/시도인지 이름만 가볍게 확인하는 미니 툴팁 */}
       {hoveredRegion && (
         <HoverTooltip role="tooltip" aria-hidden="true">
           <HoverPinIcon>📍</HoverPinIcon>
@@ -46,7 +128,6 @@ export function MapOverlay({
         </HoverTooltip>
       )}
 
-      {/* 2. 클릭(선택) 시에만 표시되는 상세 날씨 카드 */}
       {selectedRegion ? (
         <DetailCard aria-live="polite">
           <HeaderRow>
@@ -66,34 +147,16 @@ export function MapOverlay({
             )}
           </HeaderRow>
 
-          {/* 💡 실시간 실황: 지금 실제 비가 오는지 직관적 확인 배너 */}
-          {weather ? (
-            <LiveRainBanner isRaining={isRaining}>
-              <RainIcon>{isRaining ? "🌧️" : "☀️"}</RainIcon>
+          {visual && (
+            <LiveRainBanner $status={visual.status}>
+              <RainIcon>{visual.icon}</RainIcon>
               <RainInfo>
-                <RainTitle>
-                  {isRaining ? "현재 비 내리는 중" : "현재 비 오지 않음"}
-                </RainTitle>
-                <RainSub>
-                  {isRaining
-                    ? `실시간 강수량 ${weather.rn1 ?? 0}mm/h (${getPtyText(weather.pty)})`
-                    : `하늘 상태: ${getSkyText(weather.sky)} · 강수량 0mm`}
-                </RainSub>
-              </RainInfo>
-            </LiveRainBanner>
-          ) : (
-            <LiveRainBanner isRaining={false}>
-              <RainIcon>📍</RainIcon>
-              <RainInfo>
-                <RainTitle>
-                  지역 평균 강수확률 {selectedRegion.rainChance}%
-                </RainTitle>
-                <RainSub>구/군을 선택하면 실시간 실황을 확인합니다</RainSub>
+                <RainTitle>{visual.title}</RainTitle>
+                <RainSub>{visual.sub}</RainSub>
               </RainInfo>
             </LiveRainBanner>
           )}
 
-          {/* 💡 단기예보 강수확률 vs 오우산 실제 강수확률 (구/군 선택 시에만 표시) */}
           {weather && (
             <StatsGrid>
               <StatBox highlight>
@@ -121,7 +184,6 @@ export function MapOverlay({
           )}
         </DetailCard>
       ) : (
-        /* 아무것도 선택하지 않았을 때의 은은한 힌트 배너 */
         <GuideBanner>
           {sidoCode !== undefined
             ? "구/군을 터치(클릭)하면 실시간 날씨를 확인합니다"
@@ -129,23 +191,19 @@ export function MapOverlay({
         </GuideBanner>
       )}
 
-      {/* 강수확률 범례 */}
       <Legend aria-label="강수확률 범례">
         <span>0%</span>
         <LegendGradient />
         <span>100%</span>
       </Legend>
 
-      {/* 디버그 정보 */}
       <DebugReadout>
         <span>scale {scale.toFixed(2)}×</span>
-        <span>{isSimgunguLod ? "sigungu LOD" : "sido LOD"}</span>
       </DebugReadout>
     </>
   );
 }
 
-// 1. 호버 전용 가벼운 툴팁 (마우스 오버 시 이름만 표시)
 const HoverTooltip = styled.div`
   position: absolute;
   top: 18px;
@@ -275,26 +333,40 @@ const TempBadge = styled.span`
   border-radius: 6px;
 `;
 
-// 지금 실제 비가 오는지 실시간 배너
-const LiveRainBanner = styled.div<{ isRaining: boolean }>`
+const bannerBorderMap: Record<WeatherStatus, string> = {
+  rain: "rgba(96, 165, 250, 0.45)",
+  snow: "rgba(192, 132, 252, 0.45)",
+  cloudy: "rgba(148, 163, 184, 0.3)",
+  partly_cloudy: "rgba(251, 191, 36, 0.35)",
+  sunny: "rgba(245, 158, 11, 0.35)",
+  summary: "rgba(148, 163, 184, 0.18)",
+};
+
+const bannerBgMap: Record<WeatherStatus, string> = {
+  rain: "linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(37, 99, 235, 0.2))",
+  snow: "linear-gradient(135deg, rgba(88, 28, 135, 0.4), rgba(147, 51, 234, 0.2))",
+  cloudy:
+    "linear-gradient(135deg, rgba(51, 65, 85, 0.45), rgba(71, 85, 105, 0.25))",
+  partly_cloudy:
+    "linear-gradient(135deg, rgba(71, 85, 105, 0.4), rgba(217, 119, 6, 0.2))",
+  sunny:
+    "linear-gradient(135deg, rgba(120, 53, 15, 0.3), rgba(245, 158, 11, 0.18))",
+  summary: "rgba(30, 41, 59, 0.45)",
+};
+
+// 지금 실제 비/눈/하늘 상태 실시간 배너
+const LiveRainBanner = styled.div<{ $status: WeatherStatus }>`
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid
-    ${(props) =>
-      props.isRaining
-        ? "rgba(96, 165, 250, 0.35)"
-        : "rgba(148, 163, 184, 0.18)"};
-  background: ${(props) =>
-    props.isRaining
-      ? "linear-gradient(135deg, rgba(30, 58, 138, 0.35), rgba(37, 99, 235, 0.18))"
-      : "rgba(30, 41, 59, 0.45)"};
+  border: 1px solid ${(props) => bannerBorderMap[props.$status]};
+  background: ${(props) => bannerBgMap[props.$status]};
 `;
 
 const RainIcon = styled.span`
-  font-size: 1.3rem;
+  font-size: 2.2rem;
 `;
 
 const RainInfo = styled.div`
