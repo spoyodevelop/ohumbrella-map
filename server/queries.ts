@@ -31,10 +31,14 @@ export interface WeatherRecord {
   sigunguCode: string;
   name: string;
   pop: number | null;
+  kmaPop?: number | null;
   pty: number;
   rn1: number;
   tmp: number | null;
   sky: number;
+  isRaining?: number;
+  empiricalRate?: number | null;
+  sampleCount?: number;
   updatedAt: string;
 }
 
@@ -115,7 +119,7 @@ export const upsertWeatherBatch = db.transaction((records: WeatherRecord[]) => {
   }
 });
 
-// 전국 252개 시군구 최신 날씨 반환
+// 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환 (클라이언트 1회 호출로 252개 완벽 캐싱)
 export function getLatestWeather() {
   const latestTimeRow = db
     .prepare(`SELECT MAX(time) as maxTime FROM hourly_weather`)
@@ -126,6 +130,7 @@ export function getLatestWeather() {
     return { time: null, count: 0, data: {} };
   }
 
+  // 1. 시군구별 최신 실황 + 최신 단기예보 POP 조인
   const rows = db
     .prepare(
       `SELECT 
@@ -133,23 +138,71 @@ export function getLatestWeather() {
         h.sido_code as sidoCode,
         h.sigungu_code as sigunguCode,
         h.name,
-        h.pop,
+        COALESCE(fcst.pop, h.pop, 0) as pop,
+        COALESCE(fcst.pop, h.pop, 0) as kmaPop,
         h.pty,
         h.rn1,
         h.tmp,
-        h.sky,
+        COALESCE(fcst.sky, h.sky, 1) as sky,
         h.updated_at as updatedAt
       FROM hourly_weather h
       INNER JOIN (
         SELECT sigungu_code, MAX(time) as max_time
         FROM hourly_weather
         GROUP BY sigungu_code
-      ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time`,
+      ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
+      LEFT JOIN (
+        SELECT f.sigungu_code, f.pop, f.sky
+        FROM weather_forecasts f
+        INNER JOIN (
+          SELECT sigungu_code, MAX(base_time) as max_base
+          FROM weather_forecasts
+          GROUP BY sigungu_code
+        ) mf ON f.sigungu_code = mf.sigungu_code AND f.base_time = mf.max_base
+        GROUP BY f.sigungu_code
+        HAVING MIN(f.target_time)
+      ) fcst ON h.sigungu_code = fcst.sigungu_code`,
     )
     .all() as WeatherRecord[];
 
+  // 2. 검증 통계 (시군구별 및 전국 기준 실측 강수율)
+  const localStats = db
+    .prepare(
+      `SELECT sigungu_code, predicted_pop, ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as rate, COUNT(*) as samples
+       FROM v_forecast_accuracy WHERE actual_rain IS NOT NULL
+       GROUP BY sigungu_code, predicted_pop`,
+    )
+    .all() as {
+    sigungu_code: string;
+    predicted_pop: number;
+    rate: number;
+    samples: number;
+  }[];
+
+  const natStats = db
+    .prepare(
+      `SELECT predicted_pop, ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as rate, COUNT(*) as samples
+       FROM v_forecast_accuracy WHERE actual_rain IS NOT NULL
+       GROUP BY predicted_pop`,
+    )
+    .all() as { predicted_pop: number; rate: number; samples: number }[];
+
+  const localMap = new Map(
+    localStats.map((s) => [`${s.sigungu_code}_${s.predicted_pop}`, s]),
+  );
+  const natMap = new Map(natStats.map((s) => [s.predicted_pop, s]));
+
   const data: Record<string, WeatherRecord> = {};
   for (const row of rows) {
+    const pop = row.kmaPop ?? 0;
+    const local = localMap.get(`${row.sigunguCode}_${pop}`);
+    const nat = natMap.get(pop);
+
+    row.isRaining = row.pty > 0 || row.rn1 > 0 ? 1 : 0;
+    const stat = local ?? nat;
+    row.empiricalRate = stat?.rate ?? pop;
+    row.sampleCount = stat?.samples ?? 0;
+
     data[row.sigunguCode] = row;
   }
 
@@ -171,10 +224,10 @@ export function getSidoStats() {
     .prepare(
       `SELECT 
         h.sido_code as sidoCode,
-        ROUND(AVG(COALESCE(h.pop, 0)), 1) as avgPop,
-        MAX(COALESCE(h.pop, 0)) as maxPop,
+        ROUND(AVG(COALESCE(fcst.pop, h.pop, 0)), 1) as avgPop,
+        MAX(COALESCE(fcst.pop, h.pop, 0)) as maxPop,
         ROUND(SUM(COALESCE(h.rn1, 0)), 1) as totalRain,
-        SUM(CASE WHEN h.pty > 0 THEN 1 ELSE 0 END) as rainingCount,
+        SUM(CASE WHEN h.pty > 0 OR h.rn1 > 0 THEN 1 ELSE 0 END) as rainingCount,
         COUNT(*) as totalCount
       FROM hourly_weather h
       INNER JOIN (
@@ -182,6 +235,17 @@ export function getSidoStats() {
         FROM hourly_weather
         GROUP BY sigungu_code
       ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
+      LEFT JOIN (
+        SELECT f.sigungu_code, f.pop
+        FROM weather_forecasts f
+        INNER JOIN (
+          SELECT sigungu_code, MAX(base_time) as max_base
+          FROM weather_forecasts
+          GROUP BY sigungu_code
+        ) mf ON f.sigungu_code = mf.sigungu_code AND f.base_time = mf.max_base
+        GROUP BY f.sigungu_code
+        HAVING MIN(f.target_time)
+      ) fcst ON h.sigungu_code = fcst.sigungu_code
       GROUP BY h.sido_code
       ORDER BY h.sido_code ASC`,
     )
@@ -189,6 +253,7 @@ export function getSidoStats() {
 
   return { time: maxTime, stats };
 }
+
 
 // 특정 시군구 미래 예보 타임라인 조회 (가장 최근에 성공한 base_time의 미래 예보를 가져옴)
 export function getForecastTimeline(sigunguCode: string, hours = 24) {
@@ -381,8 +446,7 @@ export function getRegionProbabilityInsight(
 
   const sidoCode = current.sidoCode;
   const sigunguName = current.name;
-  const popToQuery =
-    targetPop !== undefined ? targetPop : (current.kmaPop ?? 30);
+  const popToQuery = targetPop ?? current.kmaPop ?? 30;
 
   // 시군구 단위 표본
   const localRow = db

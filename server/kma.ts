@@ -64,8 +64,21 @@ async function fetchKmaWithRetry(
 
   // ⚠️ maxTries까지 끝까지 재시도했음에도 실패한 경우:
   // 에러를 밖으로 던지지 않고 그 자리에서 소모하여 빈 배열([]) 반환
-  console.warn(`[KMA 재시도 실패 / 에러 소모] 최종 실패 (${lastErrMsg}) -> [] 반환`);
+  console.warn(
+    `[KMA 재시도 실패 / 에러 소모] 최종 실패 (${lastErrMsg}) -> [] 반환`,
+  );
   return [];
+}
+
+function parseKmaNumber(val: number): number | null {
+  return Number.isNaN(val) || val <= -900 || val >= 900 ? null : val;
+}
+
+function parsePty(val: number): number {
+  if (val === 1 || val === 5) return 1;
+  if (val === 2 || val === 6) return 2;
+  if (val === 3 || val === 7) return 3;
+  return 0;
 }
 
 export function getNcstBaseDateTime(d = new Date()) {
@@ -197,14 +210,11 @@ export async function syncObservations(): Promise<number> {
         for (const item of items) {
           const val = parseFloat(item.obsrValue);
           if (item.category === "PTY") {
-            if (val === 1 || val === 5) pty = 1;
-            else if (val === 2 || val === 6) pty = 2;
-            else if (val === 3 || val === 7) pty = 3;
-            else pty = 0;
+            pty = parsePty(val);
           } else if (item.category === "RN1") {
-            rn1 = isNaN(val) || val <= -900 || val >= 900 ? 0 : val;
+            rn1 = parseKmaNumber(val) ?? 0;
           } else if (item.category === "T1H") {
-            tmp = isNaN(val) || val <= -900 || val >= 900 ? null : val;
+            tmp = parseKmaNumber(val);
           }
         }
 
@@ -309,8 +319,7 @@ export async function syncForecasts(): Promise<number> {
           } else if (item.category === "SKY") {
             currentEntry.sky = parseInt(item.fcstValue, 10);
           } else if (item.category === "TMP") {
-            const val = parseFloat(item.fcstValue);
-            currentEntry.tmp = isNaN(val) || val <= -900 || val >= 900 ? null : val;
+            currentEntry.tmp = parseKmaNumber(parseFloat(item.fcstValue));
           }
         }
 
@@ -318,8 +327,8 @@ export async function syncForecasts(): Promise<number> {
         const hourList: WeatherRecord[] = [];
 
         const firstFcst = targetMap.values().next().value;
-        const currentPop = firstFcst ? firstFcst.pop : 20;
-        const currentSky = firstFcst ? firstFcst.sky : 1;
+        const currentPop = firstFcst?.pop ?? 20;
+        const currentSky = firstFcst?.sky ?? 1;
 
         for (const code of grid.sigunguCodes) {
           const sigungu = sigunguMap.get(code);
