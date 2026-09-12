@@ -35,8 +35,6 @@ export function MapOverlay({
 }: MapOverlayProps) {
   const weather = selectedRegion?.weather;
   const isRaining = weather?.isRaining === 1;
-  const kmaPop = weather?.kmaPop ?? selectedRegion?.rainChance;
-  const empiricalRate = weather?.empiricalRate;
 
   return (
     <>
@@ -95,26 +93,32 @@ export function MapOverlay({
             </LiveRainBanner>
           )}
 
-          {/* 💡 단기예보 강수확률 vs 오우산 실제 강수확률 */}
-          <StatsGrid>
-            <StatBox highlight>
-              <StatLabel>단기예보 강수확률</StatLabel>
-              <StatVal highlight>{kmaPop != null ? `${kmaPop}%` : "—"}</StatVal>
-              <StatSubText>기상청 예보 (POP)</StatSubText>
-            </StatBox>
+          {/* 💡 단기예보 강수확률 vs 오우산 실제 강수확률 (구/군 선택 시에만 표시) */}
+          {weather && (
+            <StatsGrid>
+              <StatBox highlight>
+                <StatLabel>단기예보 강수확률</StatLabel>
+                <StatVal highlight>
+                  {weather.kmaPop != null ? `${weather.kmaPop}%` : "—"}
+                </StatVal>
+                <StatSubText>기상청 예보 (POP)</StatSubText>
+              </StatBox>
 
-            <StatBox>
-              <StatLabel>실제 강수확률</StatLabel>
-              <StatVal>
-                {empiricalRate != null ? `${Math.round(empiricalRate)}%` : "—"}
-              </StatVal>
-              <StatSubText>
-                {weather && weather.sampleCount > 0
-                  ? `과거 표본 ${weather.sampleCount}건 검증`
-                  : "표본 수집 중"}
-              </StatSubText>
-            </StatBox>
-          </StatsGrid>
+              <StatBox>
+                <StatLabel>실제 강수확률</StatLabel>
+                <StatVal>
+                  {weather.empiricalRate != null
+                    ? `${Math.round(weather.empiricalRate)}%`
+                    : "—"}
+                </StatVal>
+                <StatSubText>
+                  {weather.sampleCount > 0
+                    ? `과거 표본 ${weather.sampleCount}건 검증`
+                    : "표본 수집 중"}
+                </StatSubText>
+              </StatBox>
+            </StatsGrid>
+          )}
         </DetailCard>
       ) : (
         /* 아무것도 선택하지 않았을 때의 은은한 힌트 배너 */
