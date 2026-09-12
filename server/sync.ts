@@ -4,6 +4,7 @@ import { syncAllWeather } from "./kma.ts";
 import { initDb } from "./db.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: resolve(process.cwd(), ".env") });
 
 console.log(`=============================================`);
 console.log(`🔄 [CLI Sync] 1회성 날씨 수집 실행`);

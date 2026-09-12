@@ -15,6 +15,7 @@ import {
 import { syncAllWeather } from "./kma.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: resolve(process.cwd(), ".env") });
 
 export const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;

@@ -11,6 +11,7 @@ import {
 import { initDb } from "./db.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: resolve(process.cwd(), ".env") });
 
 console.log(`=============================================`);
 console.log(`⚙️  [Worker] 기상청 수집 & 스케줄러 워커 시작`);

@@ -11,6 +11,7 @@ import {
 } from "./queries.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: resolve(process.cwd(), ".env") });
 
 const BASE_URL =
   "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0";

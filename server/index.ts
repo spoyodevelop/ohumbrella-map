@@ -5,6 +5,7 @@ import { initDb } from "./db.ts";
 import "./worker.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: resolve(process.cwd(), ".env") });
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
