@@ -15,7 +15,7 @@ export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
       </div>
       {weatherTime && (
         <Status>
-          <div>관측 기준시각</div>
+          <div>마지막 갱신 일시</div>
           <strong>{weatherTime}</strong>
         </Status>
       )}
