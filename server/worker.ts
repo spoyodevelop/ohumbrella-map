@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import dotenv from "dotenv";
 import { resolve } from "node:path";
+import https from "node:https";
 import {
   checkCanaryNcstUpdated,
   syncObservations,
@@ -20,6 +21,54 @@ console.log(`=============================================`);
 let isSyncing = false;
 let lastSyncedBaseTime = "";
 
+/**
+ * Healthchecks.io Ping 신호 전송
+ * @param urlStr Healthchecks Ping URL
+ * @param error 실패 시 에러 객체 또는 메시지 (/fail 엔드포인트 호출)
+ */
+function pingHealthcheck(urlStr?: string, error?: unknown): Promise<void> {
+  if (!urlStr) return Promise.resolve();
+  return new Promise((res) => {
+    try {
+      const targetUrl = new URL(error ? `${urlStr}/fail` : urlStr);
+      const body = error ? String(error) : "OK";
+      const req = https.request(
+        targetUrl,
+        {
+          method: "POST",
+          family: 4, // VPS 환경의 IPv6 라우팅 타임아웃 방지
+          headers: {
+            "Content-Type": "text/plain",
+            "Content-Length": Buffer.byteLength(body),
+          },
+          timeout: 10000,
+        },
+        (response) => {
+          console.log(
+            `📡 [Healthcheck] Ping 완료 (${error ? "FAIL" : "SUCCESS"}, HTTP ${response.statusCode}): ${targetUrl.pathname}`
+          );
+          res();
+        }
+      );
+      req.on("error", (e) => {
+        console.error("⚠️ [Healthcheck] Ping 전송 실패:", e);
+        res();
+      });
+      req.on("timeout", () => {
+        req.destroy();
+        console.error("⚠️ [Healthcheck] Ping 타임아웃");
+        res();
+      });
+      req.write(body);
+      req.end();
+    } catch (e) {
+      console.error("⚠️ [Healthcheck] URL 처리 실패:", e);
+      res();
+    }
+  });
+}
+
+
 // 1. [매시간 실황 수집] 매시 40~58분 사이 2분 간격 카나리 감시
 // 초단기실황은 매시 30분 생성 후 40분 이후 제공되므로 40분부터 확인
 cron.schedule("40-58/2 * * * *", async () => {
@@ -31,8 +80,10 @@ cron.schedule("40-58/2 * * * *", async () => {
     try {
       await syncObservations();
       lastSyncedBaseTime = canary.baseTime;
+      await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
     } catch (err) {
       console.error("[워커 실황 수집 에러]", err);
+      await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
     } finally {
       isSyncing = false;
     }
@@ -47,8 +98,10 @@ cron.schedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
   isSyncing = true;
   try {
     await syncForecasts();
+    await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL);
   } catch (err) {
     console.error("[워커 단기예보 에러]", err);
+    await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
   } finally {
     isSyncing = false;
   }
@@ -64,6 +117,8 @@ cron.schedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
     await syncAllWeather();
     const { baseTime } = getNcstBaseDateTime();
     lastSyncedBaseTime = baseTime;
+    await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
+    await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL);
   } catch (err) {
     console.error("[워커 초기 수집 실패]", err);
   } finally {
@@ -71,3 +126,4 @@ cron.schedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
     console.log("[워커 대기] 다음 스케줄 대기 중...");
   }
 })();
+
