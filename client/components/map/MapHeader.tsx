@@ -10,7 +10,7 @@ export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
   return (
     <Header>
       <div>
-        <Eyebrow>OH UMBRELLA / LIVE ACCURACY</Eyebrow>
+        <Eyebrow>아 맞다 우산 | 강수 확률 통계</Eyebrow>
         <Title>{currentSido?.name ?? "전국"} 실시간 날씨 & 강수 확률</Title>
       </div>
       {weatherTime && (
