@@ -175,7 +175,9 @@ export function MapOverlay({
           {weather && (
             <StatsGrid>
               <StatBox highlight>
-                <StatLabel>단기예보 강수확률</StatLabel>
+                <StatLabelRow>
+                  <StatLabel>단기예보 강수확률</StatLabel>
+                </StatLabelRow>
                 <StatVal highlight>
                   {weather.kmaPop != null ? `${weather.kmaPop}%` : "—"}
                 </StatVal>
@@ -185,19 +187,21 @@ export function MapOverlay({
               <StatBox>
                 <StatLabelRow>
                   <StatLabel>실제 강수확률</StatLabel>
-                  {weather.stats && (
-                    <PopSelect
-                      value={selectedPop ?? ""}
-                      onChange={(e) => setSelectedPop(Number(e.target.value))}
-                      aria-label="예보 확률 기준 선택"
-                    >
-                      {Object.keys(weather.stats).map((pop) => (
+                  <PopSelect
+                    value={selectedPop ?? ""}
+                    onChange={(e) => setSelectedPop(Number(e.target.value))}
+                    aria-label="예보 확률 기준 선택"
+                  >
+                    {weather.stats && Object.keys(weather.stats).length > 0 ? (
+                      Object.keys(weather.stats).map((pop) => (
                         <option key={pop} value={pop}>
                           {pop}% 예보 시
                         </option>
-                      ))}
-                    </PopSelect>
-                  )}
+                      ))
+                    ) : (
+                      <option value="">데이터 없음</option>
+                    )}
+                  </PopSelect>
                 </StatLabelRow>
                 <StatVal>
                   {displayRate != null ? `${displayRate}%` : "—"}
@@ -435,7 +439,8 @@ const StatLabelRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2px;
+  
+  min-height: 24px; 
 `;
 
 const StatLabel = styled.div`
@@ -443,19 +448,23 @@ const StatLabel = styled.div`
   font-weight: 600;
   color: #94a3b8;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 `;
 
 const PopSelect = styled.select`
-  background: rgba(15, 23, 42, 0.4);
-  color: #e2e8f0;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 999px;
   font-size: 0.65rem;
-  padding: 2px 4px;
+  padding: 3px 8px;
   outline: none;
   cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 6px;
   
   &:hover {
+    background: rgba(56, 189, 248, 0.25);
     border-color: rgba(56, 189, 248, 0.6);
   }
   

@@ -298,7 +298,8 @@ export async function getLatestWeather() {
   const natMap = new Map(natStats.map((s) => [s.predicted_pop, s]));
 
   const data: Record<string, WeatherRecord> = {};
-  for (const row of rows) {
+  for (const rawRow of rows) {
+    const row = { ...rawRow };
     const pop = row.kmaPop ?? 0;
     const local = localMap.get(`${row.sigunguCode}_${pop}`);
     const nat = natMap.get(pop);
