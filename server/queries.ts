@@ -305,18 +305,15 @@ export async function getLatestWeather() {
     const nat = natMap.get(pop);
 
     row.isRaining = row.pty > 0 || row.rn1 > 0 ? 1 : 0;
-    const stat = local ?? nat;
-    row.empiricalRate = stat?.rate ?? pop;
-    row.sampleCount = stat?.samples ?? 0;
+    row.empiricalRate = local?.rate ?? null;
+    row.sampleCount = local?.samples ?? 0;
 
     // 0~100%까지 모든 버킷의 통계 매핑 (UI select 박스용)
     row.stats = {};
     for (let p = 0; p <= 100; p += 10) {
       const l = localMap.get(`${row.sigunguCode}_${p}`);
-      const n = natMap.get(p);
-      const s = l ?? n;
-      if (s) {
-        row.stats[p] = { rate: s.rate, samples: s.samples };
+      if (l) {
+        row.stats[p] = { rate: l.rate, samples: l.samples };
       }
     }
 
