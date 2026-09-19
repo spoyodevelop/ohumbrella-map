@@ -171,6 +171,30 @@ export async function upsertWeatherBatch(records: WeatherRecord[]) {
   }
 }
 
+// 4. 예보 수집 후 기존 실황 row의 pop/sky만 업데이트 (JOIN 제거용)
+// 예보 발표 시각이 아닌, 시군구별 최신 실황 row에 덮어씀
+export async function updateForecastPopBatch(
+  records: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[]
+) {
+  if (records.length === 0) return;
+
+  const sql = `
+    UPDATE hourly_weather
+    SET pop = ?, sky = ?, updated_at = ?
+    WHERE sigungu_code = ?
+      AND time = (SELECT MAX(time) FROM hourly_weather WHERE sigungu_code = ?)
+  `;
+
+  const chunks = chunkArray(records, 100);
+  for (const chunk of chunks) {
+    const stmts = chunk.map((r) => ({
+      sql,
+      args: [r.pop, r.sky, r.updatedAt, r.sigunguCode, r.sigunguCode],
+    }));
+    await db.batch(stmts, "write");
+  }
+}
+
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
 export async function getLatestWeather() {
   const latestTimeRes = await db.execute(
@@ -182,7 +206,7 @@ export async function getLatestWeather() {
     return { time: null, count: 0, data: {} };
   }
 
-  // 1. 시군구별 최신 실황 + 최신 단기예보 POP 조인
+  // 1. 시군구별 최신 실황 조회 (pop/sky는 예보 sync 시 직접 업데이트됨)
   const [rowsRes, localStatsRes, natStatsRes] = await Promise.all([
     db.execute(`
       SELECT 
@@ -190,12 +214,12 @@ export async function getLatestWeather() {
         h.sido_code as sidoCode,
         h.sigungu_code as sigunguCode,
         h.name,
-        COALESCE(fcst.pop, h.pop, 0) as pop,
-        COALESCE(fcst.pop, h.pop, 0) as kmaPop,
+        COALESCE(h.pop, 0) as pop,
+        COALESCE(h.pop, 0) as kmaPop,
         h.pty,
         h.rn1,
         h.tmp,
-        COALESCE(fcst.sky, h.sky, 1) as sky,
+        COALESCE(h.sky, 1) as sky,
         h.updated_at as updatedAt
       FROM hourly_weather h
       INNER JOIN (
@@ -203,17 +227,6 @@ export async function getLatestWeather() {
         FROM hourly_weather
         GROUP BY sigungu_code
       ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
-      LEFT JOIN (
-        SELECT f.sigungu_code, f.pop, f.sky
-        FROM weather_forecasts f
-        INNER JOIN (
-          SELECT sigungu_code, MAX(base_time) as max_base
-          FROM weather_forecasts
-          GROUP BY sigungu_code
-        ) mf ON f.sigungu_code = mf.sigungu_code AND f.base_time = mf.max_base
-        GROUP BY f.sigungu_code
-        HAVING MIN(f.target_time)
-      ) fcst ON h.sigungu_code = fcst.sigungu_code
     `),
     db.execute(`
       SELECT sigungu_code, predicted_pop, ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as rate, COUNT(*) as samples
@@ -276,8 +289,8 @@ export async function getSidoStats() {
   const res = await db.execute(`
     SELECT 
       h.sido_code as sidoCode,
-      ROUND(AVG(COALESCE(fcst.pop, h.pop, 0)), 1) as avgPop,
-      MAX(COALESCE(fcst.pop, h.pop, 0)) as maxPop,
+      ROUND(AVG(COALESCE(h.pop, 0)), 1) as avgPop,
+      MAX(COALESCE(h.pop, 0)) as maxPop,
       ROUND(SUM(COALESCE(h.rn1, 0)), 1) as totalRain,
       SUM(CASE WHEN h.pty > 0 OR h.rn1 > 0 THEN 1 ELSE 0 END) as rainingCount,
       COUNT(*) as totalCount
@@ -287,17 +300,6 @@ export async function getSidoStats() {
       FROM hourly_weather
       GROUP BY sigungu_code
     ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
-    LEFT JOIN (
-      SELECT f.sigungu_code, f.pop
-      FROM weather_forecasts f
-      INNER JOIN (
-        SELECT sigungu_code, MAX(base_time) as max_base
-        FROM weather_forecasts
-        GROUP BY sigungu_code
-      ) mf ON f.sigungu_code = mf.sigungu_code AND f.base_time = mf.max_base
-      GROUP BY f.sigungu_code
-      HAVING MIN(f.target_time)
-    ) fcst ON h.sigungu_code = fcst.sigungu_code
     GROUP BY h.sido_code
     ORDER BY h.sido_code ASC
   `);

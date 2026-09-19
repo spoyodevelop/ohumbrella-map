@@ -3,8 +3,9 @@ import { resolve } from "node:path";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
 import {
   upsertObservationsBatch,
-  upsertForecastsBatch,
   upsertWeatherBatch,
+  upsertForecastsBatch,
+  updateForecastPopBatch,
   type ObservationRecord,
   type ForecastRecord,
   type WeatherRecord,
@@ -289,7 +290,7 @@ export async function syncForecasts(): Promise<number> {
   console.log(`[단기예보 수집] 발표기준: ${baseTimeStr} (238개 격자)`);
 
   const forecastsToInsert: ForecastRecord[] = [];
-  const hourlyToInsert: WeatherRecord[] = [];
+  const forecastPopUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -352,7 +353,7 @@ export async function syncForecasts(): Promise<number> {
             });
           }
 
-          // 지도 렌더링용 POP 업데이트
+          // 지도 렌더링용: 기존 실황 row의 pop/sky 업데이트용 레코드
           hourList.push({
             time: baseTimeStr,
             sidoCode,
@@ -373,7 +374,12 @@ export async function syncForecasts(): Promise<number> {
 
     for (const res of chunkResults) {
       forecastsToInsert.push(...res.fcstList);
-      hourlyToInsert.push(...res.hourList);
+      forecastPopUpdates.push(...res.hourList.map((r) => ({
+        sigunguCode: r.sigunguCode,
+        pop: r.pop ?? 0,
+        sky: r.sky,
+        updatedAt: r.updatedAt,
+      })));
     }
 
     process.stdout.write(
@@ -384,7 +390,7 @@ export async function syncForecasts(): Promise<number> {
 
   console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
   await upsertForecastsBatch(forecastsToInsert);
-  await upsertWeatherBatch(hourlyToInsert);
+  await updateForecastPopBatch(forecastPopUpdates);
 
   return forecastsToInsert.length;
 }
