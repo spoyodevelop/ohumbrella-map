@@ -20,6 +20,7 @@ export type RegionWeatherInfo = {
   isRaining: number;
   empiricalRate: number | null;
   sampleCount: number;
+  stats?: Record<number, { rate: number; samples: number }>;
   updatedAt: string;
 };
 

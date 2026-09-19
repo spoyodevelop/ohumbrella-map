@@ -39,6 +39,7 @@ export interface WeatherRecord {
   isRaining?: number;
   empiricalRate?: number | null;
   sampleCount?: number;
+  stats?: Record<number, { rate: number; samples: number }>;
   updatedAt: string;
 }
 
@@ -195,6 +196,35 @@ export async function updateForecastPopBatch(
   }
 }
 
+// 5. 실황 sync 후 해당 관측 시각의 예보-실황 매칭으로 정확도 집계 테이블 누적 업데이트
+// 처리 대상: weather_forecasts WHERE target_time = observationTime (소규모 JOIN)
+export async function updateAccuracyStats(observationTime: string) {
+  const now = new Date().toISOString();
+  await db.execute({
+    sql: `
+      INSERT INTO forecast_accuracy_stats
+        (sigungu_code, predicted_pop, rain_count, total_count, updated_at)
+      SELECT
+        f.sigungu_code,
+        f.pop              AS predicted_pop,
+        SUM(o.is_raining)  AS rain_count,
+        COUNT(*)           AS total_count,
+        ?                  AS updated_at
+      FROM weather_forecasts f
+      INNER JOIN weather_observations o
+        ON f.target_time = o.time
+       AND f.sigungu_code = o.sigungu_code
+      WHERE o.time = ?
+      GROUP BY f.sigungu_code, f.pop
+      ON CONFLICT(sigungu_code, predicted_pop) DO UPDATE SET
+        rain_count  = rain_count  + excluded.rain_count,
+        total_count = total_count + excluded.total_count,
+        updated_at  = excluded.updated_at
+    `,
+    args: [now, observationTime],
+  });
+}
+
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
 export async function getLatestWeather() {
   const latestTimeRes = await db.execute(
@@ -228,14 +258,23 @@ export async function getLatestWeather() {
         GROUP BY sigungu_code
       ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
     `),
+    // 집계 테이블 직접 조회 (최대 2,772 rows, 비용 고정)
     db.execute(`
-      SELECT sigungu_code, predicted_pop, ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as rate, COUNT(*) as samples
-      FROM v_forecast_accuracy WHERE actual_rain IS NOT NULL
-      GROUP BY sigungu_code, predicted_pop
+      SELECT
+        sigungu_code,
+        predicted_pop,
+        ROUND(100.0 * rain_count / total_count, 1) AS rate,
+        total_count AS samples
+      FROM forecast_accuracy_stats
+      WHERE total_count > 0
     `),
     db.execute(`
-      SELECT predicted_pop, ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as rate, COUNT(*) as samples
-      FROM v_forecast_accuracy WHERE actual_rain IS NOT NULL
+      SELECT
+        predicted_pop,
+        ROUND(100.0 * SUM(rain_count) / SUM(total_count), 1) AS rate,
+        SUM(total_count) AS samples
+      FROM forecast_accuracy_stats
+      WHERE total_count > 0
       GROUP BY predicted_pop
     `),
   ]);
@@ -268,6 +307,17 @@ export async function getLatestWeather() {
     const stat = local ?? nat;
     row.empiricalRate = stat?.rate ?? pop;
     row.sampleCount = stat?.samples ?? 0;
+
+    // 0~100%까지 모든 버킷의 통계 매핑 (UI select 박스용)
+    row.stats = {};
+    for (let p = 0; p <= 100; p += 10) {
+      const l = localMap.get(`${row.sigunguCode}_${p}`);
+      const n = natMap.get(p);
+      const s = l ?? n;
+      if (s) {
+        row.stats[p] = { rate: s.rate, samples: s.samples };
+      }
+    }
 
     data[row.sigunguCode] = row;
   }

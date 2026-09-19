@@ -1,5 +1,6 @@
 import type { MapRegion, RegionWeatherInfo } from "../../types";
 import styled from "@emotion/styled";
+import { useState, useEffect } from "react";
 
 interface MapOverlayProps {
   selectedRegion: MapRegion | undefined;
@@ -119,6 +120,20 @@ export function MapOverlay({
     ? getWeatherVisual(weather, selectedRegion.rainChance)
     : null;
 
+  const [selectedPop, setSelectedPop] = useState<number | null>(null);
+
+  useEffect(() => {
+    setSelectedPop(weather?.kmaPop ?? null);
+  }, [selectedRegion?.code, weather?.kmaPop]);
+
+  const displayRate = selectedPop !== null && weather?.stats?.[selectedPop]
+    ? Math.round(weather.stats[selectedPop].rate)
+    : (weather?.empiricalRate != null ? Math.round(weather.empiricalRate) : null);
+    
+  const displaySamples = selectedPop !== null && weather?.stats?.[selectedPop]
+    ? weather.stats[selectedPop].samples
+    : (weather?.sampleCount ?? 0);
+
   return (
     <>
       {hoveredRegion && (
@@ -168,15 +183,28 @@ export function MapOverlay({
               </StatBox>
 
               <StatBox>
-                <StatLabel>실제 강수확률</StatLabel>
+                <StatLabelRow>
+                  <StatLabel>실제 강수확률</StatLabel>
+                  {weather.stats && (
+                    <PopSelect
+                      value={selectedPop ?? ""}
+                      onChange={(e) => setSelectedPop(Number(e.target.value))}
+                      aria-label="예보 확률 기준 선택"
+                    >
+                      {Object.keys(weather.stats).map((pop) => (
+                        <option key={pop} value={pop}>
+                          {pop}% 예보 시
+                        </option>
+                      ))}
+                    </PopSelect>
+                  )}
+                </StatLabelRow>
                 <StatVal>
-                  {weather.empiricalRate != null
-                    ? `${Math.round(weather.empiricalRate)}%`
-                    : "—"}
+                  {displayRate != null ? `${displayRate}%` : "—"}
                 </StatVal>
                 <StatSubText>
-                  {weather.sampleCount > 0
-                    ? `과거 표본 ${weather.sampleCount}건 검증`
+                  {displaySamples > 0
+                    ? `과거 표본 ${displaySamples}건 검증`
                     : "표본 수집 중"}
                 </StatSubText>
               </StatBox>
@@ -403,12 +431,38 @@ const StatBox = styled.div<{ highlight?: boolean }>`
       props.highlight ? "rgba(56, 189, 248, 0.22)" : "rgba(51, 65, 85, 0.3)"};
 `;
 
+const StatLabelRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+`;
+
 const StatLabel = styled.div`
   font-size: 0.68rem;
   font-weight: 600;
   color: #94a3b8;
   letter-spacing: -0.02em;
-  margin-bottom: 2px;
+`;
+
+const PopSelect = styled.select`
+  background: rgba(15, 23, 42, 0.4);
+  color: #e2e8f0;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  outline: none;
+  cursor: pointer;
+  
+  &:hover {
+    border-color: rgba(56, 189, 248, 0.6);
+  }
+  
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
 `;
 
 const StatVal = styled.div<{ highlight?: boolean }>`

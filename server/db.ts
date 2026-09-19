@@ -143,6 +143,42 @@ export async function initDb() {
       ON f.target_time = o.time 
      AND f.sigungu_code = o.sigungu_code;
   `);
+    // 예보 정확도 집계 테이블 (시군구 × pop_bucket → 누적 카운터)
+    // 조회 비용: 항상 최대 2,772 rows (sigungu 252 × pop bucket 최대 11)
+    await db.execute(`
+    CREATE TABLE IF NOT EXISTS forecast_accuracy_stats (
+      sigungu_code  TEXT     NOT NULL,
+      predicted_pop INTEGER  NOT NULL,
+      rain_count    INTEGER  NOT NULL DEFAULT 0,
+      total_count   INTEGER  NOT NULL DEFAULT 0,
+      updated_at    TEXT     NOT NULL,
+      PRIMARY KEY (sigungu_code, predicted_pop)
+    );
+  `);
+
+    // 테이블이 비어있으면 기존 v_forecast_accuracy 데이터로 일회성 backfill
+    const statsCountRes = await db.execute(
+      `SELECT COUNT(*) as cnt FROM forecast_accuracy_stats`
+    );
+    const statsCount = (statsCountRes.rows[0]?.cnt as number) ?? 0;
+    if (statsCount === 0) {
+      console.log(`🔄 [DB 스키마] forecast_accuracy_stats 초기 backfill 실행...`);
+      await db.execute(`
+        INSERT OR IGNORE INTO forecast_accuracy_stats
+          (sigungu_code, predicted_pop, rain_count, total_count, updated_at)
+        SELECT
+          sigungu_code,
+          predicted_pop,
+          SUM(actual_rain)   AS rain_count,
+          COUNT(*)           AS total_count,
+          datetime('now')    AS updated_at
+        FROM v_forecast_accuracy
+        WHERE actual_rain IS NOT NULL
+        GROUP BY sigungu_code, predicted_pop
+      `);
+      console.log(`✅ [DB 스키마] forecast_accuracy_stats backfill 완료`);
+    }
+
     console.log(`✅ [DB 스키마] 모든 테이블, 인덱스, 뷰 준비 완료!`);
   })().catch((err) => {
     initPromise = null;
