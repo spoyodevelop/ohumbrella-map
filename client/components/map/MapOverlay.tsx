@@ -123,8 +123,24 @@ export function MapOverlay({
   const [selectedPop, setSelectedPop] = useState<number | null>(null);
 
   useEffect(() => {
-    setSelectedPop(weather?.kmaPop ?? null);
-  }, [selectedRegion?.code, weather?.kmaPop]);
+    if (weather?.kmaPop != null) {
+      setSelectedPop(weather.kmaPop);
+    } else if (!weather && selectedRegion?.stats) {
+      const pops = Object.keys(selectedRegion.stats).map(Number).sort((a, b) => a - b);
+      if (pops.length > 0) {
+        // Find the closest available bucket to the region's average rainChance
+        const target = selectedRegion.rainChance || 0;
+        const closest = pops.reduce((prev, curr) => 
+          Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
+        );
+        setSelectedPop(closest);
+      } else {
+        setSelectedPop(null);
+      }
+    } else {
+      setSelectedPop(null);
+    }
+  }, [selectedRegion?.code, weather?.kmaPop, selectedRegion?.stats, selectedRegion?.rainChance]);
 
   const displayRate = selectedPop !== null && weather?.stats?.[selectedPop]
     ? Math.round(weather.stats[selectedPop].rate)
@@ -186,11 +202,11 @@ export function MapOverlay({
 
               <StatBox>
                 <StatLabelRow>
-                  <StatLabel>실제 강수확률</StatLabel>
+                  <StatLabel>구/군 실강수확률</StatLabel>
                   <PopSelect
                     value={selectedPop ?? ""}
                     onChange={(e) => setSelectedPop(Number(e.target.value))}
-                    aria-label="예보 확률 기준 선택"
+                    aria-label="예보 확률 기준 선택 (구/군)"
                   >
                     {weather.stats && Object.keys(weather.stats).length > 0 ? (
                       Object.keys(weather.stats).map((pop) => (
@@ -208,7 +224,42 @@ export function MapOverlay({
                 </StatVal>
                 <StatSubText>
                   {displaySamples > 0
-                    ? `과거 표본 ${displaySamples}건 검증`
+                    ? `구/군 표본 ${displaySamples}건 검증`
+                    : "표본 수집 중"}
+                </StatSubText>
+              </StatBox>
+            </StatsGrid>
+          )}
+
+          {!weather && selectedRegion && (
+            <StatsGrid>
+              <StatBox style={{ gridColumn: "1 / -1" }}>
+                <StatLabelRow>
+                  <StatLabel>시/도 전체 실강수확률</StatLabel>
+                  <PopSelect
+                    value={selectedPop ?? ""}
+                    onChange={(e) => setSelectedPop(Number(e.target.value))}
+                    aria-label="예보 확률 기준 선택 (시/도)"
+                  >
+                    {selectedRegion.stats && Object.keys(selectedRegion.stats).length > 0 ? (
+                      Object.keys(selectedRegion.stats).map((pop) => (
+                        <option key={pop} value={pop}>
+                          {pop}% 예보 시
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">데이터 없음</option>
+                    )}
+                  </PopSelect>
+                </StatLabelRow>
+                <StatVal>
+                  {selectedPop !== null && selectedRegion.stats?.[selectedPop]
+                    ? `${Math.round(selectedRegion.stats[selectedPop].rate)}%`
+                    : "—"}
+                </StatVal>
+                <StatSubText>
+                  {selectedPop !== null && selectedRegion.stats?.[selectedPop]?.samples
+                    ? `시/도 표본 ${selectedRegion.stats[selectedPop].samples}건 검증`
                     : "표본 수집 중"}
                 </StatSubText>
               </StatBox>

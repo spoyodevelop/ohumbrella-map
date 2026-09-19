@@ -21,6 +21,9 @@ export type RegionWeatherInfo = {
   empiricalRate: number | null;
   sampleCount: number;
   stats?: Record<number, { rate: number; samples: number }>;
+  sidoStats?: Record<number, { rate: number; samples: number }>;
+  sidoSampleCount?: number;
+  sidoEmpiricalRate?: number | null;
   updatedAt: string;
 };
 
@@ -32,6 +35,8 @@ export type MapRegion = {
   bounds: [number, number, number, number];
   label: { x: number; y: number };
   weather?: RegionWeatherInfo;
+  stats?: Record<number, { rate: number; samples: number }>;
+  sampleCount?: number;
 };
 
 export type SelectionState =

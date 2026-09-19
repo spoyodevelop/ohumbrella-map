@@ -9,6 +9,7 @@ interface SidoStat {
   totalRain: number;
   rainingCount: number;
   totalCount: number;
+  stats?: Record<number, { rate: number; samples: number }>;
 }
 
 export function useMapData(sidoCode: string | undefined) {
@@ -123,6 +124,8 @@ export function useMapData(sidoCode: string | undefined) {
       return {
         ...s,
         rainChance: Math.round(stat.avgPop),
+        stats: stat.stats,
+        sampleCount: stat.totalCount,
       };
     });
   }, [sidos, sidoStatsMap]);
