@@ -16,7 +16,7 @@ export function useKoreaMap() {
     selection.level === "sigungu" ? selection.sigunguCode : undefined;
 
   const mapData = useMapData(sidoCode);
-  const regions =
+  const visibleRegions =
     sidoCode !== undefined && mapData.sigungu.length > 0
       ? mapData.sigungu
       : mapData.sidos;
@@ -34,12 +34,11 @@ export function useKoreaMap() {
   });
 
   const mapHover = useMapHover({
-    regions,
+    regions: visibleRegions,
     sidoCode,
     preloadSigungu: mapData.preloadSigungu,
   });
 
-  // 클릭(선택)된 지역: 시군구가 선택되어 있으면 시군구, 아니면 선택된 시도
   const selectedRegion = useMemo<MapRegion | undefined>(() => {
     if (sigunguCode) {
       return mapData.sigungu.find(({ code }) => code === sigunguCode);
@@ -50,7 +49,6 @@ export function useKoreaMap() {
     return undefined;
   }, [sigunguCode, sidoCode, mapData.sigungu, mapData.sidos]);
 
-  // 선택 해제: 시군구 선택 중이면 시도 단계로, 시도 선택 중이면 전국으로 복귀
   const clearSelection = useCallback(() => {
     if (selection.level === "sigungu") {
       setSelection({ level: "sido", sidoCode: selection.sidoCode });
@@ -82,10 +80,9 @@ export function useKoreaMap() {
     hoveredRegion: mapHover.hoveredRegion,
     handleRegionEnter: mapHover.handleRegionEnter,
     handleRegionLeave: mapHover.handleRegionLeave,
-    regions,
+    regions: visibleRegions,
     weatherTime: mapData.weatherTime,
     loading: mapData.loading,
     error: mapData.error,
   };
 }
-

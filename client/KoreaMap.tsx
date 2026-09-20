@@ -7,61 +7,61 @@ import { useKoreaMap } from "./hooks/useKoreaMap";
 import "./lib/region.css";
 
 export function KoreaMap() {
-  const map = useKoreaMap();
+  const mapState = useKoreaMap();
 
   return (
     <Shell>
       <MapHeader
-        currentSido={map.currentSido}
-        weatherTime={map.weatherTime}
+        currentSido={mapState.currentSido}
+        weatherTime={mapState.weatherTime}
       />
 
       <Stage aria-label="대한민국 행정구역 강수 확률 지도">
         <MapToolbar
-          onZoomIn={map.zoomIn}
-          onZoomOut={map.zoomOut}
-          onShowNational={map.showNationalMap}
-          onLocate={map.locateUser}
-          isLocating={map.isLocating}
+          onZoomIn={mapState.zoomIn}
+          onZoomOut={mapState.zoomOut}
+          onShowNational={mapState.showNationalMap}
+          onLocate={mapState.locateUser}
+          isLocating={mapState.isLocating}
         />
 
-        {map.loading && <LoadState>지도 불러오는 중…</LoadState>}
-        {map.error && (
-          <LoadError>데이터를 읽지 못했습니다. ({map.error})</LoadError>
+        {mapState.loading && <LoadState>지도 불러오는 중…</LoadState>}
+        {mapState.error && (
+          <LoadError>데이터를 읽지 못했습니다. ({mapState.error})</LoadError>
         )}
 
         <MapSvg
-          svgRef={map.svgRef}
-          regions={map.regions}
-          view={map.view}
-          isDragging={map.isDragging}
-          isPinching={map.isPinching}
-          sidoCode={map.sidoCode}
-          sigunguCode={map.sigunguCode}
-          currentSidoName={map.currentSido?.name}
-          onPointerDown={map.handlePointerDown}
-          onPointerMove={map.handlePointerMove}
-          onPointerUp={map.handlePointerUp}
+          svgRef={mapState.svgRef}
+          regions={mapState.regions}
+          view={mapState.view}
+          isDragging={mapState.isDragging}
+          isPinching={mapState.isPinching}
+          sidoCode={mapState.sidoCode}
+          sigunguCode={mapState.sigunguCode}
+          currentSidoName={mapState.currentSido?.name}
+          onPointerDown={mapState.handlePointerDown}
+          onPointerMove={mapState.handlePointerMove}
+          onPointerUp={mapState.handlePointerUp}
           onBackgroundClick={() => {
-            if (map.sigunguCode !== undefined) {
-              map.clearSelection();
-            } else if (map.sidoCode !== undefined) {
-              map.showNationalMap();
+            if (mapState.sigunguCode !== undefined) {
+              mapState.clearSelection();
+            } else if (mapState.sidoCode !== undefined) {
+              mapState.showNationalMap();
             }
           }}
-          onRegionEnter={map.handleRegionEnter}
-          onRegionLeave={map.handleRegionLeave}
-          onRegionSelect={map.selectRegion}
+          onRegionEnter={mapState.handleRegionEnter}
+          onRegionLeave={mapState.handleRegionLeave}
+          onRegionSelect={mapState.selectRegion}
         />
 
         <MapOverlay
-          key={map.selectedRegion?.code ?? "no-selection"}
-          selectedRegion={map.selectedRegion}
-          hoveredRegion={map.hoveredRegion}
-          sidoCode={map.sidoCode}
-          scale={map.view.scale}
-          isSimgunguLod={map.sidoCode !== undefined}
-          onCloseDetail={map.clearSelection}
+          key={mapState.selectedRegion?.code ?? "no-selection"}
+          selectedRegion={mapState.selectedRegion}
+          hoveredRegion={mapState.hoveredRegion}
+          sidoCode={mapState.sidoCode}
+          scale={mapState.view.scale}
+          isSimgunguLod={mapState.sidoCode !== undefined}
+          onCloseDetail={mapState.clearSelection}
         />
 
       </Stage>

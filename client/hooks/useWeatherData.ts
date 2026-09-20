@@ -4,37 +4,41 @@ import {
   type WeatherSnapshot,
 } from "../api/weather";
 
-interface WeatherData extends WeatherSnapshot {
-  error: string;
+interface WeatherDataState extends WeatherSnapshot {
+  errorMessage: string;
 }
 
-const EMPTY_WEATHER: WeatherSnapshot = {
+const EMPTY_WEATHER_SNAPSHOT: WeatherSnapshot = {
   weatherMap: {},
   sidoStatsMap: {},
   weatherTime: "",
 };
 
-export function useWeatherData(): WeatherData {
-  const [weather, setWeather] = useState<WeatherSnapshot>(EMPTY_WEATHER);
-  const [error, setError] = useState("");
+export function useWeatherData(): WeatherDataState {
+  const [weatherSnapshot, setWeatherSnapshot] = useState<WeatherSnapshot>(
+    EMPTY_WEATHER_SNAPSHOT,
+  );
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    let active = true;
+    let isEffectActive = true;
 
     loadWeatherSnapshot()
-      .then((snapshot) => {
-        if (active) setWeather(snapshot);
+      .then((loadedSnapshot) => {
+        if (isEffectActive) setWeatherSnapshot(loadedSnapshot);
       })
       .catch((reason: unknown) => {
-        if (active) {
-          setError(reason instanceof Error ? reason.message : String(reason));
+        if (isEffectActive) {
+          setErrorMessage(
+            reason instanceof Error ? reason.message : String(reason),
+          );
         }
       });
 
     return () => {
-      active = false;
+      isEffectActive = false;
     };
   }, []);
 
-  return { ...weather, error };
+  return { ...weatherSnapshot, errorMessage };
 }

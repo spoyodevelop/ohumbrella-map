@@ -4,113 +4,129 @@ import type { MapRegion, RegionWeatherInfo } from "../types";
 import { useWeatherData } from "./useWeatherData";
 
 export function useMapData(sidoCode: string | undefined) {
-  const weather = useWeatherData();
-  const [sidos, setSidos] = useState<MapRegion[]>([]);
-  const [sigunguCache, setSigunguCache] = useState<Record<string, MapRegion[]>>(
-    {},
-  );
-  const [error, setError] = useState("");
+  const weatherData = useWeatherData();
+  const [sidoRegions, setSidoRegions] = useState<MapRegion[]>([]);
+  const [sigunguRegionsBySidoCode, setSigunguRegionsBySidoCode] = useState<
+    Record<string, MapRegion[]>
+  >({});
+  const [mapErrorMessage, setMapErrorMessage] = useState("");
 
-  // 2. 시도 지도 경계 로드
   useEffect(() => {
-    let active = true;
+    let isEffectActive = true;
     loadRegionFile(sidoFile)
-      .then((regions) => {
-        if (active) setSidos(regions);
+      .then((loadedRegions) => {
+        if (isEffectActive) setSidoRegions(loadedRegions);
       })
       .catch((reason: unknown) => {
-        if (active)
-          setError(reason instanceof Error ? reason.message : String(reason));
+        if (isEffectActive) {
+          setMapErrorMessage(
+            reason instanceof Error ? reason.message : String(reason),
+          );
+        }
       });
     return () => {
-      active = false;
+      isEffectActive = false;
     };
   }, []);
 
-  // 3. 특정 시도 진입 시 시군구 경계 로드
   useEffect(() => {
-    if (sidoCode === undefined || sidoCode in sigunguCache) return;
-    let active = true;
+    if (sidoCode === undefined || sidoCode in sigunguRegionsBySidoCode) return;
+    let isEffectActive = true;
     loadRegionFile(sigunguFile(sidoCode))
-      .then((regions) => {
-        if (active)
-          setSigunguCache((prev) => ({ ...prev, [sidoCode]: regions }));
+      .then((loadedRegions) => {
+        if (isEffectActive) {
+          setSigunguRegionsBySidoCode((currentRegions) => ({
+            ...currentRegions,
+            [sidoCode]: loadedRegions,
+          }));
+        }
       })
       .catch((reason: unknown) => {
-        if (active)
-          setError(reason instanceof Error ? reason.message : String(reason));
+        if (isEffectActive) {
+          setMapErrorMessage(
+            reason instanceof Error ? reason.message : String(reason),
+          );
+        }
       });
     return () => {
-      active = false;
+      isEffectActive = false;
     };
-  }, [sidoCode, sigunguCache]);
+  }, [sidoCode, sigunguRegionsBySidoCode]);
 
   function resolveRainChance(
-    weather: RegionWeatherInfo,
-    fallback: number,
+    regionWeather: RegionWeatherInfo,
+    fallbackRainChance: number,
   ): number {
-    if (weather.kmaPop != null) return weather.kmaPop;
-    if (weather.empiricalRate != null) return Math.round(weather.empiricalRate);
-    return fallback;
+    if (regionWeather.kmaPop != null) return regionWeather.kmaPop;
+    if (regionWeather.empiricalRate != null) {
+      return Math.round(regionWeather.empiricalRate);
+    }
+    return fallbackRainChance;
   }
 
-  // 날씨 데이터 매핑 함수 (시군구)
-  const enrichSigungu = useCallback(
-    (rawList: MapRegion[]) => {
-      return rawList.map((r) => {
-        const regionWeather = weather.weatherMap[r.code];
-        if (!regionWeather) return r;
+  const attachWeatherToSigunguRegions = useCallback(
+    (regions: MapRegion[]) => {
+      return regions.map((region) => {
+        const regionWeather = weatherData.weatherMap[region.code];
+        if (!regionWeather) return region;
         return {
-          ...r,
-          rainChance: resolveRainChance(regionWeather, r.rainChance),
+          ...region,
+          rainChance: resolveRainChance(regionWeather, region.rainChance),
           weather: regionWeather,
         };
       });
     },
-    [weather.weatherMap],
+    [weatherData.weatherMap],
   );
 
-  // 날씨 데이터 매핑 함수 (시도)
-  const enrichedSidos = useMemo(() => {
-    return sidos.map((s) => {
-      const stat = weather.sidoStatsMap[s.code];
-      if (!stat) return s;
+  const sidoRegionsWithWeather = useMemo(() => {
+    return sidoRegions.map((region) => {
+      const sidoWeatherStats = weatherData.sidoStatsMap[region.code];
+      if (!sidoWeatherStats) return region;
       return {
-        ...s,
-        rainChance: Math.round(stat.avgPop),
-        stats: stat.stats,
-        sampleCount: stat.totalCount,
+        ...region,
+        rainChance: Math.round(sidoWeatherStats.avgPop),
+        stats: sidoWeatherStats.stats,
+        sampleCount: sidoWeatherStats.totalCount,
       };
     });
-  }, [sidos, weather.sidoStatsMap]);
+  }, [sidoRegions, weatherData.sidoStatsMap]);
 
-  const enrichedSigungu = useMemo(() => {
-    if (!sidoCode || !sigunguCache[sidoCode]) return [];
-    return enrichSigungu(sigunguCache[sidoCode]);
-  }, [sidoCode, sigunguCache, enrichSigungu]);
+  const sigunguRegionsWithWeather = useMemo(() => {
+    if (!sidoCode || !sigunguRegionsBySidoCode[sidoCode]) return [];
+    return attachWeatherToSigunguRegions(
+      sigunguRegionsBySidoCode[sidoCode],
+    );
+  }, [sidoCode, sigunguRegionsBySidoCode, attachWeatherToSigunguRegions]);
 
-  const loading =
-    sidos.length === 0 ||
-    (sidoCode !== undefined && !(sidoCode in sigunguCache));
+  const isLoading =
+    sidoRegions.length === 0 ||
+    (sidoCode !== undefined && !(sidoCode in sigunguRegionsBySidoCode));
 
   const preloadSigungu = useCallback(
     (code: string): Promise<MapRegion[]> => {
-      if (code in sigunguCache)
-        return Promise.resolve(enrichSigungu(sigunguCache[code]));
-      return loadRegionFile(sigunguFile(code)).then((regions) => {
-        setSigunguCache((prev) => ({ ...prev, [code]: regions }));
-        return enrichSigungu(regions);
+      if (code in sigunguRegionsBySidoCode) {
+        return Promise.resolve(
+          attachWeatherToSigunguRegions(sigunguRegionsBySidoCode[code]),
+        );
+      }
+      return loadRegionFile(sigunguFile(code)).then((loadedRegions) => {
+        setSigunguRegionsBySidoCode((currentRegions) => ({
+          ...currentRegions,
+          [code]: loadedRegions,
+        }));
+        return attachWeatherToSigunguRegions(loadedRegions);
       });
     },
-    [sigunguCache, enrichSigungu],
+    [sigunguRegionsBySidoCode, attachWeatherToSigunguRegions],
   );
 
   return {
-    sidos: enrichedSidos,
-    sigungu: enrichedSigungu,
-    weatherTime: weather.weatherTime,
-    loading,
-    error: error || weather.error,
+    sidos: sidoRegionsWithWeather,
+    sigungu: sigunguRegionsWithWeather,
+    weatherTime: weatherData.weatherTime,
+    loading: isLoading,
+    error: mapErrorMessage || weatherData.errorMessage,
     preloadSigungu,
   };
 }
