@@ -29,7 +29,6 @@ export type UseMapViewResult = {
   dragged: React.RefObject<boolean>;
   view: MapView;
   isDragging: boolean;
-  isPinching: boolean;
   isWheelZooming: boolean;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -42,18 +41,16 @@ export type UseMapViewResult = {
 
 export function useMapView(): UseMapViewResult {
   const svgRef = useRef<SVGSVGElement>(null);
-  const pointers = useRef(new Map<number, MapPoint>());
-  const lastPinchDistance = useRef(0);
+  const activePointer = useRef<
+    { id: number; point: MapPoint } | undefined
+  >(undefined);
   const dragDistance = useRef(0);
   const dragged = useRef(false);
   const liveView = useRef<MapView>(INITIAL_VIEW);
   const animationFrame = useRef<number | undefined>(undefined);
-  const wheelCommitTimer = useRef<number | undefined>(undefined);
-  const wheelZooming = useRef(false);
 
   const [view, setView] = useState<MapView>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
-  const [isPinching, setIsPinching] = useState(false);
   const [isWheelZooming, setIsWheelZooming] = useState(false);
 
   function applyView(view: MapView) {
@@ -67,7 +64,7 @@ export function useMapView(): UseMapViewResult {
 
   function scheduleView(view: MapView) {
     liveView.current = view;
-    if (animationFrame.current !== undefined) return;
+    if (animationFrame.current) return;
     animationFrame.current = requestAnimationFrame(() => {
       animationFrame.current = undefined;
       applyView(liveView.current);
@@ -119,72 +116,41 @@ export function useMapView(): UseMapViewResult {
   }
 
   function handlePointerDown(event: React.PointerEvent<SVGSVGElement>) {
-    pointers.current.set(
-      event.pointerId,
-      toMapPoint(event.clientX, event.clientY),
-    );
+    if (activePointer.current) return;
+    activePointer.current = {
+      id: event.pointerId,
+      point: toMapPoint(event.clientX, event.clientY),
+    };
     dragDistance.current = 0;
     dragged.current = false;
-    if (pointers.current.size === 2) {
-      for (const id of pointers.current.keys())
-        event.currentTarget.setPointerCapture(id);
-      dragged.current = true;
-      lastPinchDistance.current = 0;
-      setIsPinching(true);
-    }
   }
 
   function handlePointerMove(event: React.PointerEvent<SVGSVGElement>) {
-    if (!pointers.current.has(event.pointerId)) return;
+    if (activePointer.current?.id !== event.pointerId) return;
     const point = toMapPoint(event.clientX, event.clientY);
-    const previous = pointers.current.get(event.pointerId);
-    pointers.current.set(event.pointerId, point);
-    if (!previous) return;
-
-    if (pointers.current.size === 1) {
-      const dx = point.x - previous.x;
-      const dy = point.y - previous.y;
-      dragDistance.current += Math.hypot(dx, dy);
-      if (!dragged.current && dragDistance.current < 5) return;
-      if (!dragged.current) {
-        dragged.current = true;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        setIsDragging(true);
-      }
-      scheduleView({
-        ...liveView.current,
-        x: liveView.current.x + dx,
-        y: liveView.current.y + dy,
-      });
-      return;
+    const previous = activePointer.current.point;
+    activePointer.current.point = point;
+    const dx = point.x - previous.x;
+    const dy = point.y - previous.y;
+    dragDistance.current += Math.hypot(dx, dy);
+    if (!dragged.current && dragDistance.current < 5) return;
+    if (!dragged.current) {
+      dragged.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setIsDragging(true);
     }
-
-    const [first, second] = [...pointers.current.values()];
-    const distance = Math.hypot(second.x - first.x, second.y - first.y);
-    const center = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
-    if (lastPinchDistance.current > 0) {
-      scheduleView(
-        zoomView(
-          liveView.current,
-          center,
-          Math.pow(distance / lastPinchDistance.current, 2.5),
-        ),
-      );
-    }
-    lastPinchDistance.current = distance;
+    scheduleView({
+      ...liveView.current,
+      x: liveView.current.x + dx,
+      y: liveView.current.y + dy,
+    });
   }
 
   function handlePointerUp(event: React.PointerEvent<SVGSVGElement>) {
-    pointers.current.delete(event.pointerId);
-    if (pointers.current.size < 2) {
-      lastPinchDistance.current = 0;
-      setIsPinching(false);
-      if (pointers.current.size === 1) setIsDragging(true);
-    }
-    if (pointers.current.size === 0) {
-      setIsDragging(false);
-      setView(liveView.current);
-    }
+    if (activePointer.current?.id !== event.pointerId) return;
+    activePointer.current = undefined;
+    setIsDragging(false);
+    setView(liveView.current);
   }
 
   useLayoutEffect(() => {
@@ -197,15 +163,15 @@ export function useMapView(): UseMapViewResult {
       if (animationFrame.current !== undefined) {
         cancelAnimationFrame(animationFrame.current);
       }
-      if (wheelCommitTimer.current !== undefined) {
-        window.clearTimeout(wheelCommitTimer.current);
-      }
     };
   }, []);
 
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
+    let commitTimer: ReturnType<typeof setTimeout> | undefined;
+    let wheelZooming = false;
+
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(
@@ -218,22 +184,25 @@ export function useMapView(): UseMapViewResult {
           Math.exp(-event.deltaY * 0.0014),
         ),
       );
-      if (!wheelZooming.current) {
-        wheelZooming.current = true;
+      if (!wheelZooming) {
+        wheelZooming = true;
         setIsWheelZooming(true);
       }
-      if (wheelCommitTimer.current !== undefined) {
-        window.clearTimeout(wheelCommitTimer.current);
+      if (commitTimer) {
+        clearTimeout(commitTimer);
       }
-      wheelCommitTimer.current = window.setTimeout(() => {
-        wheelCommitTimer.current = undefined;
-        wheelZooming.current = false;
+      commitTimer = setTimeout(() => {
+        commitTimer = undefined;
+        wheelZooming = false;
         setView(liveView.current);
         setIsWheelZooming(false);
       }, 120);
     };
     svg.addEventListener("wheel", handleWheel, { passive: false });
-    return () => svg.removeEventListener("wheel", handleWheel);
+    return () => {
+      svg.removeEventListener("wheel", handleWheel);
+      if (commitTimer) clearTimeout(commitTimer);
+    };
   }, []);
 
   return {
@@ -241,7 +210,6 @@ export function useMapView(): UseMapViewResult {
     dragged,
     view,
     isDragging,
-    isPinching,
     isWheelZooming,
     zoomIn: () => zoomAt(MAP_CENTER, 2.25),
     zoomOut: () => zoomAt(MAP_CENTER, 1 / 2.25),

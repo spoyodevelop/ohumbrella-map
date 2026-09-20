@@ -55,7 +55,6 @@ export function useKoreaMap() {
     svgRef: mapView.svgRef,
     view: mapView.view,
     isDragging: mapView.isDragging,
-    isPinching: mapView.isPinching,
     isWheelZooming: mapView.isWheelZooming,
     zoomIn: mapView.zoomIn,
     zoomOut: mapView.zoomOut,

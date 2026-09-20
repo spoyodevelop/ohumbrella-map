@@ -56,7 +56,6 @@ interface MapSvgProps {
   svgRef: React.RefObject<SVGSVGElement | null>;
   regions: MapRegion[];
   isDragging: boolean;
-  isPinching: boolean;
   isWheelZooming: boolean;
   sidoCode: string | undefined;
   sigunguCode: string | undefined;
@@ -72,7 +71,6 @@ export function MapSvg({
   svgRef,
   regions,
   isDragging,
-  isPinching,
   isWheelZooming,
   sidoCode,
   sigunguCode,
@@ -106,7 +104,6 @@ export function MapSvg({
 
       <MapLayer
         $dragging={isDragging}
-        $pinching={isPinching}
         $wheelZooming={isWheelZooming}
       >
         {regions.map((region) => (
@@ -133,7 +130,7 @@ const SvgRoot = styled.svg`
   width: 100%;
   height: 100%;
   cursor: grab;
-  touch-action: none;
+  touch-action: pinch-zoom;
   user-select: none;
 
   &:active {
@@ -147,7 +144,6 @@ const MapBackground = styled.rect`
 
 const MapLayer = styled.g<{
   $dragging: boolean;
-  $pinching: boolean;
   $wheelZooming: boolean;
 }>`
   transform-box: view-box;
@@ -155,10 +151,10 @@ const MapLayer = styled.g<{
   transform: translate(var(--map-x, 0px), var(--map-y, 0px))
     scale(var(--map-scale, 1));
   will-change: transform;
-  transition: ${({ $dragging, $pinching, $wheelZooming }) =>
-    $dragging || $pinching || $wheelZooming
+  transition: ${({ $dragging, $wheelZooming }) =>
+    $dragging || $wheelZooming
       ? "none"
-      : "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)"};
+      : "transform 120ms cubic-bezier(0.22, 1, 0.36, 1)"};
 `;
 
 const LabelLayer = styled.g`
