@@ -1,4 +1,5 @@
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => {
@@ -6,14 +7,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react({
-        babel: {
-          plugins: [
-            ["@emotion/babel-plugin", {}],
-            ["babel-plugin-react-compiler", {}],
-          ],
-        },
-      } as Object),
+      react(),
+      babel({
+        presets: [reactCompilerPreset()],
+      }),
     ],
     build: {
       target: "baseline-widely-available",
