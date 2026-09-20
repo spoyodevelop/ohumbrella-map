@@ -4,7 +4,9 @@
   stroke: #111723;
   stroke-width: 0.9;
   cursor: pointer;
-  transition: filter 100ms ease, opacity 100ms ease;
+  transition:
+    filter 100ms ease,
+    opacity 100ms ease;
 }
 
 .region:hover {
@@ -20,18 +22,31 @@
 .region-label {
   transform-box: view-box;
   transform-origin: 0 0;
-  font: 600 11px/1 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+  font:
+    600 14.5px/1 "Pretendard Variable",
+    Pretendard,
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
   fill: rgb(255 255 255 / 0.85);
   text-anchor: middle;
   dominant-baseline: middle;
   paint-order: stroke fill;
-  stroke: rgb(0 0 0 / 0.45);
-  stroke-width: 8px;
+  stroke: rgb(0 0 0 / 0.55);
+  stroke-width: 3.5px;
   stroke-linejoin: round;
   pointer-events: none;
   user-select: none;
 }
 
+@media (max-width: 640px) {
+  .region-label {
+    font-size: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .region { transition: none; }
+  .region {
+    transition: none;
+  }
 }
