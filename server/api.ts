@@ -64,7 +64,6 @@ app.get("/api/gc", async (req, res) => {
   }
 });
 
-// --- 1. 지도 렌더링용 API ---
 app.get("/api/weather/current", async (_req, res) => {
   try {
     const data = await getLatestWeather();
@@ -96,7 +95,6 @@ app.get("/api/weather/timeseries/:code", async (req, res) => {
   }
 });
 
-// 단기예보 24시간 타임라인 API
 app.get("/api/weather/forecast/:code", async (req, res) => {
   try {
     const { code } = req.params;
@@ -110,7 +108,6 @@ app.get("/api/weather/forecast/:code", async (req, res) => {
   }
 });
 
-// 특정 시군구 코드 & 강수확률(POP) 기준 실측/경험적 강수 확률 및 현재 현황 API
 app.get("/api/weather/probability", async (req, res) => {
   try {
     const code = req.query.code as string | undefined;
@@ -136,7 +133,6 @@ app.get("/api/weather/probability", async (req, res) => {
   }
 });
 
-// --- 2. 예보 vs 실황 검증 및 신뢰도 분석 API ---
 app.get("/api/analysis/empirical-probability", async (req, res) => {
   try {
     const minLead = req.query.minLead
@@ -170,7 +166,6 @@ app.get("/api/analysis/lead-time", async (_req, res) => {
   }
 });
 
-// --- 3. 수동 동기화 트리거 (보안: 로컬호스트 or 시크릿 토큰) ---
 let isSyncing = false;
 app.post("/api/weather/sync", async (req, res) => {
   const secretHeader = req.headers["x-sync-secret"];
@@ -205,7 +200,6 @@ app.post("/api/weather/sync", async (req, res) => {
   }
 });
 
-// 단독 실행 시 리슨
 if (process.argv[1]?.endsWith("api.ts")) {
   app.listen(PORT, () => {
     console.log(`=============================================`);
