@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MapPoint, MapRegion, MapView } from "../types";
 import { MAP_CENTER } from "../constants/map";
 
@@ -30,6 +30,7 @@ export type UseMapViewResult = {
   view: MapView;
   isDragging: boolean;
   isPinching: boolean;
+  isWheelZooming: boolean;
   zoomIn: () => void;
   zoomOut: () => void;
   focus: (region: MapRegion) => void;
@@ -45,10 +46,39 @@ export function useMapView(): UseMapViewResult {
   const lastPinchDistance = useRef(0);
   const dragDistance = useRef(0);
   const dragged = useRef(false);
+  const liveView = useRef<MapView>(INITIAL_VIEW);
+  const animationFrame = useRef<number | undefined>(undefined);
+  const wheelCommitTimer = useRef<number | undefined>(undefined);
+  const wheelZooming = useRef(false);
 
   const [view, setView] = useState<MapView>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
   const [isPinching, setIsPinching] = useState(false);
+  const [isWheelZooming, setIsWheelZooming] = useState(false);
+
+  function applyView(view: MapView) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    svg.style.setProperty("--map-x", `${view.x}px`);
+    svg.style.setProperty("--map-y", `${view.y}px`);
+    svg.style.setProperty("--map-scale", String(view.scale));
+    svg.style.setProperty("--map-inverse-scale", String(1 / view.scale));
+  }
+
+  function scheduleView(view: MapView) {
+    liveView.current = view;
+    if (animationFrame.current !== undefined) return;
+    animationFrame.current = requestAnimationFrame(() => {
+      animationFrame.current = undefined;
+      applyView(liveView.current);
+    });
+  }
+
+  function commitView(update: (current: MapView) => MapView) {
+    const next = update(liveView.current);
+    liveView.current = next;
+    setView(next);
+  }
 
   function toMapPoint(clientX: number, clientY: number): MapPoint {
     const svg = svgRef.current;
@@ -59,7 +89,7 @@ export function useMapView(): UseMapViewResult {
   }
 
   function zoomAt(point: MapPoint, factor: number) {
-    setView((current) => zoomView(current, point, factor));
+    commitView((current) => zoomView(current, point, factor));
   }
 
   function focus(region: MapRegion) {
@@ -74,14 +104,17 @@ export function useMapView(): UseMapViewResult {
         ),
       ),
     );
-    setView({
+    const nextView = {
       scale,
       x: MAP_CENTER.x - ((minX + maxX) / 2) * scale,
       y: MAP_CENTER.y - ((minY + maxY) / 2) * scale,
-    });
+    };
+    liveView.current = nextView;
+    setView(nextView);
   }
 
   function resetView() {
+    liveView.current = INITIAL_VIEW;
     setView(INITIAL_VIEW);
   }
 
@@ -118,11 +151,11 @@ export function useMapView(): UseMapViewResult {
         event.currentTarget.setPointerCapture(event.pointerId);
         setIsDragging(true);
       }
-      setView((current) => ({
-        ...current,
-        x: current.x + dx,
-        y: current.y + dy,
-      }));
+      scheduleView({
+        ...liveView.current,
+        x: liveView.current.x + dx,
+        y: liveView.current.y + dy,
+      });
       return;
     }
 
@@ -130,7 +163,13 @@ export function useMapView(): UseMapViewResult {
     const distance = Math.hypot(second.x - first.x, second.y - first.y);
     const center = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
     if (lastPinchDistance.current > 0) {
-      zoomAt(center, Math.pow(distance / lastPinchDistance.current, 2.5));
+      scheduleView(
+        zoomView(
+          liveView.current,
+          center,
+          Math.pow(distance / lastPinchDistance.current, 2.5),
+        ),
+      );
     }
     lastPinchDistance.current = distance;
   }
@@ -140,9 +179,29 @@ export function useMapView(): UseMapViewResult {
     if (pointers.current.size < 2) {
       lastPinchDistance.current = 0;
       setIsPinching(false);
+      if (pointers.current.size === 1) setIsDragging(true);
     }
-    if (pointers.current.size === 0) setIsDragging(false);
+    if (pointers.current.size === 0) {
+      setIsDragging(false);
+      setView(liveView.current);
+    }
   }
+
+  useLayoutEffect(() => {
+    liveView.current = view;
+    applyView(view);
+  }, [view]);
+
+  useEffect(() => {
+    return () => {
+      if (animationFrame.current !== undefined) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+      if (wheelCommitTimer.current !== undefined) {
+        window.clearTimeout(wheelCommitTimer.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -152,9 +211,26 @@ export function useMapView(): UseMapViewResult {
       const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(
         svg.getScreenCTM()?.inverse(),
       );
-      setView((current) =>
-        zoomView(current, point, Math.exp(-event.deltaY * 0.0014)),
+      scheduleView(
+        zoomView(
+          liveView.current,
+          point,
+          Math.exp(-event.deltaY * 0.0014),
+        ),
       );
+      if (!wheelZooming.current) {
+        wheelZooming.current = true;
+        setIsWheelZooming(true);
+      }
+      if (wheelCommitTimer.current !== undefined) {
+        window.clearTimeout(wheelCommitTimer.current);
+      }
+      wheelCommitTimer.current = window.setTimeout(() => {
+        wheelCommitTimer.current = undefined;
+        wheelZooming.current = false;
+        setView(liveView.current);
+        setIsWheelZooming(false);
+      }, 120);
     };
     svg.addEventListener("wheel", handleWheel, { passive: false });
     return () => svg.removeEventListener("wheel", handleWheel);
@@ -166,6 +242,7 @@ export function useMapView(): UseMapViewResult {
     view,
     isDragging,
     isPinching,
+    isWheelZooming,
     zoomIn: () => zoomAt(MAP_CENTER, 2.25),
     zoomOut: () => zoomAt(MAP_CENTER, 1 / 2.25),
     focus,

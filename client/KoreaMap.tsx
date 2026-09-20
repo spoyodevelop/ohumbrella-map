@@ -33,9 +33,9 @@ export function KoreaMap() {
         <MapSvg
           svgRef={mapState.svgRef}
           regions={mapState.regions}
-          view={mapState.view}
           isDragging={mapState.isDragging}
           isPinching={mapState.isPinching}
+          isWheelZooming={mapState.isWheelZooming}
           sidoCode={mapState.sidoCode}
           sigunguCode={mapState.sigunguCode}
           currentSidoName={mapState.currentSido?.name}

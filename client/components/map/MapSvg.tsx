@@ -1,4 +1,4 @@
-import type { MapRegion, MapView } from "../../types";
+import type { MapRegion } from "../../types";
 import styled from "@emotion/styled";
 import {
   MAP_HEIGHT,
@@ -36,14 +36,15 @@ function RegionPath({
 
 interface RegionLabelProps {
   region: MapRegion;
-  scale: number;
 }
 
-function RegionLabel({ region, scale }: RegionLabelProps) {
+function RegionLabel({ region }: RegionLabelProps) {
   return (
     <text
       className="region-label"
-      transform={`translate(${region.label.x},${region.label.y}) scale(${scale})`}
+      style={{
+        transform: `translate(${region.label.x}px, ${region.label.y}px) scale(var(--map-inverse-scale, 1))`,
+      }}
       pointerEvents="none"
     >
       {region.name}
@@ -54,9 +55,9 @@ function RegionLabel({ region, scale }: RegionLabelProps) {
 interface MapSvgProps {
   svgRef: React.RefObject<SVGSVGElement | null>;
   regions: MapRegion[];
-  view: MapView;
   isDragging: boolean;
   isPinching: boolean;
+  isWheelZooming: boolean;
   sidoCode: string | undefined;
   sigunguCode: string | undefined;
   currentSidoName: string | undefined;
@@ -70,9 +71,9 @@ interface MapSvgProps {
 export function MapSvg({
   svgRef,
   regions,
-  view,
   isDragging,
   isPinching,
+  isWheelZooming,
   sidoCode,
   sigunguCode,
   currentSidoName,
@@ -82,8 +83,6 @@ export function MapSvg({
   onBackgroundClick,
   onRegionSelect,
 }: MapSvgProps) {
-  const transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
-
   return (
     <SvgRoot
       ref={svgRef}
@@ -108,7 +107,7 @@ export function MapSvg({
       <MapLayer
         $dragging={isDragging}
         $pinching={isPinching}
-        style={{ transform }}
+        $wheelZooming={isWheelZooming}
       >
         {regions.map((region) => (
           <RegionPath
@@ -120,14 +119,9 @@ export function MapSvg({
         ))}
       </MapLayer>
 
-      {/* 레이블은 CSS transition 없이 React state와 즉시 동기화 */}
-      <LabelLayer style={{ transform }}>
+      <LabelLayer>
         {regions.map((region) => (
-          <RegionLabel
-            key={region.code}
-            region={region}
-            scale={1 / view.scale}
-          />
+          <RegionLabel key={region.code} region={region} />
         ))}
       </LabelLayer>
     </SvgRoot>
@@ -151,12 +145,18 @@ const MapBackground = styled.rect`
   fill: transparent;
 `;
 
-const MapLayer = styled.g<{ $dragging: boolean; $pinching: boolean }>`
+const MapLayer = styled.g<{
+  $dragging: boolean;
+  $pinching: boolean;
+  $wheelZooming: boolean;
+}>`
   transform-box: view-box;
   transform-origin: 0 0;
+  transform: translate(var(--map-x, 0px), var(--map-y, 0px))
+    scale(var(--map-scale, 1));
   will-change: transform;
-  transition: ${({ $dragging, $pinching }) =>
-    $dragging || $pinching
+  transition: ${({ $dragging, $pinching, $wheelZooming }) =>
+    $dragging || $pinching || $wheelZooming
       ? "none"
       : "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)"};
 `;
@@ -164,6 +164,8 @@ const MapLayer = styled.g<{ $dragging: boolean; $pinching: boolean }>`
 const LabelLayer = styled.g`
   transform-box: view-box;
   transform-origin: 0 0;
+  transform: translate(var(--map-x, 0px), var(--map-y, 0px))
+    scale(var(--map-scale, 1));
   will-change: transform;
   pointer-events: none;
 `;

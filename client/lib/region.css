@@ -18,6 +18,8 @@
 }
 
 .region-label {
+  transform-box: view-box;
+  transform-origin: 0 0;
   font: 600 11px/1 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
   fill: rgb(255 255 255 / 0.85);
   text-anchor: middle;
