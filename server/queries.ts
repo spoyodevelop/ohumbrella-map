@@ -240,7 +240,7 @@ export async function getLatestWeather() {
   }
 
   // 1. 시군구별 최신 실황 조회 (pop/sky는 예보 sync 시 직접 업데이트됨)
-  const [rowsRes, localStatsRes, natStatsRes] = await Promise.all([
+  const [rowsRes, localStatsRes] = await Promise.all([
     db.execute(`
       SELECT 
         h.time,
@@ -276,15 +276,6 @@ export async function getLatestWeather() {
       ) h ON f.sigungu_code = h.sigungu_code
       WHERE f.total_count > 0
     `),
-    db.execute(`
-      SELECT
-        predicted_pop,
-        ROUND(100.0 * SUM(rain_count) / SUM(total_count), 1) AS rate,
-        SUM(total_count) AS samples
-      FROM forecast_accuracy_stats
-      WHERE total_count > 0
-      GROUP BY predicted_pop
-    `),
   ]);
 
   const rows = rowsRes.rows as unknown as WeatherRecord[];
@@ -296,12 +287,6 @@ export async function getLatestWeather() {
     rate: number;
     samples: number;
   }[];
-  const natStats = natStatsRes.rows as unknown as {
-    predicted_pop: number;
-    rate: number;
-    samples: number;
-  }[];
-
   const localMap = new Map(
     localStats.map((s) => [`${s.sigungu_code}_${s.predicted_pop}`, s]),
   );
@@ -323,16 +308,12 @@ export async function getLatestWeather() {
     });
   }
 
-  const natMap = new Map(natStats.map((s) => [s.predicted_pop, s]));
-
   const data: Record<string, WeatherRecord> = {};
   for (const rawRow of rows) {
     const row = { ...rawRow };
     const pop = row.kmaPop ?? 0;
     const local = localMap.get(`${row.sigunguCode}_${pop}`);
     const sido = sidoMap.get(`${row.sidoCode}_${pop}`);
-    const nat = natMap.get(pop);
-
     row.isRaining = row.pty > 0 || row.rn1 > 0 ? 1 : 0;
     row.empiricalRate = local?.rate ?? null;
     row.sampleCount = local?.samples ?? 0;

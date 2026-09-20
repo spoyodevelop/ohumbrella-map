@@ -65,7 +65,7 @@ app.get("/api/gc", async (req, res) => {
 });
 
 // --- 1. 지도 렌더링용 API ---
-app.get("/api/weather/current", async (req, res) => {
+app.get("/api/weather/current", async (_req, res) => {
   try {
     const data = await getLatestWeather();
     res.json(data);
@@ -74,7 +74,7 @@ app.get("/api/weather/current", async (req, res) => {
   }
 });
 
-app.get("/api/weather/sido-stats", async (req, res) => {
+app.get("/api/weather/sido-stats", async (_req, res) => {
   try {
     const data = await getSidoStats();
     res.json(data);
@@ -152,7 +152,7 @@ app.get("/api/analysis/empirical-probability", async (req, res) => {
   }
 });
 
-app.get("/api/analysis/sido-reliability", async (req, res) => {
+app.get("/api/analysis/sido-reliability", async (_req, res) => {
   try {
     const stats = await getSidoReliabilityStats();
     res.json({ stats });
@@ -161,7 +161,7 @@ app.get("/api/analysis/sido-reliability", async (req, res) => {
   }
 });
 
-app.get("/api/analysis/lead-time", async (req, res) => {
+app.get("/api/analysis/lead-time", async (_req, res) => {
   try {
     const stats = await getLeadTimeAccuracyStats();
     res.json({ stats });

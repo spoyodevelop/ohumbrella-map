@@ -22,11 +22,37 @@ const SERVICE_KEY = process.env.KMA_SERVICE_KEY || "bYThO5gPTpyE4TuYDw6cbg";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchKmaWithRetry(
+interface KmaApiResponse<T> {
+  response?: {
+    header?: {
+      resultCode: string;
+      resultMsg: string;
+    };
+    body?: {
+      items?: {
+        item?: T[];
+      };
+    };
+  };
+}
+
+interface KmaObservationItem {
+  category: string;
+  obsrValue: string;
+}
+
+interface KmaForecastItem {
+  category: string;
+  fcstDate: string;
+  fcstTime: string;
+  fcstValue: string;
+}
+
+async function fetchKmaWithRetry<T>(
   url: string,
   maxTries = 3,
   initialDelay = 400,
-): Promise<any[]> {
+): Promise<T[]> {
   let delay = initialDelay;
   let lastErrMsg = "";
 
@@ -36,7 +62,7 @@ async function fetchKmaWithRetry(
       if (!res.ok) {
         throw new Error(`HTTP Error ${res.status}`);
       }
-      const data = await res.json();
+      const data = (await res.json()) as KmaApiResponse<T>;
       const header = data?.response?.header;
       if (!header) {
         throw new Error("응답 헤더 없음");
@@ -46,7 +72,7 @@ async function fetchKmaWithRetry(
 
       // 00: 정상 응답 -> 데이터 반환
       if (code === "00") {
-        return data.response.body?.items?.item ?? [];
+        return data.response?.body?.items?.item ?? [];
       }
 
       // 03: NODATA_ERROR - 데이터가 아직 없거나 관측값 없음 (정상 대기 상태, 재시도 없이 즉시 소모)
@@ -173,7 +199,7 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
   const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${SERVICE_KEY}`;
 
   // 재시도 2회 수행 후 실패해도 그 자리에서 []로 소모되므로 try-catch 불필요
-  const items = await fetchKmaWithRetry(url, 2, 300);
+  const items = await fetchKmaWithRetry<KmaObservationItem>(url, 2, 300);
   if (items.length > 0) {
     console.log(
       `[카나리 감지] 종로구에 실황 오픈 (${baseDate} ${candidateBaseTime})`,
@@ -209,7 +235,11 @@ export async function syncObservations(): Promise<number> {
 
         const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
         // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
-        const items = await fetchKmaWithRetry(ncstUrl, 3, 400);
+        const items = await fetchKmaWithRetry<KmaObservationItem>(
+          ncstUrl,
+          3,
+          400,
+        );
         for (const item of items) {
           const val = parseFloat(item.obsrValue);
           if (item.category === "PTY") {
@@ -308,7 +338,7 @@ export async function syncForecasts(): Promise<number> {
 
         const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
         // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
-        const items = await fetchKmaWithRetry(fcstUrl, 2, 400);
+        const items = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
         for (const item of items) {
           const fDate = item.fcstDate;
           const fTime = item.fcstTime;
