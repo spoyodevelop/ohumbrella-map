@@ -10,7 +10,7 @@
   "scripts": {
     "map:build": "node --experimental-strip-types scripts/build-map-data.mjs",
     "predev": "npm run map:build",
-    "dev": "vite",
+    "dev": "vite --host",
     "server": "tsx server/index.ts",
     "server:api": "tsx server/api.ts",
     "server:worker": "tsx server/worker.ts",
