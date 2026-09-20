@@ -7,9 +7,9 @@ export type UseMapSelectionDeps = {
   setSelection: React.Dispatch<React.SetStateAction<SelectionState>>;
   sidos: MapRegion[];
   preloadSigungu: (code: string) => Promise<MapRegion[]>;
-  focusRegion: (region: MapRegion) => void;
+  focus: (region: MapRegion) => void;
   resetView: () => void;
-  didDrag: React.RefObject<boolean>;
+  dragged: React.RefObject<boolean>;
 };
 
 export type UseMapSelectionResult = {
@@ -25,9 +25,9 @@ export function useMapSelection({
   setSelection,
   sidos,
   preloadSigungu,
-  focusRegion,
+  focus,
   resetView,
-  didDrag,
+  dragged,
 }: UseMapSelectionDeps): UseMapSelectionResult {
   const sidoCode =
     selection.level !== "national" ? selection.sidoCode : undefined;
@@ -40,7 +40,7 @@ export function useMapSelection({
   }
 
   function selectRegion(region: MapRegion) {
-    if (didDrag.current) return;
+    if (dragged.current) return;
     setSelection((current) => {
       if (current.level === "national")
         return { level: "sido", sidoCode: region.code };
@@ -50,7 +50,7 @@ export function useMapSelection({
         sigunguCode: region.code,
       };
     });
-    focusRegion(region);
+    focus(region);
   }
 
   // 위치 버튼 클릭 시 수동 트리거: geolocation → reverse geocode → 시도/시군구 선택 및 이동
@@ -67,7 +67,7 @@ export function useMapSelection({
       }
 
       setSelection({ level: "sido", sidoCode: sido.code });
-      focusRegion(sido);
+      focus(sido);
 
       const regions = await preloadSigungu(sido.code);
       const target = regions.find(({ name }) => name === sigunguName);
@@ -77,7 +77,7 @@ export function useMapSelection({
           sidoCode: sido.code,
           sigunguCode: target.code,
         });
-        focusRegion(target);
+        focus(target);
       }
     } catch (error) {
       console.warn("현재 위치를 가져오지 못했습니다:", error);
@@ -85,7 +85,7 @@ export function useMapSelection({
     } finally {
       setIsLocating(false);
     }
-  }, [sidos, isLocating, preloadSigungu, setSelection, focusRegion]);
+  }, [sidos, isLocating, preloadSigungu, setSelection, focus]);
 
   return { currentSido, showNationalMap, selectRegion, locateUser, isLocating };
 }
