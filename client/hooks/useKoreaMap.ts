@@ -28,9 +28,9 @@ export function useKoreaMap() {
     setSelection,
     sidos: mapData.sidos,
     preloadSigungu: mapData.preloadSigungu,
-    focus: mapView.focus,
+    focusRegion: mapView.focusRegion,
     resetView: mapView.resetView,
-    dragged: mapView.dragged,
+    didDrag: mapView.didDrag,
   });
 
   const mapHover = useMapHover({

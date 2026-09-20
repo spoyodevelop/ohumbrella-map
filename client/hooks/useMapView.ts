@@ -26,13 +26,13 @@ function zoomView(current: MapView, point: MapPoint, factor: number): MapView {
 
 export type UseMapViewResult = {
   svgRef: React.RefObject<SVGSVGElement | null>;
-  dragged: React.RefObject<boolean>;
+  didDrag: React.RefObject<boolean>;
   view: MapView;
   isDragging: boolean;
   isPinching: boolean;
   zoomIn: () => void;
   zoomOut: () => void;
-  focus: (region: MapRegion) => void;
+  focusRegion: (region: MapRegion) => void;
   resetView: () => void;
   handlePointerDown: (event: React.PointerEvent<SVGSVGElement>) => void;
   handlePointerMove: (event: React.PointerEvent<SVGSVGElement>) => void;
@@ -44,7 +44,7 @@ export function useMapView(): UseMapViewResult {
   const pointers = useRef(new Map<number, MapPoint>());
   const lastPinchDistance = useRef(0);
   const dragDistance = useRef(0);
-  const dragged = useRef(false);
+  const didDrag = useRef(false);
 
   const [view, setView] = useState<MapView>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
@@ -62,7 +62,7 @@ export function useMapView(): UseMapViewResult {
     setView((current) => zoomView(current, point, factor));
   }
 
-  function focus(region: MapRegion) {
+  function focusRegion(region: MapRegion) {
     const [minX, minY, maxX, maxY] = region.bounds;
     const scale = Math.min(
       MAX_SCALE,
@@ -91,11 +91,11 @@ export function useMapView(): UseMapViewResult {
       toMapPoint(event.clientX, event.clientY),
     );
     dragDistance.current = 0;
-    dragged.current = false;
+    didDrag.current = false;
     if (pointers.current.size === 2) {
       for (const id of pointers.current.keys())
         event.currentTarget.setPointerCapture(id);
-      dragged.current = true;
+      didDrag.current = true;
       lastPinchDistance.current = 0;
       setIsPinching(true);
     }
@@ -112,9 +112,9 @@ export function useMapView(): UseMapViewResult {
       const dx = point.x - previous.x;
       const dy = point.y - previous.y;
       dragDistance.current += Math.hypot(dx, dy);
-      if (!dragged.current && dragDistance.current < 5) return;
-      if (!dragged.current) {
-        dragged.current = true;
+      if (!didDrag.current && dragDistance.current < 5) return;
+      if (!didDrag.current) {
+        didDrag.current = true;
         event.currentTarget.setPointerCapture(event.pointerId);
         setIsDragging(true);
       }
@@ -162,13 +162,13 @@ export function useMapView(): UseMapViewResult {
 
   return {
     svgRef,
-    dragged,
+    didDrag,
     view,
     isDragging,
     isPinching,
     zoomIn: () => zoomAt(MAP_CENTER, 2.25),
     zoomOut: () => zoomAt(MAP_CENTER, 1 / 2.25),
-    focus,
+    focusRegion,
     resetView,
     handlePointerDown,
     handlePointerMove,
