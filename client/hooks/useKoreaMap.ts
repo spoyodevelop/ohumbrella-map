@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from "react";
 import { useMapData } from "./useMapData";
 import { useMapView } from "./useMapView";
 import { useMapSelection } from "./useMapSelection";
-import { useMapHover } from "./useMapHover";
 import type { MapRegion, SelectionState } from "../types";
 
 const INITIAL_SELECTION: SelectionState = { level: "national" };
@@ -31,12 +30,6 @@ export function useKoreaMap() {
     focus: mapView.focus,
     resetView: mapView.resetView,
     dragged: mapView.dragged,
-  });
-
-  const mapHover = useMapHover({
-    regions: visibleRegions,
-    sidoCode,
-    preloadSigungu: mapData.preloadSigungu,
   });
 
   const selectedRegion = useMemo<MapRegion | undefined>(() => {
@@ -77,9 +70,6 @@ export function useKoreaMap() {
     isLocating: mapSelection.isLocating,
     clearSelection,
     selectedRegion,
-    hoveredRegion: mapHover.hoveredRegion,
-    handleRegionEnter: mapHover.handleRegionEnter,
-    handleRegionLeave: mapHover.handleRegionLeave,
     regions: visibleRegions,
     weatherTime: mapData.weatherTime,
     loading: mapData.loading,

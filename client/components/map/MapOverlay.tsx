@@ -4,7 +4,6 @@ import { useState } from "react";
 
 interface MapOverlayProps {
   selectedRegion: MapRegion | undefined;
-  hoveredRegion: MapRegion | undefined;
   sidoCode: string | undefined;
   scale: number;
   isSimgunguLod?: boolean;
@@ -127,7 +126,6 @@ function getDefaultPop(selectedRegion?: MapRegion): number | null {
 
 export function MapOverlay({
   selectedRegion,
-  hoveredRegion,
   sidoCode,
   scale,
 
@@ -151,13 +149,6 @@ export function MapOverlay({
 
   return (
     <>
-      {hoveredRegion && (
-        <HoverTooltip role="tooltip" aria-hidden="true">
-          <HoverPinIcon>📍</HoverPinIcon>
-          <HoverName>{hoveredRegion.name}</HoverName>
-        </HoverTooltip>
-      )}
-
       {selectedRegion ? (
         <DetailCard aria-live="polite">
           <HeaderRow>
@@ -286,48 +277,6 @@ export function MapOverlay({
   );
 }
 
-const HoverTooltip = styled.div`
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  background: rgba(15, 23, 42, 0.88);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px);
-  animation: fadeIn 0.15s ease-out;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translate(-50%, -4px);
-    }
-    to {
-      opacity: 1;
-      transform: translate(-50%, 0);
-    }
-  }
-`;
-
-const HoverPinIcon = styled.span`
-  font-size: 0.8rem;
-`;
-
-const HoverName = styled.span`
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #f8fafc;
-  letter-spacing: -0.01em;
-`;
-
-// 2. 클릭(선택) 시 상세 카드
 const DetailCard = styled.aside`
   position: absolute;
   z-index: 2;

@@ -13,16 +13,12 @@ function chanceColor(chance: number) {
 interface RegionPathProps {
   region: MapRegion;
   selected: boolean;
-  onEnter: () => void;
-  onLeave: () => void;
   onSelect: () => void;
 }
 
 function RegionPath({
   region,
   selected,
-  onEnter,
-  onLeave,
   onSelect,
 }: RegionPathProps) {
   return (
@@ -31,8 +27,6 @@ function RegionPath({
       fill={chanceColor(region.rainChance)}
       className={selected ? "region is-selected" : "region"}
       vectorEffect="non-scaling-stroke"
-      onPointerEnter={onEnter}
-      onPointerLeave={onLeave}
       onClick={onSelect}
     >
       <title>{region.name}</title>
@@ -70,8 +64,6 @@ interface MapSvgProps {
   onPointerMove: (e: React.PointerEvent<SVGSVGElement>) => void;
   onPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
   onBackgroundClick: () => void;
-  onRegionEnter: (region: MapRegion) => void;
-  onRegionLeave: () => void;
   onRegionSelect: (region: MapRegion) => void;
 }
 
@@ -88,8 +80,6 @@ export function MapSvg({
   onPointerMove,
   onPointerUp,
   onBackgroundClick,
-  onRegionEnter,
-  onRegionLeave,
   onRegionSelect,
 }: MapSvgProps) {
   const transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
@@ -125,8 +115,6 @@ export function MapSvg({
             key={region.code}
             region={region}
             selected={region.code === sigunguCode}
-            onEnter={() => onRegionEnter(region)}
-            onLeave={onRegionLeave}
             onSelect={() => onRegionSelect(region)}
           />
         ))}

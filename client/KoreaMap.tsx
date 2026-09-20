@@ -49,15 +49,12 @@ export function KoreaMap() {
               mapState.showNationalMap();
             }
           }}
-          onRegionEnter={mapState.handleRegionEnter}
-          onRegionLeave={mapState.handleRegionLeave}
           onRegionSelect={mapState.selectRegion}
         />
 
         <MapOverlay
           key={mapState.selectedRegion?.code ?? "no-selection"}
           selectedRegion={mapState.selectedRegion}
-          hoveredRegion={mapState.hoveredRegion}
           sidoCode={mapState.sidoCode}
           scale={mapState.view.scale}
           isSimgunguLod={mapState.sidoCode !== undefined}
