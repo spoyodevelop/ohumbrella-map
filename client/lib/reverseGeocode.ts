@@ -15,11 +15,7 @@ export async function reverseGeocode(): Promise<GeoRegion> {
   const url =
     `/api/gc?coords=${longitude},${latitude}&output=json&orders=admcode`;
 
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`Reverse geocode failed: HTTP ${response.status}`);
-
-  const data = (await response.json()) as NaverGeoResponse;
+  const data = await fetchJson<NaverGeoResponse>(url);
   const result = data.results?.[0];
   if (!result) throw new Error("위치를 행정구역으로 변환할 수 없습니다.");
 
@@ -40,3 +36,4 @@ type NaverGeoResponse = {
     };
   }>;
 };
+import { fetchJson } from "./http";

@@ -1,6 +1,6 @@
 import type { MapRegion, RegionWeatherInfo } from "../../types";
 import styled from "@emotion/styled";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface MapOverlayProps {
   selectedRegion: MapRegion | undefined;
@@ -107,6 +107,24 @@ function getWeatherVisual(
   };
 }
 
+function getDefaultPop(selectedRegion?: MapRegion): number | null {
+  const weather = selectedRegion?.weather;
+  if (weather?.kmaPop != null) return weather.kmaPop;
+  if (weather || !selectedRegion?.stats) return null;
+
+  const pops = Object.keys(selectedRegion.stats)
+    .map(Number)
+    .sort((a, b) => a - b);
+  if (pops.length === 0) return null;
+
+  const target = selectedRegion.rainChance || 0;
+  return pops.reduce((previous, current) =>
+    Math.abs(current - target) < Math.abs(previous - target)
+      ? current
+      : previous,
+  );
+}
+
 export function MapOverlay({
   selectedRegion,
   hoveredRegion,
@@ -120,27 +138,8 @@ export function MapOverlay({
     ? getWeatherVisual(weather, selectedRegion.rainChance)
     : null;
 
-  const [selectedPop, setSelectedPop] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (weather?.kmaPop != null) {
-      setSelectedPop(weather.kmaPop);
-    } else if (!weather && selectedRegion?.stats) {
-      const pops = Object.keys(selectedRegion.stats).map(Number).sort((a, b) => a - b);
-      if (pops.length > 0) {
-        // Find the closest available bucket to the region's average rainChance
-        const target = selectedRegion.rainChance || 0;
-        const closest = pops.reduce((prev, curr) => 
-          Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
-        );
-        setSelectedPop(closest);
-      } else {
-        setSelectedPop(null);
-      }
-    } else {
-      setSelectedPop(null);
-    }
-  }, [selectedRegion?.code, weather?.kmaPop, selectedRegion?.stats, selectedRegion?.rainChance]);
+  const [userPop, setUserPop] = useState<number | null>(null);
+  const selectedPop = userPop ?? getDefaultPop(selectedRegion);
 
   const displayRate = selectedPop !== null && weather?.stats?.[selectedPop]
     ? Math.round(weather.stats[selectedPop].rate)
@@ -205,7 +204,7 @@ export function MapOverlay({
                   <StatLabel>구/군 실강수확률</StatLabel>
                   <PopSelect
                     value={selectedPop ?? ""}
-                    onChange={(e) => setSelectedPop(Number(e.target.value))}
+                    onChange={(e) => setUserPop(Number(e.target.value))}
                     aria-label="예보 확률 기준 선택 (구/군)"
                   >
                     {weather.stats && Object.keys(weather.stats).length > 0 ? (
@@ -238,7 +237,7 @@ export function MapOverlay({
                   <StatLabel>시/도 전체 실강수확률</StatLabel>
                   <PopSelect
                     value={selectedPop ?? ""}
-                    onChange={(e) => setSelectedPop(Number(e.target.value))}
+                    onChange={(e) => setUserPop(Number(e.target.value))}
                     aria-label="예보 확률 기준 선택 (시/도)"
                   >
                     {selectedRegion.stats && Object.keys(selectedRegion.stats).length > 0 ? (

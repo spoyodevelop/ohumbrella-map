@@ -1,4 +1,5 @@
 import type { MapRegion } from '../types'
+import { fetchJson } from './http'
 
 const cache = new Map<string, Promise<MapRegion[]>>()
 
@@ -6,10 +7,7 @@ export function loadRegionFile(url: string): Promise<MapRegion[]> {
   const cached = cache.get(url)
   if (cached) return cached
 
-  const request = fetch(url).then(async (response) => {
-    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
-    return response.json() as Promise<MapRegion[]>
-  })
+  const request = fetchJson<MapRegion[]>(url)
 
   cache.set(url, request)
   return request

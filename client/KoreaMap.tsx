@@ -27,7 +27,7 @@ export function KoreaMap() {
 
         {map.loading && <LoadState>지도 불러오는 중…</LoadState>}
         {map.error && (
-          <LoadError>지도 경계를 읽지 못했습니다. ({map.error})</LoadError>
+          <LoadError>데이터를 읽지 못했습니다. ({map.error})</LoadError>
         )}
 
         <MapSvg
@@ -55,6 +55,7 @@ export function KoreaMap() {
         />
 
         <MapOverlay
+          key={map.selectedRegion?.code ?? "no-selection"}
           selectedRegion={map.selectedRegion}
           hoveredRegion={map.hoveredRegion}
           sidoCode={map.sidoCode}

@@ -1,61 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadRegionFile, sidoFile, sigunguFile } from "../lib/mapData";
 import type { MapRegion, RegionWeatherInfo } from "../types";
-
-interface SidoStat {
-  sidoCode: string;
-  avgPop: number;
-  maxPop: number;
-  totalRain: number;
-  rainingCount: number;
-  totalCount: number;
-  stats?: Record<number, { rate: number; samples: number }>;
-}
+import { useWeatherData } from "./useWeatherData";
 
 export function useMapData(sidoCode: string | undefined) {
+  const weather = useWeatherData();
   const [sidos, setSidos] = useState<MapRegion[]>([]);
   const [sigunguCache, setSigunguCache] = useState<Record<string, MapRegion[]>>(
     {},
   );
-  const [weatherMap, setWeatherMap] = useState<
-    Record<string, RegionWeatherInfo>
-  >({});
-  const [sidoStatsMap, setSidoStatsMap] = useState<Record<string, SidoStat>>(
-    {},
-  );
-  const [weatherTime, setWeatherTime] = useState<string>("");
   const [error, setError] = useState("");
-
-  // 1. 초기 1회: 전국 최신 실황 + 실측 확률 및 시도 통계 일괄 로드
-  useEffect(() => {
-    let active = true;
-
-    Promise.all([
-      fetch("/api/weather/current")
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null),
-      fetch("/api/weather/sido-stats")
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null),
-    ]).then(([currentRes, sidoRes]) => {
-      if (!active) return;
-      if (currentRes?.data) {
-        setWeatherMap(currentRes.data);
-        if (currentRes.time) setWeatherTime(currentRes.time);
-      }
-      if (sidoRes?.stats) {
-        const smap: Record<string, SidoStat> = {};
-        for (const s of sidoRes.stats) {
-          smap[s.sidoCode] = s;
-        }
-        setSidoStatsMap(smap);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   // 2. 시도 지도 경계 로드
   useEffect(() => {
@@ -104,22 +58,22 @@ export function useMapData(sidoCode: string | undefined) {
   const enrichSigungu = useCallback(
     (rawList: MapRegion[]) => {
       return rawList.map((r) => {
-        const weather = weatherMap[r.code];
-        if (!weather) return r;
+        const regionWeather = weather.weatherMap[r.code];
+        if (!regionWeather) return r;
         return {
           ...r,
-          rainChance: resolveRainChance(weather, r.rainChance),
-          weather,
+          rainChance: resolveRainChance(regionWeather, r.rainChance),
+          weather: regionWeather,
         };
       });
     },
-    [weatherMap],
+    [weather.weatherMap],
   );
 
   // 날씨 데이터 매핑 함수 (시도)
   const enrichedSidos = useMemo(() => {
     return sidos.map((s) => {
-      const stat = sidoStatsMap[s.code];
+      const stat = weather.sidoStatsMap[s.code];
       if (!stat) return s;
       return {
         ...s,
@@ -128,7 +82,7 @@ export function useMapData(sidoCode: string | undefined) {
         sampleCount: stat.totalCount,
       };
     });
-  }, [sidos, sidoStatsMap]);
+  }, [sidos, weather.sidoStatsMap]);
 
   const enrichedSigungu = useMemo(() => {
     if (!sidoCode || !sigunguCache[sidoCode]) return [];
@@ -154,9 +108,9 @@ export function useMapData(sidoCode: string | undefined) {
   return {
     sidos: enrichedSidos,
     sigungu: enrichedSigungu,
-    weatherTime,
+    weatherTime: weather.weatherTime,
     loading,
-    error,
+    error: error || weather.error,
     preloadSigungu,
   };
 }
