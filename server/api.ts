@@ -7,12 +7,12 @@ import {
   getSidoStats,
   getTimeSeries,
   getForecastTimeline,
-} from "./weather-read.ts";
+} from "./weather/read.ts";
 import {
   getRegionProbabilityInsight,
   getEmpiricalProbabilityStats,
-} from "./accuracy-queries.ts";
-import { syncAllWeather } from "./kma.ts";
+} from "./verification/queries.ts";
+import { syncAllWeather } from "./weather/kma.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: resolve(process.cwd(), ".env") });

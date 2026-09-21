@@ -4,7 +4,7 @@ import {
   assembleCurrentWeatherResponse,
   type CurrentWeatherRow,
   type VerifiedPopBucketRow,
-} from "./current-weather-response.ts";
+} from "./currentResponse.ts";
 
 test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단위로 조립한다", () => {
   const rows: CurrentWeatherRow[] = [

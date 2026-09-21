@@ -9,11 +9,11 @@ import {
   type ObservationRecord,
   type ForecastRecord,
   type HourlyWeatherWriteRecord,
-} from "./weather-write.ts";
+} from "./write.ts";
 import {
   syncAccuracyForObservationTime,
   syncAccuracyForForecastBaseTime,
-} from "./accuracy-queries.ts";
+} from "../verification/queries.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: resolve(process.cwd(), ".env") });

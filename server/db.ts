@@ -2,7 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import { resolve, dirname } from "node:path";
 import { mkdirSync } from "node:fs";
 import dotenv from "dotenv";
-import { backfillAccuracyVerifications, createAccuracySchema } from "./accuracy.ts";
+import { backfillAccuracyVerifications, createAccuracySchema } from "./verification/accuracy.ts";
 
 // .env.local과 .env 둘 다 순서대로 확인하여 로드
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });

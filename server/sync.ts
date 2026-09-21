@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import { syncAllWeather } from "./kma.ts";
+import { syncAllWeather } from "./weather/kma.ts";
 import { initDb } from "./db.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });

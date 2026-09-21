@@ -1,12 +1,12 @@
-import { db } from "./db.ts";
-import { latestKnownPopForH } from "./weather-sql.ts";
-import type { ForecastRecord } from "./weather-write.ts";
+import { db } from "../db.ts";
+import { latestKnownPopForH } from "./sql.ts";
+import type { ForecastRecord } from "./write.ts";
 import {
   assembleCurrentWeatherResponse,
   type CurrentWeatherResponse,
   type CurrentWeatherRow,
   type VerifiedPopBucketRow,
-} from "./current-weather-response.ts";
+} from "./currentResponse.ts";
 
 type WeatherHistoryRow = Omit<CurrentWeatherRow, "kmaPop">;
 
