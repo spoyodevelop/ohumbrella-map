@@ -9,6 +9,7 @@ initMonitoring();
 
 export const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const INTERNAL_ERROR = { error: "서버 내부 오류가 발생했습니다." };
 
 app.use(cors());
 
@@ -20,9 +21,8 @@ app.get("/api/gc", async (req, res) => {
     const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      res.status(500).json({
-        error: "네이버 지도 API 키가 서버에 설정되어 있지 않습니다.",
-      });
+      reportServerError(new Error("네이버 지도 API 키가 서버에 설정되어 있지 않습니다."), "api.gc");
+      res.status(500).json(INTERNAL_ERROR);
       return;
     }
 
@@ -46,11 +46,14 @@ app.get("/api/gc", async (req, res) => {
       },
     });
 
+    if (response.status >= 500) {
+      throw new Error(`네이버 역지오코딩 요청 실패: HTTP ${response.status}`);
+    }
     const data = await response.json();
     res.status(response.status).json(data);
-  } catch (err: any) {
+  } catch (err) {
     reportServerError(err, "api.gc");
-    res.status(500).json({ error: err.message });
+    res.status(500).json(INTERNAL_ERROR);
   }
 });
 
@@ -58,9 +61,9 @@ app.get("/api/weather/current", async (_req, res) => {
   try {
     const data = await getLatestWeather();
     res.json(data);
-  } catch (err: any) {
+  } catch (err) {
     reportServerError(err, "api.weather.current");
-    res.status(500).json({ error: err.message });
+    res.status(500).json(INTERNAL_ERROR);
   }
 });
 
@@ -68,9 +71,9 @@ app.get("/api/weather/sido-stats", async (_req, res) => {
   try {
     const data = await getSidoStats();
     res.json(data);
-  } catch (err: any) {
+  } catch (err) {
     reportServerError(err, "api.weather.sido-stats");
-    res.status(500).json({ error: err.message });
+    res.status(500).json(INTERNAL_ERROR);
   }
 });
 
