@@ -1,9 +1,9 @@
 import { db } from "../db.ts";
 import { latestKnownPopForH } from "./sql.ts";
 import type { ForecastRecord } from "./write.ts";
+import type { CurrentWeatherResponse } from "../../shared/weather.ts";
 import {
   assembleCurrentWeatherResponse,
-  type CurrentWeatherResponse,
   type CurrentWeatherRow,
   type VerifiedPopBucketRow,
 } from "./currentResponse.ts";

@@ -1,4 +1,5 @@
 import type { RegionWeatherInfo } from "../types";
+import type { CurrentWeatherResponse } from "../../shared/weather.ts";
 import { fetchJson } from "../lib/http";
 
 export interface SidoStat {
@@ -9,12 +10,6 @@ export interface SidoStat {
   rainingCount: number;
   totalCount: number;
   stats?: Record<number, { rate: number; samples: number }>;
-}
-
-interface CurrentWeatherResponse {
-  time: string | null;
-  count: number;
-  data: Record<string, RegionWeatherInfo>;
 }
 
 interface SidoStatsResponse {

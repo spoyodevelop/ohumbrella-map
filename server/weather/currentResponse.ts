@@ -1,3 +1,9 @@
+import type {
+  CurrentWeatherResponse,
+  ProbabilityBucket,
+  RegionWeatherInfo,
+} from "../../shared/weather.ts";
+
 export interface CurrentWeatherRow {
   time: string;
   sidoCode: string;
@@ -19,27 +25,6 @@ export interface VerifiedPopBucketRow {
   rain_count: number;
   rate: number;
   samples: number;
-}
-
-interface ProbabilityBucket {
-  rate: number;
-  samples: number;
-}
-
-export interface CurrentWeatherRegion extends CurrentWeatherRow {
-  isRaining: number;
-  empiricalRate: number | null;
-  sampleCount: number;
-  sidoEmpiricalRate: number | null;
-  sidoSampleCount: number;
-  stats: Record<number, ProbabilityBucket>;
-  sidoStats: Record<number, ProbabilityBucket>;
-}
-
-export interface CurrentWeatherResponse {
-  time: string | null;
-  count: number;
-  data: Record<string, CurrentWeatherRegion>;
 }
 
 export function assembleCurrentWeatherResponse(
@@ -67,15 +52,25 @@ export function assembleCurrentWeatherResponse(
     });
   }
 
-  const data: Record<string, CurrentWeatherRegion> = {};
+  const data: Record<string, RegionWeatherInfo> = {};
   for (const rawRow of rows) {
     const pop = rawRow.kmaPop;
     const local =
       pop == null ? undefined : localMap.get(`${rawRow.sigunguCode}_${pop}`);
     const sido =
       pop == null ? undefined : sidoMap.get(`${rawRow.sidoCode}_${pop}`);
-    const row: CurrentWeatherRegion = {
-      ...rawRow,
+    const row: RegionWeatherInfo = {
+      time: rawRow.time,
+      sidoCode: rawRow.sidoCode,
+      sigunguCode: rawRow.sigunguCode,
+      name: rawRow.name,
+      pop: rawRow.pop,
+      kmaPop: rawRow.kmaPop,
+      pty: rawRow.pty,
+      rn1: rawRow.rn1,
+      tmp: rawRow.tmp,
+      sky: rawRow.sky,
+      updatedAt: rawRow.updatedAt,
       isRaining: rawRow.pty > 0 || rawRow.rn1 > 0 ? 1 : 0,
       empiricalRate: local?.rate ?? null,
       sampleCount: local?.samples ?? 0,

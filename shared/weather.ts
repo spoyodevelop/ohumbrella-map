@@ -1,0 +1,31 @@
+export interface ProbabilityBucket {
+  rate: number;
+  samples: number;
+}
+
+export interface RegionWeatherInfo {
+  time: string;
+  sidoCode: string;
+  sigunguCode: string;
+  name: string;
+  pop: number | null;
+  kmaPop: number | null;
+  pty: number;
+  rn1: number;
+  tmp: number | null;
+  sky: number;
+  updatedAt: string;
+  isRaining: 0 | 1;
+  empiricalRate: number | null;
+  sampleCount: number;
+  sidoEmpiricalRate: number | null;
+  sidoSampleCount: number;
+  stats: Record<number, ProbabilityBucket>;
+  sidoStats: Record<number, ProbabilityBucket>;
+}
+
+export interface CurrentWeatherResponse {
+  time: string | null;
+  count: number;
+  data: Record<string, RegionWeatherInfo>;
+}

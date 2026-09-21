@@ -1,3 +1,7 @@
+import type { RegionWeatherInfo } from "../shared/weather.ts";
+
+export type { RegionWeatherInfo } from "../shared/weather.ts";
+
 export type MapPoint = { x: number; y: number }
 
 export type MapView = {
@@ -5,27 +9,6 @@ export type MapView = {
   y: number
   scale: number
 }
-
-export type RegionWeatherInfo = {
-  time: string;
-  sidoCode: string;
-  sigunguCode: string;
-  name: string;
-  pop: number | null;
-  kmaPop: number | null;
-  pty: number;
-  rn1: number;
-  tmp: number | null;
-  sky: number;
-  isRaining: number;
-  empiricalRate: number | null;
-  sampleCount: number;
-  stats?: Record<number, { rate: number; samples: number }>;
-  sidoStats?: Record<number, { rate: number; samples: number }>;
-  sidoSampleCount?: number;
-  sidoEmpiricalRate?: number | null;
-  updatedAt: string;
-};
 
 export type MapRegion = {
   code: string;

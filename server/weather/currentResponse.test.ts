@@ -105,3 +105,23 @@ test("표본이 없는 지역도 응답 기본값을 유지한다", () => {
     },
   });
 });
+
+test("DB 조회 행의 추가 필드는 API 응답에 섞이지 않는다", () => {
+  const row = {
+    time: "2026-09-21 04:00",
+    sidoCode: "11",
+    sigunguCode: "A",
+    name: "A 지역",
+    pop: 30,
+    kmaPop: 30,
+    pty: 0,
+    rn1: 0,
+    tmp: 20,
+    sky: 1,
+    updatedAt: "2026-09-21T04:00:00Z",
+    internalColumn: "DB 전용 값",
+  };
+
+  const result = assembleCurrentWeatherResponse(row.time, [row], []);
+  assert.equal(Object.hasOwn(result.data.A, "internalColumn"), false);
+});
