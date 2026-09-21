@@ -38,7 +38,6 @@ export interface HourlyWeatherWriteRecord {
   updatedAt: string;
 }
 
-// 헬퍼: 배열을 지정 크기 청크로 분할
 function chunkArray<T>(array: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -47,7 +46,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
   return result;
 }
 
-// 1. 실황 업서트 (Turso batch 최적화)
+// 1. 실황 업서트
 export async function upsertObservationsBatch(records: ObservationRecord[]) {
   if (records.length === 0) return;
 
@@ -83,7 +82,7 @@ export async function upsertObservationsBatch(records: ObservationRecord[]) {
   }
 }
 
-// 2. 예보 업서트 (Turso batch 최적화)
+// 2. 예보 업서트
 export async function upsertForecastsBatch(records: ForecastRecord[]) {
   if (records.length === 0) return;
 
@@ -161,7 +160,12 @@ export async function upsertWeatherBatch(records: HourlyWeatherWriteRecord[]) {
 // 4. 예보 수집 후 기존 실황 row의 pop/sky만 업데이트 (JOIN 제거용)
 // 예보 발표 시각이 아닌, 시군구별 최신 실황 row에 덮어씀
 export async function updateForecastPopBatch(
-  records: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[]
+  records: {
+    sigunguCode: string;
+    pop: number;
+    sky: number;
+    updatedAt: string;
+  }[],
 ) {
   if (records.length === 0) return;
 

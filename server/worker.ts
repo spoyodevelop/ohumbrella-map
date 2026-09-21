@@ -45,10 +45,10 @@ function pingHealthcheck(urlStr?: string, error?: unknown): Promise<void> {
         },
         (response) => {
           console.log(
-            `📡 [Healthcheck] Ping 완료 (${error ? "FAIL" : "SUCCESS"}, HTTP ${response.statusCode}): ${targetUrl.pathname}`
+            `📡 [Healthcheck] Ping 완료 (${error ? "FAIL" : "SUCCESS"}, HTTP ${response.statusCode}): ${targetUrl.pathname}`,
           );
           res();
-        }
+        },
       );
       req.on("error", (e) => {
         console.error("⚠️ [Healthcheck] Ping 전송 실패:", e);
@@ -67,7 +67,6 @@ function pingHealthcheck(urlStr?: string, error?: unknown): Promise<void> {
     }
   });
 }
-
 
 // 1. [매시간 실황 수집] 매시 40~58분 사이 2분 간격 카나리 감시
 // 초단기실황은 매시 30분 생성 후 40분 이후 제공되므로 40분부터 확인
@@ -107,7 +106,6 @@ cron.schedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
   }
 });
 
-// 워커 시작 시 1회 초기 전체 동기화 (실황 1회 + 예보 1회)
 (async () => {
   isSyncing = true;
   try {
@@ -126,4 +124,3 @@ cron.schedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
     console.log("[워커 대기] 다음 스케줄 대기 중...");
   }
 })();
-

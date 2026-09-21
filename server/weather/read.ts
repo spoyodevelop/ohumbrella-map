@@ -52,7 +52,7 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
         GROUP BY sigungu_code
       ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
     `),
-    // 집계 테이블 직접 조회 (최대 2,772 rows, 비용 고정)
+
     db.execute(`
       SELECT
         f.sigungu_code,
@@ -121,25 +121,33 @@ export async function getSidoStats() {
       JOIN (SELECT DISTINCT sigungu_code, sido_code FROM hourly_weather) h ON f.sigungu_code = h.sigungu_code
       WHERE f.total_count > 0
       GROUP BY h.sido_code, f.predicted_pop
-    `)
+    `),
   ]);
 
   const stats = res.rows as unknown as SidoStat[];
-  const buckets = bucketsRes.rows as unknown as { sidoCode: string; predictedPop: number; rainCount: number; samples: number }[];
+  const buckets = bucketsRes.rows as unknown as {
+    sidoCode: string;
+    predictedPop: number;
+    rainCount: number;
+    samples: number;
+  }[];
 
-  const bucketMap = new Map<string, Record<number, { rate: number; samples: number }>>();
+  const bucketMap = new Map<
+    string,
+    Record<number, { rate: number; samples: number }>
+  >();
   for (const b of buckets) {
     if (!bucketMap.has(b.sidoCode)) bucketMap.set(b.sidoCode, {});
     const m = bucketMap.get(b.sidoCode)!;
     m[b.predictedPop] = {
-      rate: Math.round((100.0 * b.rainCount) / b.samples * 10) / 10,
-      samples: b.samples
+      rate: Math.round(((100.0 * b.rainCount) / b.samples) * 10) / 10,
+      samples: b.samples,
     };
   }
 
-  const enrichedStats = stats.map(s => ({
+  const enrichedStats = stats.map((s) => ({
     ...s,
-    stats: bucketMap.get(s.sidoCode) || {}
+    stats: bucketMap.get(s.sidoCode) || {},
   }));
 
   return { time: maxTime, stats: enrichedStats };
