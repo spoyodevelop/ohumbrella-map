@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 import { getLatestWeather, getSidoStats } from "./weather/read.ts";
-import { syncAllWeather } from "./weather/kma.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: resolve(process.cwd(), ".env") });
@@ -12,7 +11,6 @@ export const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 app.use(cors());
-app.use(express.json());
 
 // --- 0. 위치 기반 역지오코딩 API (네이버 클라우드 프록시) ---
 app.get("/api/gc", async (req, res) => {
@@ -70,40 +68,6 @@ app.get("/api/weather/sido-stats", async (_req, res) => {
     res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
-  }
-});
-
-let isSyncing = false;
-app.post("/api/weather/sync", async (req, res) => {
-  const secretHeader = req.headers["x-sync-secret"];
-  const isLocal =
-    req.ip === "127.0.0.1" ||
-    req.ip === "::1" ||
-    req.ip === "::ffff:127.0.0.1" ||
-    req.hostname === "localhost";
-
-  if (
-    !isLocal &&
-    process.env.SYNC_SECRET &&
-    secretHeader !== process.env.SYNC_SECRET
-  ) {
-    return res.status(403).json({ error: "권한이 없습니다." });
-  }
-
-  if (isSyncing) {
-    return res
-      .status(409)
-      .json({ message: "이미 수집 동기화 작업이 진행 중입니다." });
-  }
-  isSyncing = true;
-  res.json({ message: "전국 실황 및 미래 예보 수집을 시작했습니다." });
-
-  try {
-    await syncAllWeather();
-  } catch (err: any) {
-    console.error("[수동 수집 에러]", err);
-  } finally {
-    isSyncing = false;
   }
 });
 
