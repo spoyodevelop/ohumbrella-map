@@ -245,14 +245,3 @@ export async function syncForecasts(): Promise<number> {
 
   return forecastsToInsert.length;
 }
-
-// 초기화 또는 전체 수동 동기화용 함수
-export async function syncAllWeather(): Promise<{
-  obsCount: number;
-  fcstCount: number;
-}> {
-  console.log(`[전체 동기화] 실황 및 단기예보 순차 실행...`);
-  const obsCount = await syncObservations();
-  const fcstCount = await syncForecasts();
-  return { obsCount, fcstCount };
-}
