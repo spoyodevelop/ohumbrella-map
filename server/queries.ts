@@ -1,4 +1,5 @@
 import { db } from "./db.ts";
+import { upsertAccuracyForForecastBaseTime, upsertAccuracyForObservationTime } from "./accuracy.ts";
 
 // 최신 실황 row에 새 예보가 없으면 같은 지역의 마지막 유효 POP를 표시한다.
 // 이 값은 조회용 fallback이며 예보 이력이나 정확도 통계에는 기록하지 않는다.
@@ -211,33 +212,13 @@ export async function updateForecastPopBatch(
   }
 }
 
-// 5. 실황 sync 후 해당 관측 시각의 예보-실황 매칭으로 정확도 집계 테이블 누적 업데이트
-// 처리 대상: weather_forecasts WHERE target_time = observationTime (소규모 JOIN)
-export async function updateAccuracyStats(observationTime: string) {
-  const now = new Date().toISOString();
-  await db.execute({
-    sql: `
-      INSERT INTO forecast_accuracy_stats
-        (sigungu_code, predicted_pop, rain_count, total_count, updated_at)
-      SELECT
-        f.sigungu_code,
-        f.pop              AS predicted_pop,
-        SUM(o.is_raining)  AS rain_count,
-        COUNT(*)           AS total_count,
-        ?                  AS updated_at
-      FROM weather_forecasts f
-      INNER JOIN weather_observations o
-        ON f.target_time = o.time
-       AND f.sigungu_code = o.sigungu_code
-      WHERE o.time = ?
-      GROUP BY f.sigungu_code, f.pop
-      ON CONFLICT(sigungu_code, predicted_pop) DO UPDATE SET
-        rain_count  = rain_count  + excluded.rain_count,
-        total_count = total_count + excluded.total_count,
-        updated_at  = excluded.updated_at
-    `,
-    args: [now, observationTime],
-  });
+// 5. 실황 sync 후 정해진 발표 회차 한 건만 관측 시각·지역별로 검증한다.
+export async function syncAccuracyForObservationTime(observationTime: string) {
+  await upsertAccuracyForObservationTime(db, observationTime);
+}
+
+export async function syncAccuracyForForecastBaseTime(baseTime: string) {
+  await upsertAccuracyForForecastBaseTime(db, baseTime);
 }
 
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
@@ -282,7 +263,7 @@ export async function getLatestWeather() {
         f.rain_count,
         f.total_count AS samples,
         ROUND(100.0 * f.rain_count / f.total_count, 1) AS rate
-      FROM forecast_accuracy_stats f
+      FROM verified_accuracy_stats f
       JOIN (
         SELECT DISTINCT sigungu_code, sido_code FROM hourly_weather
       ) h ON f.sigungu_code = h.sigungu_code
@@ -396,7 +377,7 @@ export async function getSidoStats() {
         f.predicted_pop as predictedPop,
         SUM(f.rain_count) as rainCount,
         SUM(f.total_count) as samples
-      FROM forecast_accuracy_stats f
+      FROM verified_accuracy_stats f
       JOIN (SELECT DISTINCT sigungu_code, sido_code FROM hourly_weather) h ON f.sigungu_code = h.sigungu_code
       WHERE f.total_count > 0
       GROUP BY h.sido_code, f.predicted_pop
@@ -499,7 +480,7 @@ export async function getEmpiricalProbabilityStats(
         COUNT(*) as totalForecasts,
         SUM(actual_rain) as actualRainedCount,
         ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as empiricalRainRate
-      FROM v_forecast_accuracy
+      FROM v_verified_forecast_accuracy
       WHERE actual_rain IS NOT NULL
         AND lead_hours BETWEEN ? AND ?
       GROUP BY predicted_pop
@@ -520,7 +501,7 @@ export async function getSidoReliabilityStats() {
       ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as actualRainRate,
       ROUND(100.0 * SUM(is_accurate_30) / COUNT(*), 1) as accuracyRate30,
       COUNT(*) as sampleCount
-    FROM v_forecast_accuracy
+    FROM v_verified_forecast_accuracy
     WHERE actual_rain IS NOT NULL
     GROUP BY sido_code
     ORDER BY sido_code ASC
@@ -623,7 +604,7 @@ export async function getRegionProbabilityInsight(
         SELECT 
           COUNT(*) as sampleCount,
           ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as actualRainRate
-        FROM v_forecast_accuracy
+        FROM v_verified_forecast_accuracy
         WHERE sigungu_code = ? AND predicted_pop = ? AND actual_rain IS NOT NULL
       `,
       args: [sigunguCode, popToQuery],
@@ -633,7 +614,7 @@ export async function getRegionProbabilityInsight(
         SELECT 
           COUNT(*) as sidoSampleCount,
           ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as sidoRainRate
-        FROM v_forecast_accuracy
+        FROM v_verified_forecast_accuracy
         WHERE sido_code = ? AND predicted_pop = ? AND actual_rain IS NOT NULL
       `,
       args: [sidoCode, popToQuery],
@@ -643,7 +624,7 @@ export async function getRegionProbabilityInsight(
         SELECT 
           COUNT(*) as nationalSampleCount,
           ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as nationalRainRate
-        FROM v_forecast_accuracy
+        FROM v_verified_forecast_accuracy
         WHERE predicted_pop = ? AND actual_rain IS NOT NULL
       `,
       args: [popToQuery],

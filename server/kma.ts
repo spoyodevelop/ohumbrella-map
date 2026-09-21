@@ -6,7 +6,8 @@ import {
   upsertWeatherBatch,
   upsertForecastsBatch,
   updateForecastPopBatch,
-  updateAccuracyStats,
+  syncAccuracyForObservationTime,
+  syncAccuracyForForecastBaseTime,
   type ObservationRecord,
   type ForecastRecord,
   type WeatherRecord,
@@ -314,7 +315,7 @@ export async function syncObservations(): Promise<number> {
   await upsertObservationsBatch(observationsToInsert);
   await upsertWeatherBatch(hourlyToInsert);
   // 이 관측 시각에 매칭되는 예보들로 정확도 집계 누적
-  await updateAccuracyStats(obsTimeStr);
+  await syncAccuracyForObservationTime(obsTimeStr);
 
   return observationsToInsert.length;
 }
@@ -433,6 +434,7 @@ export async function syncForecasts(): Promise<number> {
 
   console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
   await upsertForecastsBatch(forecastsToInsert);
+  await syncAccuracyForForecastBaseTime(baseTimeStr);
   await updateForecastPopBatch(forecastPopUpdates);
 
   return forecastsToInsert.length;

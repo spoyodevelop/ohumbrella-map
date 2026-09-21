@@ -23,8 +23,9 @@
     "pm2:logs": "pm2 logs ohumbrella-server",
     "build": "npm run map:build && tsc -b && vite build",
     "lint": "oxlint",
+    "test": "tsx --test server/accuracy.test.ts",
     "typecheck": "tsc -b --pretty false",
-    "check": "npm run lint && npm run typecheck",
+    "check": "npm run lint && npm run typecheck && npm test",
     "preview": "vite preview"
   },
   "dependencies": {
