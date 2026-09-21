@@ -9,7 +9,6 @@ export interface CurrentWeatherRow {
   sidoCode: string;
   sigunguCode: string;
   name: string;
-  pop: number | null;
   kmaPop: number | null;
   pty: number;
   rn1: number;
@@ -73,7 +72,6 @@ export function assembleCurrentWeatherResponse(
       sidoCode: rawRow.sidoCode,
       sigunguCode: rawRow.sigunguCode,
       name: rawRow.name,
-      pop: rawRow.pop,
       kmaPop: rawRow.kmaPop,
       pty: rawRow.pty,
       rn1: rawRow.rn1,

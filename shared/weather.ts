@@ -9,7 +9,6 @@ export interface RegionWeatherInfo {
   sidoCode: string;
   sigunguCode: string;
   name: string;
-  pop: number | null;
   kmaPop: number | null;
   pty: number;
   rn1: number;

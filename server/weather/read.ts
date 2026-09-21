@@ -34,7 +34,6 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
         h.sido_code as sidoCode,
         h.sigungu_code as sigunguCode,
         h.name,
-        ${latestKnownPopForH} as pop,
         ${latestKnownPopForH} as kmaPop,
         h.pty,
         h.rn1,
