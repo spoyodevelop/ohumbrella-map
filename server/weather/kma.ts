@@ -27,10 +27,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // 카나리 방식으로 찔러보는 용도
 // 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
-export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
+export async function checkCanaryNcstUpdated(lastKnownRound: string, checkedAt = new Date()) {
   const serviceKey = requireKmaServiceKey();
-  const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const kst = new Date(checkedAt.getTime() + 9 * 60 * 60 * 1000);
   const lastCheckOfRound = kst.getUTCMinutes() >= 58;
   const currentHour = kst.getUTCHours();
   const baseDate =
@@ -39,7 +38,7 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
     String(kst.getUTCDate()).padStart(2, "0");
   const candidateBaseTime = String(currentHour).padStart(2, "0") + "00";
 
-  if (candidateBaseTime === lastKnownBaseTime) {
+  if (`${baseDate} ${candidateBaseTime}` === lastKnownRound) {
     return { updated: false, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
   }
 
@@ -59,9 +58,9 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
 // --------------------------------------------------------------------------
 // 1. [실황 전용 수집] 1시간마다 1회만 호출 (getUltraSrtNcst만 238콜)
 // --------------------------------------------------------------------------
-export async function syncObservations(): Promise<number> {
+export async function syncObservations(round = getNcstBaseDateTime()): Promise<number> {
   const serviceKey = requireKmaServiceKey();
-  const { baseDate: ncstDate, baseTime: ncstTime } = getNcstBaseDateTime();
+  const { baseDate: ncstDate, baseTime: ncstTime } = round;
   const obsTimeStr = `${ncstDate.slice(0, 4)}-${ncstDate.slice(4, 6)}-${ncstDate.slice(6, 8)} ${ncstTime.slice(0, 2)}:00`;
   const createdAt = new Date().toISOString();
 

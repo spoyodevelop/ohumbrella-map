@@ -1,7 +1,8 @@
 import cron from "node-cron";
 import https from "node:https";
 import { reportServerError } from "./monitoring.ts";
-import { getVilageBaseDateTime } from "./weather/kmaTime.ts";
+import { getNcstBaseDateTime, getVilageBaseDateTime } from "./weather/kmaTime.ts";
+import { createWorkerQueue } from "./workerQueue.ts";
 import {
   checkCanaryNcstUpdated,
   syncObservations,
@@ -14,10 +15,13 @@ const registerKstSchedule: RegisterSchedule = (expression, task) => {
   cron.schedule(expression, task, { timezone: "Asia/Seoul" });
 };
 
-let isSyncing = false;
-let lastSyncedBaseTime = "";
+let lastSyncedObservationRound = "";
 let pendingForecastRound: string | null = null;
 let workerStarted = false;
+const enqueue = createWorkerQueue((error) => {
+  console.error("[워커 예약 작업 에러]", error);
+  reportServerError(error, "worker.queue");
+});
 
 function currentForecastRound() {
   const { baseDate, baseTime } = getVilageBaseDateTime();
@@ -78,30 +82,28 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
 
   // 매시간 40~58분 사이 2분 간격으로 새 실황 확인
   registerSchedule("40-58/2 * * * *", async () => {
-    if (isSyncing) return;
-    isSyncing = true;
-    try {
-      const canary = await checkCanaryNcstUpdated(lastSyncedBaseTime);
-      if (canary.updated) {
-        console.log(`[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`);
-        await syncObservations();
-        lastSyncedBaseTime = canary.baseTime;
-        await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
-      } else if (canary.lastCheckOfRound && canary.baseTime !== lastSyncedBaseTime) {
-        throw new Error(`실황 ${canary.baseDate} ${canary.baseTime} 자료가 58분까지 열리지 않았습니다.`);
+    const checkedAt = new Date();
+    const round = getNcstBaseDateTime(checkedAt);
+    await enqueue(`observation:${round.baseDate}:${round.baseTime}`, async () => {
+      try {
+        const canary = await checkCanaryNcstUpdated(lastSyncedObservationRound, checkedAt);
+        if (canary.updated) {
+          console.log(`[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`);
+          await syncObservations(round);
+          lastSyncedObservationRound = `${canary.baseDate} ${canary.baseTime}`;
+          await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
+        } else if (canary.lastCheckOfRound && `${canary.baseDate} ${canary.baseTime}` !== lastSyncedObservationRound) {
+          throw new Error(`실황 ${canary.baseDate} ${canary.baseTime} 자료가 58분까지 열리지 않았습니다.`);
+        }
+      } catch (err) {
+        console.error("[워커 실황 확인·수집 에러]", err);
+        reportServerError(err, "worker.observation");
+        await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
       }
-    } catch (err) {
-      console.error("[워커 실황 확인·수집 에러]", err);
-      reportServerError(err, "worker.observation");
-      await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
-    } finally {
-      isSyncing = false;
-    }
+    });
   });
 
   async function collectForecast(round: ReturnType<typeof currentForecastRound>): Promise<void> {
-    if (isSyncing) return;
-    isSyncing = true;
     try {
       await syncForecasts(round);
       pendingForecastRound = null;
@@ -111,15 +113,14 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
       console.error("[워커 단기예보 에러]", err);
       reportServerError(err, "worker.forecast");
       await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
-    } finally {
-      isSyncing = false;
     }
   }
 
   // 02:20부터 3시간마다 단기예보 수집
   registerSchedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
     console.log("[워커] 3시간 주기 단기예보 발표 시점 - 정기 예보 수집 시작");
-    await collectForecast(currentForecastRound());
+    const round = currentForecastRound();
+    await enqueue(`forecast:${round.key}`, () => collectForecast(round));
   });
 
   // 실패한 발표 회차만 10분 간격으로 다시 수집한다.
@@ -131,7 +132,9 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
       return;
     }
     console.log(`[워커] 단기예보 ${round.key} 재시도`);
-    await collectForecast(round);
+    await enqueue(`forecast:${round.key}`, async () => {
+      if (pendingForecastRound === round.key) await collectForecast(round);
+    });
   });
 
   workerStarted = true;
