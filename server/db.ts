@@ -1,16 +1,16 @@
 import { createClient, type Client } from "@libsql/client";
 import { backfillAccuracyVerifications, createAccuracySchema } from "./verification/accuracy.ts";
-import { loadServerEnv, requireTursoDatabaseUrl } from "./env.ts";
+import { loadServerEnv, requireTursoAuthToken, requireTursoDatabaseUrl } from "./env.ts";
 import { flushMonitoring, initMonitoring, reportServerError } from "./monitoring.ts";
 
 loadServerEnv();
 
-const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 let client: Client;
 try {
+  const url = requireTursoDatabaseUrl();
   client = createClient({
-    url: requireTursoDatabaseUrl(),
-    authToken: tursoAuthToken,
+    url,
+    authToken: requireTursoAuthToken(url),
   });
 } catch (error) {
   initMonitoring();

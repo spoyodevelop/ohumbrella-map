@@ -23,3 +23,10 @@ export function requireTursoDatabaseUrl(): string {
   if (!url) throw new Error("TURSO_DATABASE_URL 환경 변수가 필요합니다.");
   return url;
 }
+
+export function requireTursoAuthToken(url: string): string | undefined {
+  if (url.startsWith("file:")) return undefined;
+  const token = process.env.TURSO_AUTH_TOKEN?.trim();
+  if (!token) throw new Error("원격 DB에는 TURSO_AUTH_TOKEN 환경 변수가 필요합니다.");
+  return token;
+}
