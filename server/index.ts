@@ -1,11 +1,9 @@
-import dotenv from "dotenv";
-import { resolve } from "node:path";
 import { app } from "./api.ts";
 import { initDb } from "./db.ts";
 import { startWorker } from "./worker.ts";
+import { loadServerEnv } from "./env.ts";
 
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-dotenv.config({ path: resolve(process.cwd(), ".env") });
+loadServerEnv();
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 

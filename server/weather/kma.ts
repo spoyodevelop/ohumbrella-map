@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-import { resolve } from "node:path";
+import { loadServerEnv } from "../env.ts";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
 import { calculateLeadHours, getNcstBaseDateTime, getVilageBaseDateTime } from "./kmaTime.ts";
 import { parseForecastItems, parseObservationItems, type KmaForecastItem, type KmaObservationItem } from "./kmaParse.ts";
@@ -18,8 +17,7 @@ import {
   syncAccuracyForForecastBaseTime,
 } from "../verification/sync.ts";
 
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-dotenv.config({ path: resolve(process.cwd(), ".env") });
+loadServerEnv();
 
 const BASE_URL =
   "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0";

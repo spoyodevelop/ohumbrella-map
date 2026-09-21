@@ -1,11 +1,9 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import { resolve } from "node:path";
 import { getLatestWeather, getSidoStats } from "./weather/read.ts";
+import { loadServerEnv } from "./env.ts";
 
-dotenv.config({ path: resolve(process.cwd(), ".env.local") });
-dotenv.config({ path: resolve(process.cwd(), ".env") });
+loadServerEnv();
 
 export const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
