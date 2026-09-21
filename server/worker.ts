@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import https from "node:https";
+import { reportServerError } from "./monitoring.ts";
 import {
   checkCanaryNcstUpdated,
   syncObservations,
@@ -82,6 +83,7 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
       }
     } catch (err) {
       console.error("[워커 실황 확인·수집 에러]", err);
+      reportServerError(err, "worker.observation");
       await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
     } finally {
       isSyncing = false;
@@ -98,6 +100,7 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
       await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL);
     } catch (err) {
       console.error("[워커 단기예보 에러]", err);
+      reportServerError(err, "worker.forecast");
       await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
     } finally {
       isSyncing = false;

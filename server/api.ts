@@ -2,8 +2,10 @@ import express from "express";
 import cors from "cors";
 import { getLatestWeather, getSidoStats } from "./weather/read.ts";
 import { loadServerEnv } from "./env.ts";
+import { initMonitoring, reportServerError } from "./monitoring.ts";
 
 loadServerEnv();
+initMonitoring();
 
 export const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
@@ -47,6 +49,7 @@ app.get("/api/gc", async (req, res) => {
     const data = await response.json();
     res.status(response.status).json(data);
   } catch (err: any) {
+    reportServerError(err, "api.gc");
     res.status(500).json({ error: err.message });
   }
 });
@@ -56,6 +59,7 @@ app.get("/api/weather/current", async (_req, res) => {
     const data = await getLatestWeather();
     res.json(data);
   } catch (err: any) {
+    reportServerError(err, "api.weather.current");
     res.status(500).json({ error: err.message });
   }
 });
@@ -65,6 +69,7 @@ app.get("/api/weather/sido-stats", async (_req, res) => {
     const data = await getSidoStats();
     res.json(data);
   } catch (err: any) {
+    reportServerError(err, "api.weather.sido-stats");
     res.status(500).json({ error: err.message });
   }
 });

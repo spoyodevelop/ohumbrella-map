@@ -2,6 +2,7 @@ import { app } from "./api.ts";
 import { initDb } from "./db.ts";
 import { startWorker } from "./worker.ts";
 import { loadServerEnv, requireKmaServiceKey } from "./env.ts";
+import { flushMonitoring, reportServerError } from "./monitoring.ts";
 
 loadServerEnv();
 
@@ -21,6 +22,8 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
     });
   } catch (err) {
     console.error("❌ [통합 서버 시작 실패]", err);
+    reportServerError(err, "server.startup");
+    await flushMonitoring();
     process.exit(1);
   }
 })();
