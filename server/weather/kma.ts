@@ -1,4 +1,5 @@
 import { loadServerEnv, requireKmaServiceKey } from "../env.ts";
+import { reportServerWarning } from "../monitoring.ts";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
 import { calculateLeadHours, getNcstBaseDateTime, getVilageBaseDateTime } from "./kmaTime.ts";
 import { parseForecastItems, parseObservationItems, type KmaForecastItem, type KmaObservationItem } from "./kmaParse.ts";
@@ -67,6 +68,7 @@ export async function syncObservations(): Promise<number> {
 
   const observationsToInsert: ObservationRecord[] = [];
   const hourlyToInsert: HourlyWeatherWriteRecord[] = [];
+  let missingGrids = 0;
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -83,7 +85,7 @@ export async function syncObservations(): Promise<number> {
         }
         if (result.kind === "no-data") {
           console.warn(`[실황 자료 없음] ${grid.gridKey}: 저장 건너뜀`);
-          return { obsList: [], hourList: [] };
+          return { obsList: [], hourList: [], missing: true };
         }
 
         const { pty, rn1, tmp, isRaining } = parseObservationItems(result.items);
@@ -123,13 +125,14 @@ export async function syncObservations(): Promise<number> {
           });
         }
 
-        return { obsList, hourList };
+        return { obsList, hourList, missing: false };
       }),
     );
 
     for (const res of chunkResults) {
       observationsToInsert.push(...res.obsList);
       hourlyToInsert.push(...res.hourList);
+      if (res.missing) missingGrids++;
     }
 
     process.stdout.write(
@@ -148,6 +151,14 @@ export async function syncObservations(): Promise<number> {
   // 이 관측 시각에 매칭되는 예보들로 정확도 집계 누적
   await syncAccuracyForObservationTime(obsTimeStr);
 
+  if (missingGrids > 0) {
+    reportServerWarning("실황 수집에서 일부 격자 자료 없음", "worker.observation", {
+      baseTime: obsTimeStr,
+      missingGrids,
+      totalGrids: distinctGrids.length,
+    });
+  }
+
   return observationsToInsert.length;
 }
 
@@ -164,6 +175,7 @@ export async function syncForecasts(): Promise<number> {
 
   const forecastsToInsert: ForecastRecord[] = [];
   const forecastPopUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
+  let missingGrids = 0;
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -180,7 +192,7 @@ export async function syncForecasts(): Promise<number> {
         }
         if (result.kind === "no-data") {
           console.warn(`[예보 자료 없음] ${grid.gridKey}: 저장·지도 갱신 건너뜀`);
-          return { fcstList: [] as ForecastRecord[], popUpdates: [] };
+          return { fcstList: [] as ForecastRecord[], popUpdates: [], missing: true };
         }
 
         const fcstList: ForecastRecord[] = [];
@@ -188,7 +200,7 @@ export async function syncForecasts(): Promise<number> {
         const validForecasts = parseForecastItems(result.items);
         if (validForecasts.length === 0) {
           console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
-          return { fcstList, popUpdates };
+          return { fcstList, popUpdates, missing: false };
         }
 
         const currentPop = validForecasts[0].pop;
@@ -224,13 +236,14 @@ export async function syncForecasts(): Promise<number> {
           });
         }
 
-        return { fcstList, popUpdates };
+        return { fcstList, popUpdates, missing: false };
       }),
     );
 
     for (const res of chunkResults) {
       forecastsToInsert.push(...res.fcstList);
       forecastPopUpdates.push(...res.popUpdates);
+      if (res.missing) missingGrids++;
     }
 
     process.stdout.write(
@@ -246,6 +259,14 @@ export async function syncForecasts(): Promise<number> {
   await upsertForecastsBatch(forecastsToInsert);
   await syncAccuracyForForecastBaseTime(baseTimeStr);
   await updateForecastPopBatch(forecastPopUpdates);
+
+  if (missingGrids > 0) {
+    reportServerWarning("예보 수집에서 일부 격자 자료 없음", "worker.forecast", {
+      baseTime: baseTimeStr,
+      missingGrids,
+      totalGrids: distinctGrids.length,
+    });
+  }
 
   return forecastsToInsert.length;
 }
