@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
 import { calculateLeadHours, getNcstBaseDateTime, getVilageBaseDateTime } from "./kmaTime.ts";
 import { parseForecastItems, parseObservationItems, type KmaForecastItem, type KmaObservationItem } from "./kmaParse.ts";
+import { fetchKmaWithRetry, type KmaFetchResult } from "./kmaClient.ts";
 import {
   upsertObservationsBatch,
   upsertWeatherBatch,
@@ -27,71 +28,6 @@ const SERVICE_KEY = process.env.KMA_SERVICE_KEY || "bYThO5gPTpyE4TuYDw6cbg";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-interface KmaApiResponse<T> {
-  response?: {
-    header?: {
-      resultCode: string;
-      resultMsg: string;
-    };
-    body?: {
-      items?: {
-        item?: T[];
-      };
-    };
-  };
-}
-
-async function fetchKmaWithRetry<T>(
-  url: string,
-  maxTries = 3,
-  initialDelay = 400,
-): Promise<T[]> {
-  let delay = initialDelay;
-  let lastErrMsg = "";
-
-  for (let tries = 1; tries <= maxTries; tries++) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) {
-        throw new Error(`HTTP Error ${res.status}`);
-      }
-      const data = (await res.json()) as KmaApiResponse<T>;
-      const header = data?.response?.header;
-      if (!header) {
-        throw new Error("응답 헤더 없음");
-      }
-
-      const code = header.resultCode;
-
-      // 00: 정상 응답 -> 데이터 반환
-      if (code === "00") {
-        return data.response?.body?.items?.item ?? [];
-      }
-
-      // 03: NODATA_ERROR - 데이터가 아직 없거나 관측값 없음 (정상 대기 상태, 재시도 없이 즉시 소모)
-      if (code === "03") {
-        return [];
-      }
-
-      // 그 외 00이 아닌 모든 코드는 에러로 간주하여 catch에서 재시도 진행
-      throw new Error(`[${code}] ${header.resultMsg}`);
-    } catch (err: any) {
-      lastErrMsg = err?.message || String(err);
-      if (tries < maxTries) {
-        await sleep(delay);
-        delay *= 2;
-      }
-    }
-  }
-
-  // ⚠️ maxTries까지 끝까지 재시도했음에도 실패한 경우:
-  // 에러를 밖으로 던지지 않고 그 자리에서 소모하여 빈 배열([]) 반환
-  console.warn(
-    `[KMA 재시도 실패 / 에러 소모] 최종 실패 (${lastErrMsg}) -> [] 반환`,
-  );
-  return [];
-}
-
 // 카나리 방식으로 찔러보는 용도
 // 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
 export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
@@ -110,9 +46,8 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
 
   const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${SERVICE_KEY}`;
 
-  // 재시도 2회 수행 후 실패해도 그 자리에서 []로 소모되므로 try-catch 불필요
-  const items = await fetchKmaWithRetry<KmaObservationItem>(url, 2, 300);
-  if (items.length > 0) {
+  const result = await fetchKmaWithRetry<KmaObservationItem>(url, 2, 300);
+  if (result.kind === "items") {
     console.log(
       `[카나리 감지] 종로구에 실황 오픈 (${baseDate} ${candidateBaseTime})`,
     );
@@ -142,18 +77,18 @@ export async function syncObservations(): Promise<number> {
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
         const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
-        // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
-        const items = await fetchKmaWithRetry<KmaObservationItem>(
-          ncstUrl,
-          3,
-          400,
-        );
-        if (items.length === 0) {
-          console.warn(`[실황 누락] ${grid.gridKey}: 빈 응답, 저장 건너뜀`);
+        let result: KmaFetchResult<KmaObservationItem>;
+        try {
+          result = await fetchKmaWithRetry<KmaObservationItem>(ncstUrl, 3, 400);
+        } catch (error) {
+          throw new Error(`실황 격자 ${grid.gridKey} 요청 실패`, { cause: error });
+        }
+        if (result.kind === "no-data") {
+          console.warn(`[실황 자료 없음] ${grid.gridKey}: 저장 건너뜀`);
           return { obsList: [], hourList: [] };
         }
 
-        const { pty, rn1, tmp, isRaining } = parseObservationItems(items);
+        const { pty, rn1, tmp, isRaining } = parseObservationItems(result.items);
 
         const obsList: ObservationRecord[] = [];
         const hourList: HourlyWeatherWriteRecord[] = [];
@@ -236,16 +171,20 @@ export async function syncForecasts(): Promise<number> {
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
         const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
-        // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
-        const items = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
-        if (items.length === 0) {
-          console.warn(`[예보 누락] ${grid.gridKey}: 빈 응답, 저장·지도 갱신 건너뜀`);
+        let result: KmaFetchResult<KmaForecastItem>;
+        try {
+          result = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
+        } catch (error) {
+          throw new Error(`예보 격자 ${grid.gridKey} 요청 실패`, { cause: error });
+        }
+        if (result.kind === "no-data") {
+          console.warn(`[예보 자료 없음] ${grid.gridKey}: 저장·지도 갱신 건너뜀`);
           return { fcstList: [] as ForecastRecord[], popUpdates: [] };
         }
 
         const fcstList: ForecastRecord[] = [];
         const popUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
-        const validForecasts = parseForecastItems(items);
+        const validForecasts = parseForecastItems(result.items);
         if (validForecasts.length === 0) {
           console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
           return { fcstList, popUpdates };

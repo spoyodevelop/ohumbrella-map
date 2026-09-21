@@ -72,20 +72,20 @@ function pingHealthcheck(urlStr?: string, error?: unknown): Promise<void> {
 // 초단기실황은 매시 30분 생성 후 40분 이후 제공되므로 40분부터 확인
 cron.schedule("40-58/2 * * * *", async () => {
   if (isSyncing) return;
-  const canary = await checkCanaryNcstUpdated(lastSyncedBaseTime);
-  if (canary.updated) {
-    console.log(`[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`);
-    isSyncing = true;
-    try {
+  isSyncing = true;
+  try {
+    const canary = await checkCanaryNcstUpdated(lastSyncedBaseTime);
+    if (canary.updated) {
+      console.log(`[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`);
       await syncObservations();
       lastSyncedBaseTime = canary.baseTime;
       await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
-    } catch (err) {
-      console.error("[워커 실황 수집 에러]", err);
-      await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
-    } finally {
-      isSyncing = false;
     }
+  } catch (err) {
+    console.error("[워커 실황 확인·수집 에러]", err);
+    await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
+  } finally {
+    isSyncing = false;
   }
 });
 
