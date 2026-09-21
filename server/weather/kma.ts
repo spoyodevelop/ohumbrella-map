@@ -1,4 +1,4 @@
-import { loadServerEnv } from "../env.ts";
+import { loadServerEnv, requireKmaServiceKey } from "../env.ts";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
 import { calculateLeadHours, getNcstBaseDateTime, getVilageBaseDateTime } from "./kmaTime.ts";
 import { parseForecastItems, parseObservationItems, type KmaForecastItem, type KmaObservationItem } from "./kmaParse.ts";
@@ -22,13 +22,12 @@ loadServerEnv();
 const BASE_URL =
   "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0";
 
-const SERVICE_KEY = process.env.KMA_SERVICE_KEY || "bYThO5gPTpyE4TuYDw6cbg";
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // 카나리 방식으로 찔러보는 용도
 // 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
 export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
+  const serviceKey = requireKmaServiceKey();
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const currentHour = kst.getUTCHours();
@@ -42,7 +41,7 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
     return { updated: false, baseDate, baseTime: candidateBaseTime };
   }
 
-  const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${SERVICE_KEY}`;
+  const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${serviceKey}`;
 
   const result = await fetchKmaWithRetry<KmaObservationItem>(url, 2, 300);
   if (result.kind === "items") {
@@ -59,6 +58,7 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
 // 1. [실황 전용 수집] 1시간마다 1회만 호출 (getUltraSrtNcst만 238콜)
 // --------------------------------------------------------------------------
 export async function syncObservations(): Promise<number> {
+  const serviceKey = requireKmaServiceKey();
   const { baseDate: ncstDate, baseTime: ncstTime } = getNcstBaseDateTime();
   const obsTimeStr = `${ncstDate.slice(0, 4)}-${ncstDate.slice(4, 6)}-${ncstDate.slice(6, 8)} ${ncstTime.slice(0, 2)}:00`;
   const createdAt = new Date().toISOString();
@@ -74,7 +74,7 @@ export async function syncObservations(): Promise<number> {
 
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
-        const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
+        const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${serviceKey}`;
         let result: KmaFetchResult<KmaObservationItem>;
         try {
           result = await fetchKmaWithRetry<KmaObservationItem>(ncstUrl, 3, 400);
@@ -139,7 +139,9 @@ export async function syncObservations(): Promise<number> {
   }
 
   console.log(`\n[실황 저장] ${observationsToInsert.length}건 DB 저장 완료!`);
-  if (observationsToInsert.length === 0) return 0;
+  if (observationsToInsert.length === 0) {
+    throw new Error(`실황 수집 실패: ${ncstDate} ${ncstTime}의 모든 격자에 자료가 없습니다.`);
+  }
 
   await upsertObservationsBatch(observationsToInsert);
   await upsertWeatherBatch(hourlyToInsert);
@@ -153,6 +155,7 @@ export async function syncObservations(): Promise<number> {
 // 2. [단기예보 전용 수집] 3시간마다 딱 1회만 호출 (getVilageFcst만 238콜)
 // --------------------------------------------------------------------------
 export async function syncForecasts(): Promise<number> {
+  const serviceKey = requireKmaServiceKey();
   const { baseDate: fcstDate, baseTime: fcstTime } = getVilageBaseDateTime();
   const baseTimeStr = `${fcstDate.slice(0, 4)}-${fcstDate.slice(4, 6)}-${fcstDate.slice(6, 8)} ${fcstTime.slice(0, 2)}:00`;
   const createdAt = new Date().toISOString();
@@ -168,7 +171,7 @@ export async function syncForecasts(): Promise<number> {
 
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
-        const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
+        const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${serviceKey}`;
         let result: KmaFetchResult<KmaForecastItem>;
         try {
           result = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
@@ -237,6 +240,9 @@ export async function syncForecasts(): Promise<number> {
   }
 
   console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
+  if (forecastsToInsert.length === 0) {
+    throw new Error(`예보 수집 실패: ${fcstDate} ${fcstTime}의 모든 격자에 유효한 자료가 없습니다.`);
+  }
   await upsertForecastsBatch(forecastsToInsert);
   await syncAccuracyForForecastBaseTime(baseTimeStr);
   await updateForecastPopBatch(forecastPopUpdates);

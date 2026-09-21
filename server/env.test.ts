@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { loadServerEnv } from "./env.ts";
+import { loadServerEnv, requireKmaServiceKey } from "./env.ts";
 
 test("환경 변수는 프로세스, .env.local, .env 순서로 우선하고 한 번만 읽는다", () => {
   const root = mkdtempSync(join(tmpdir(), "ohumbrella-env-"));
@@ -28,5 +28,20 @@ test("환경 변수는 프로세스, .env.local, .env 순서로 우선하고 한
     delete process.env[localKey];
     delete process.env[baseKey];
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("기상청 인증키가 없거나 공백이면 서버 시작용 검증에서 실패한다", () => {
+  const previous = process.env.KMA_SERVICE_KEY;
+  try {
+    delete process.env.KMA_SERVICE_KEY;
+    assert.throws(requireKmaServiceKey, /KMA_SERVICE_KEY/);
+    process.env.KMA_SERVICE_KEY = "  ";
+    assert.throws(requireKmaServiceKey, /KMA_SERVICE_KEY/);
+    process.env.KMA_SERVICE_KEY = " test-key ";
+    assert.equal(requireKmaServiceKey(), "test-key");
+  } finally {
+    if (previous === undefined) delete process.env.KMA_SERVICE_KEY;
+    else process.env.KMA_SERVICE_KEY = previous;
   }
 });

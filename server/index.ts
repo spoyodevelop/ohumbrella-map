@@ -1,7 +1,7 @@
 import { app } from "./api.ts";
 import { initDb } from "./db.ts";
 import { startWorker } from "./worker.ts";
-import { loadServerEnv } from "./env.ts";
+import { loadServerEnv, requireKmaServiceKey } from "./env.ts";
 
 loadServerEnv();
 
@@ -9,6 +9,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 (async () => {
   try {
+    requireKmaServiceKey();
     await initDb();
     app.listen(PORT, () => {
       startWorker();
@@ -19,7 +20,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
       console.log(`=============================================`);
     });
   } catch (err) {
-    console.error("❌ [통합 서버 시작 실패] DB 초기화 에러:", err);
+    console.error("❌ [통합 서버 시작 실패]", err);
     process.exit(1);
   }
 })();

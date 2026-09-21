@@ -11,3 +11,9 @@ export function loadServerEnv(root = process.cwd()): void {
   dotenv.config({ path: resolve(root, ".env"), quiet: true });
   loaded = true;
 }
+
+export function requireKmaServiceKey(): string {
+  const key = process.env.KMA_SERVICE_KEY?.trim();
+  if (!key) throw new Error("KMA_SERVICE_KEY 환경 변수가 필요합니다.");
+  return key;
+}
