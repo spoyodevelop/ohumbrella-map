@@ -176,6 +176,7 @@ export async function syncForecasts(): Promise<number> {
   const forecastsToInsert: ForecastRecord[] = [];
   const forecastPopUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
   let missingGrids = 0;
+  let invalidPopGrids = 0;
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -192,7 +193,7 @@ export async function syncForecasts(): Promise<number> {
         }
         if (result.kind === "no-data") {
           console.warn(`[예보 자료 없음] ${grid.gridKey}: 저장·지도 갱신 건너뜀`);
-          return { fcstList: [] as ForecastRecord[], popUpdates: [], missing: true };
+          return { fcstList: [] as ForecastRecord[], popUpdates: [], missing: true, invalidPop: false };
         }
 
         const fcstList: ForecastRecord[] = [];
@@ -200,7 +201,7 @@ export async function syncForecasts(): Promise<number> {
         const validForecasts = parseForecastItems(result.items);
         if (validForecasts.length === 0) {
           console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
-          return { fcstList, popUpdates, missing: false };
+          return { fcstList, popUpdates, missing: false, invalidPop: true };
         }
 
         const currentPop = validForecasts[0].pop;
@@ -236,7 +237,7 @@ export async function syncForecasts(): Promise<number> {
           });
         }
 
-        return { fcstList, popUpdates, missing: false };
+        return { fcstList, popUpdates, missing: false, invalidPop: false };
       }),
     );
 
@@ -244,6 +245,7 @@ export async function syncForecasts(): Promise<number> {
       forecastsToInsert.push(...res.fcstList);
       forecastPopUpdates.push(...res.popUpdates);
       if (res.missing) missingGrids++;
+      if (res.invalidPop) invalidPopGrids++;
     }
 
     process.stdout.write(
@@ -260,10 +262,11 @@ export async function syncForecasts(): Promise<number> {
   await syncAccuracyForForecastBaseTime(baseTimeStr);
   await updateForecastPopBatch(forecastPopUpdates);
 
-  if (missingGrids > 0) {
-    reportServerWarning("예보 수집에서 일부 격자 자료 없음", "worker.forecast", {
+  if (missingGrids > 0 || invalidPopGrids > 0) {
+    reportServerWarning("예보 수집에서 일부 격자 누락", "worker.forecast", {
       baseTime: baseTimeStr,
       missingGrids,
+      invalidPopGrids,
       totalGrids: distinctGrids.length,
     });
   }
