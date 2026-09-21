@@ -1,6 +1,5 @@
 import { db } from "../db.ts";
 import { latestKnownPopForH } from "./sql.ts";
-import type { ForecastRecord } from "./write.ts";
 import type {
   CurrentWeatherResponse,
   SidoStatsResponse,
@@ -15,8 +14,6 @@ import {
   type SidoPopBucketRow,
   type SidoStatRow,
 } from "./sidoResponse.ts";
-
-type WeatherHistoryRow = Omit<CurrentWeatherRow, "kmaPop">;
 
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
 export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
@@ -126,67 +123,4 @@ export async function getSidoStats(): Promise<SidoStatsResponse> {
   const stats = res.rows as unknown as SidoStatRow[];
   const buckets = bucketsRes.rows as unknown as SidoPopBucketRow[];
   return assembleSidoStatsResponse(maxTime, stats, buckets);
-}
-
-// 특정 시군구 미래 예보 타임라인 조회
-export async function getForecastTimeline(sigunguCode: string, hours = 24) {
-  const latestBaseRes = await db.execute({
-    sql: `SELECT MAX(base_time) as maxBaseTime FROM weather_forecasts WHERE sigungu_code = ?`,
-    args: [sigunguCode],
-  });
-
-  const maxBaseTime =
-    (latestBaseRes.rows[0]?.maxBaseTime as string | null) ?? null;
-  if (!maxBaseTime) {
-    return [];
-  }
-
-  const res = await db.execute({
-    sql: `
-      SELECT
-        base_time as baseTime,
-        target_time as targetTime,
-        sigungu_code as sigunguCode,
-        sido_code as sidoCode,
-        name,
-        pop,
-        lead_hours as leadHours,
-        sky,
-        tmp,
-        created_at as createdAt
-      FROM weather_forecasts
-      WHERE sigungu_code = ? AND base_time = ?
-      ORDER BY target_time ASC
-      LIMIT ?
-    `,
-    args: [sigunguCode, maxBaseTime, hours],
-  });
-
-  return res.rows as unknown as ForecastRecord[];
-}
-
-// 특정 시군구 시계열 이력 조회
-export async function getTimeSeries(sigunguCode: string, limitHours = 48) {
-  const res = await db.execute({
-    sql: `
-      SELECT
-        time,
-        sido_code as sidoCode,
-        sigungu_code as sigunguCode,
-        name,
-        pop,
-        pty,
-        rn1,
-        tmp,
-        sky,
-        updated_at as updatedAt
-      FROM hourly_weather
-      WHERE sigungu_code = ?
-      ORDER BY time DESC
-      LIMIT ?
-    `,
-    args: [sigunguCode, limitHours],
-  });
-
-  return res.rows as unknown as WeatherHistoryRow[];
 }

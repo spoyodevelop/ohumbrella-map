@@ -13,7 +13,7 @@ import {
 import {
   syncAccuracyForObservationTime,
   syncAccuracyForForecastBaseTime,
-} from "../verification/queries.ts";
+} from "../verification/sync.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: resolve(process.cwd(), ".env") });

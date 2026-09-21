@@ -2,16 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import {
-  getLatestWeather,
-  getSidoStats,
-  getTimeSeries,
-  getForecastTimeline,
-} from "./weather/read.ts";
-import {
-  getRegionProbabilityInsight,
-  getEmpiricalProbabilityStats,
-} from "./verification/queries.ts";
+import { getLatestWeather, getSidoStats } from "./weather/read.ts";
 import { syncAllWeather } from "./weather/kma.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
@@ -77,72 +68,6 @@ app.get("/api/weather/sido-stats", async (_req, res) => {
   try {
     const data = await getSidoStats();
     res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/weather/timeseries/:code", async (req, res) => {
-  try {
-    const { code } = req.params;
-    const hours = req.query.hours
-      ? parseInt(req.query.hours as string, 10)
-      : 48;
-    const result = await getTimeSeries(code, hours);
-    res.json({ sigunguCode: code, count: result.length, history: result });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/weather/forecast/:code", async (req, res) => {
-  try {
-    const { code } = req.params;
-    const hours = req.query.hours
-      ? parseInt(req.query.hours as string, 10)
-      : 24;
-    const result = await getForecastTimeline(code, hours);
-    res.json({ sigunguCode: code, count: result.length, forecasts: result });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/weather/probability", async (req, res) => {
-  try {
-    const code = req.query.code as string | undefined;
-    if (!code) {
-      return res
-        .status(400)
-        .json({ error: "code 쿼리 파라미터(예: 11240)가 필요합니다." });
-    }
-    const pop = req.query.pop
-      ? parseInt(req.query.pop as string, 10)
-      : undefined;
-
-    const insight = await getRegionProbabilityInsight(code, pop);
-    if (!insight) {
-      return res
-        .status(404)
-        .json({ error: `코드 '${code}'에 해당하는 시군구를 찾을 수 없습니다.` });
-    }
-
-    res.json(insight);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/analysis/empirical-probability", async (req, res) => {
-  try {
-    const minLead = req.query.minLead
-      ? parseInt(req.query.minLead as string, 10)
-      : 1;
-    const maxLead = req.query.maxLead
-      ? parseInt(req.query.maxLead as string, 10)
-      : 24;
-    const stats = await getEmpiricalProbabilityStats(minLead, maxLead);
-    res.json({ minLeadHours: minLead, maxLeadHours: maxLead, stats });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
