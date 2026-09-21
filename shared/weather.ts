@@ -10,10 +10,12 @@ export interface RegionWeatherInfo {
   sigunguCode: string;
   name: string;
   kmaPop: number | null;
+  kmaPopSourceTime: string | null;
   pty: number;
   rn1: number;
   tmp: number | null;
   sky: number | null;
+  skySourceTime: string | null;
   updatedAt: string;
   isRaining: boolean;
   empiricalRate: number | null;

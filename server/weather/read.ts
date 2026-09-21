@@ -1,5 +1,10 @@
 import { db } from "../db.ts";
-import { latestKnownPopForH } from "./sql.ts";
+import {
+  latestKnownPopForH,
+  latestKnownPopTimeForH,
+  latestKnownSkyForH,
+  latestKnownSkyTimeForH,
+} from "./sql.ts";
 import type {
   CurrentWeatherResponse,
   SidoStatsResponse,
@@ -26,7 +31,7 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
     return { time: null, isStale: true, count: 0, data: {} };
   }
 
-  // 1. 시군구별 최신 실황 조회 (pop/sky는 예보 sync 시 직접 업데이트됨)
+  // 1. 시군구별 최신 실황 조회. 빈 예보값은 이전 행에서 조회용으로만 가져온다.
   const [rowsRes, localStatsRes] = await Promise.all([
     db.execute(`
       SELECT
@@ -35,10 +40,12 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
         h.sigungu_code as sigunguCode,
         h.name,
         ${latestKnownPopForH} as kmaPop,
+        ${latestKnownPopTimeForH} as kmaPopSourceTime,
         h.pty,
         h.rn1,
         h.tmp,
-        h.sky,
+        ${latestKnownSkyForH} as sky,
+        ${latestKnownSkyTimeForH} as skySourceTime,
         h.updated_at as updatedAt
       FROM hourly_weather h
       INNER JOIN (

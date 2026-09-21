@@ -24,6 +24,17 @@ function getPtyText(pty?: number) {
   return "강수 없음";
 }
 
+function getPreviousForecastAge(currentTime: string, sourceTime: string | null) {
+  if (!sourceTime || sourceTime === currentTime) return null;
+  const current = Date.parse(`${currentTime.replace(" ", "T")}+09:00`);
+  const source = Date.parse(`${sourceTime.replace(" ", "T")}+09:00`);
+  if (!Number.isFinite(current) || !Number.isFinite(source) || source > current) {
+    return "이전 자료";
+  }
+  const hours = Math.floor((current - source) / (60 * 60 * 1000));
+  return hours > 0 ? `${hours}시간 전 자료` : "이전 자료";
+}
+
 type WeatherStatus =
   | "rain"
   | "snow"
@@ -89,12 +100,14 @@ function getWeatherVisual(
 
   // 2. 하늘 상태(SKY: 1 맑음, 3 구름많음, 4 흐림)
   const skyDesc = getSkyText(weather.sky);
+  const skyAge = getPreviousForecastAge(weather.time, weather.skySourceTime);
+  const skyAgeSuffix = skyAge ? ` · ${skyAge}` : "";
   if (weather.sky === 4) {
     return {
       status: "cloudy",
       icon: "☁️",
       title: "현재 흐림",
-      sub: `하늘 상태: ${skyDesc} · 비 오지 않음`,
+      sub: `하늘 상태: ${skyDesc} · 비 오지 않음${skyAgeSuffix}`,
     };
   }
   if (weather.sky === 3) {
@@ -102,7 +115,7 @@ function getWeatherVisual(
       status: "partly_cloudy",
       icon: "⛅",
       title: "현재 구름 많음",
-      sub: `하늘 상태: ${skyDesc} · 비 오지 않음`,
+      sub: `하늘 상태: ${skyDesc} · 비 오지 않음${skyAgeSuffix}`,
     };
   }
 
@@ -111,7 +124,7 @@ function getWeatherVisual(
       status: "sunny",
       icon: "☀️",
       title: "현재 맑음",
-      sub: `하늘 상태: ${skyDesc} · 쾌청함`,
+      sub: `하늘 상태: ${skyDesc} · 쾌청함${skyAgeSuffix}`,
     };
   }
 
@@ -149,6 +162,9 @@ export function MapOverlay({
   onCloseDetail,
 }: MapOverlayProps) {
   const weather = selectedRegion?.weather;
+  const popAge = weather
+    ? getPreviousForecastAge(weather.time, weather.kmaPopSourceTime)
+    : null;
   const visual = selectedRegion
     ? getWeatherVisual(weather, selectedRegion.rainChance)
     : null;
@@ -204,7 +220,9 @@ export function MapOverlay({
                 <StatVal highlight>
                   {weather.kmaPop != null ? `${weather.kmaPop}%` : "—"}
                 </StatVal>
-                <StatSubText>기상청 예보 (POP)</StatSubText>
+                <StatSubText>
+                  {weather.kmaPop == null ? "예보 자료 없음" : popAge ? `기상청 예보 · ${popAge}` : "기상청 예보 (POP)"}
+                </StatSubText>
               </StatBox>
 
               <StatBox>

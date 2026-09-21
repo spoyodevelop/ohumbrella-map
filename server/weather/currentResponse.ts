@@ -10,10 +10,12 @@ export interface CurrentWeatherRow {
   sigunguCode: string;
   name: string;
   kmaPop: number | null;
+  kmaPopSourceTime: string | null;
   pty: number;
   rn1: number;
   tmp: number | null;
   sky: number | null;
+  skySourceTime: string | null;
   updatedAt: string;
 }
 
@@ -73,10 +75,12 @@ export function assembleCurrentWeatherResponse(
       sigunguCode: rawRow.sigunguCode,
       name: rawRow.name,
       kmaPop: rawRow.kmaPop,
+      kmaPopSourceTime: rawRow.kmaPopSourceTime,
       pty: rawRow.pty,
       rn1: rawRow.rn1,
       tmp: rawRow.tmp,
       sky: rawRow.sky,
+      skySourceTime: rawRow.skySourceTime,
       updatedAt: rawRow.updatedAt,
       isRaining: rawRow.pty > 0 || rawRow.rn1 > 0,
       empiricalRate: local?.rate ?? null,
