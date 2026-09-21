@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   assembleCurrentWeatherResponse,
+  isObservationStale,
   type CurrentWeatherRow,
   type VerifiedPopBucketRow,
 } from "./currentResponse.ts";
+
+const NOW = new Date("2026-09-20T19:30:00Z");
 
 test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단위로 조립한다", () => {
   const rows: CurrentWeatherRow[] = [
@@ -43,12 +46,14 @@ test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단�
   const originalRows = structuredClone(rows);
   const originalBuckets = structuredClone(buckets);
 
-  assert.deepEqual(assembleCurrentWeatherResponse("2026-09-21 04:00", rows, buckets), {
+  assert.deepEqual(assembleCurrentWeatherResponse("2026-09-21 04:00", rows, buckets, NOW), {
     time: "2026-09-21 04:00",
+    isStale: false,
     count: 2,
     data: {
       A: {
         ...rows[0],
+        isStale: false,
         isRaining: 0,
         empiricalRate: 50,
         sampleCount: 2,
@@ -59,6 +64,7 @@ test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단�
       },
       B: {
         ...rows[1],
+        isStale: false,
         isRaining: 1,
         empiricalRate: null,
         sampleCount: 0,
@@ -88,12 +94,14 @@ test("표본이 없는 지역도 응답 기본값을 유지한다", () => {
     updatedAt: "2026-09-21T04:00:00Z",
   };
 
-  assert.deepEqual(assembleCurrentWeatherResponse(row.time, [row], []), {
+  assert.deepEqual(assembleCurrentWeatherResponse(row.time, [row], [], NOW), {
     time: row.time,
+    isStale: false,
     count: 1,
     data: {
       A: {
         ...row,
+        isStale: false,
         isRaining: 0,
         empiricalRate: null,
         sampleCount: 0,
@@ -104,6 +112,28 @@ test("표본이 없는 지역도 응답 기본값을 유지한다", () => {
       },
     },
   });
+});
+
+test("관측 시각이 두 시간 이상 지나면 지역과 전체 응답을 오래됨으로 표시한다", () => {
+  const row: CurrentWeatherRow = {
+    time: "2026-09-21 02:00",
+    sidoCode: "11",
+    sigunguCode: "A",
+    name: "A 지역",
+    pop: null,
+    kmaPop: null,
+    pty: 0,
+    rn1: 0,
+    tmp: null,
+    sky: 1,
+    updatedAt: "2026-09-20T17:40:00Z",
+  };
+
+  assert.equal(isObservationStale("2026-09-21 04:00", NOW), false);
+  assert.equal(isObservationStale("2026-09-21 02:30", NOW), true);
+  const result = assembleCurrentWeatherResponse("2026-09-21 04:00", [row], [], NOW);
+  assert.equal(result.isStale, true);
+  assert.equal(result.data.A.isStale, true);
 });
 
 test("DB 조회 행의 추가 필드는 API 응답에 섞이지 않는다", () => {

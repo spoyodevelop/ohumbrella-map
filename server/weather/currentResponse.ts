@@ -27,10 +27,18 @@ export interface VerifiedPopBucketRow {
   samples: number;
 }
 
+const STALE_AFTER_MS = 2 * 60 * 60 * 1000;
+
+export function isObservationStale(time: string, now = new Date()): boolean {
+  const observedAt = Date.parse(`${time.replace(" ", "T")}+09:00`);
+  return !Number.isFinite(observedAt) || now.getTime() - observedAt >= STALE_AFTER_MS;
+}
+
 export function assembleCurrentWeatherResponse(
   maxTime: string,
   rows: readonly CurrentWeatherRow[],
   localStats: readonly VerifiedPopBucketRow[],
+  now = new Date(),
 ): CurrentWeatherResponse {
   const localMap = new Map(
     localStats.map((s) => [`${s.sigungu_code}_${s.predicted_pop}`, s]),
@@ -61,6 +69,7 @@ export function assembleCurrentWeatherResponse(
       pop == null ? undefined : sidoMap.get(`${rawRow.sidoCode}_${pop}`);
     const row: RegionWeatherInfo = {
       time: rawRow.time,
+      isStale: isObservationStale(rawRow.time, now),
       sidoCode: rawRow.sidoCode,
       sigunguCode: rawRow.sigunguCode,
       name: rawRow.name,
@@ -96,5 +105,10 @@ export function assembleCurrentWeatherResponse(
     data[row.sigunguCode] = row;
   }
 
-  return { time: maxTime, count: rows.length, data };
+  return {
+    time: maxTime,
+    isStale: rows.length === 0 || Object.values(data).some((row) => row.isStale),
+    count: rows.length,
+    data,
+  };
 }

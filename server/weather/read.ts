@@ -23,7 +23,7 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
   const maxTime = (latestTimeRes.rows[0]?.maxTime as string | null) ?? null;
 
   if (!maxTime) {
-    return { time: null, count: 0, data: {} };
+    return { time: null, isStale: true, count: 0, data: {} };
   }
 
   // 1. 시군구별 최신 실황 조회 (pop/sky는 예보 sync 시 직접 업데이트됨)

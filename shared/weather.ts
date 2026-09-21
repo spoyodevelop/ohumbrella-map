@@ -5,6 +5,7 @@ export interface ProbabilityBucket {
 
 export interface RegionWeatherInfo {
   time: string;
+  isStale: boolean;
   sidoCode: string;
   sigunguCode: string;
   name: string;
@@ -26,6 +27,7 @@ export interface RegionWeatherInfo {
 
 export interface CurrentWeatherResponse {
   time: string | null;
+  isStale: boolean;
   count: number;
   data: Record<string, RegionWeatherInfo>;
 }
