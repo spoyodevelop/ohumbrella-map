@@ -84,7 +84,7 @@ export async function migrateDb() {
   `);
 
     await db.execute("DROP VIEW IF EXISTS v_forecast_accuracy");
-    // 기존 forecast_accuracy_stats는 보존하되 더 이상 갱신·조회하지 않는다.
+    await db.execute("DROP TABLE IF EXISTS forecast_accuracy_stats");
     await createAccuracySchema(db);
     // 이전 버전 워커가 돌아가는 동안 생긴 표본도 명시적 마이그레이션 때 보충한다.
     // 이미 검증한 관측은 기본키와 INSERT OR IGNORE로 중복 계산하지 않는다.
