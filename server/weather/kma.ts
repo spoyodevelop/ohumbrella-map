@@ -172,7 +172,7 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
   console.log(`[단기예보 수집] 발표기준: ${baseTimeStr} (238개 격자)`);
 
   const forecastsToInsert: ForecastRecord[] = [];
-  const forecastPopUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
+  const readModelUpdates: { sigunguCode: string; updatedAt: string }[] = [];
   let missingGrids = 0;
   let invalidPopGrids = 0;
   const chunkSize = 12;
@@ -195,15 +195,12 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
         }
 
         const fcstList: ForecastRecord[] = [];
-        const popUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
+        const popUpdates: { sigunguCode: string; updatedAt: string }[] = [];
         const validForecasts = parseForecastItems(result.items);
         if (validForecasts.length === 0) {
           console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
           return { fcstList, popUpdates, missing: false, invalidPop: true };
         }
-
-        const currentPop = validForecasts[0].pop;
-        const currentSky = validForecasts[0].sky;
 
         for (const code of grid.sigunguCodes) {
           const sigungu = sigunguMap.get(code);
@@ -226,11 +223,9 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
             });
           }
 
-          // 최신 실황 row에 검증된 예보만 반영한다.
+          // 해당 시각의 예보가 늦게 들어왔다면 최신 실황 행에 반영한다.
           popUpdates.push({
             sigunguCode: code,
-            pop: currentPop,
-            sky: currentSky,
             updatedAt: createdAt,
           });
         }
@@ -241,7 +236,7 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
 
     for (const res of chunkResults) {
       forecastsToInsert.push(...res.fcstList);
-      forecastPopUpdates.push(...res.popUpdates);
+      readModelUpdates.push(...res.popUpdates);
       if (res.missing) missingGrids++;
       if (res.invalidPop) invalidPopGrids++;
     }
@@ -258,7 +253,7 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
   }
   await upsertForecastsBatch(forecastsToInsert);
   await syncAccuracyForForecastBaseTime(baseTimeStr);
-  await updateLatestForecastReadModelBatch(forecastPopUpdates);
+  await updateLatestForecastReadModelBatch(readModelUpdates);
 
   if (missingGrids > 0 || invalidPopGrids > 0) {
     reportServerWarning("예보 수집에서 일부 격자 누락", "worker.forecast", {

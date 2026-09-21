@@ -10,11 +10,11 @@ interface MapOverlayProps {
   onCloseDetail?: () => void;
 }
 
-function getSkyText(sky?: number) {
+function getSkyText(sky?: number | null) {
   if (sky === 1) return "맑음";
   if (sky === 3) return "구름 많음";
   if (sky === 4) return "흐림";
-  return "맑음";
+  return "자료 없음";
 }
 
 function getPtyText(pty?: number) {
@@ -78,6 +78,15 @@ function getWeatherVisual(
     };
   }
 
+  if (weather.sky == null) {
+    return {
+      status: "summary",
+      icon: "🌡️",
+      title: "현재 강수 없음",
+      sub: "하늘 상태 예보 자료 없음",
+    };
+  }
+
   // 2. 하늘 상태(SKY: 1 맑음, 3 구름많음, 4 흐림)
   const skyDesc = getSkyText(weather.sky);
   if (weather.sky === 4) {
@@ -97,11 +106,20 @@ function getWeatherVisual(
     };
   }
 
+  if (weather.sky === 1) {
+    return {
+      status: "sunny",
+      icon: "☀️",
+      title: "현재 맑음",
+      sub: `하늘 상태: ${skyDesc} · 쾌청함`,
+    };
+  }
+
   return {
-    status: "sunny",
-    icon: "☀️",
-    title: "현재 맑음",
-    sub: `하늘 상태: ${skyDesc} · 쾌청함`,
+    status: "summary",
+    icon: "🌡️",
+    title: "현재 강수 없음",
+    sub: "하늘 상태 예보 자료 없음",
   };
 }
 

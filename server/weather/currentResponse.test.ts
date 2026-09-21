@@ -32,7 +32,7 @@ test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단�
       pty: 0,
       rn1: 0.3,
       tmp: null,
-      sky: 1,
+      sky: null,
       updatedAt: "2026-09-21T04:00:00Z",
     },
   ];

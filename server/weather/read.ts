@@ -38,7 +38,7 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
         h.pty,
         h.rn1,
         h.tmp,
-        COALESCE(h.sky, 1) as sky,
+        h.sky,
         h.updated_at as updatedAt
       FROM hourly_weather h
       INNER JOIN (

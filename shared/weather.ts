@@ -13,7 +13,7 @@ export interface RegionWeatherInfo {
   pty: number;
   rn1: number;
   tmp: number | null;
-  sky: number;
+  sky: number | null;
   updatedAt: string;
   isRaining: boolean;
   empiricalRate: number | null;

@@ -13,7 +13,7 @@ export interface CurrentWeatherRow {
   pty: number;
   rn1: number;
   tmp: number | null;
-  sky: number;
+  sky: number | null;
   updatedAt: string;
 }
 
