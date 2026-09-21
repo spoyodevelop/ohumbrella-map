@@ -87,16 +87,6 @@ export async function createAccuracySchema(client: Client): Promise<void> {
     END
   `);
   await client.execute("DROP VIEW IF EXISTS v_verified_forecast_accuracy");
-  await client.execute(`
-    CREATE VIEW v_verified_forecast_accuracy AS
-    SELECT *,
-      CASE
-        WHEN (predicted_pop >= 30 AND actual_rain = 1)
-          OR (predicted_pop < 30 AND actual_rain = 0) THEN 1
-        ELSE 0
-      END AS is_accurate_30
-    FROM forecast_verifications
-  `);
 }
 
 // 시작할 때마다 새로 들어온 원본만 보충한다. INSERT 한 문장이므로 부분 백필은 남지 않는다.

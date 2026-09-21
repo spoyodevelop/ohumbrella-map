@@ -11,8 +11,6 @@ import {
 import {
   getRegionProbabilityInsight,
   getEmpiricalProbabilityStats,
-  getSidoReliabilityStats,
-  getLeadTimeAccuracyStats,
 } from "./accuracy-queries.ts";
 import { syncAllWeather } from "./kma.ts";
 
@@ -145,24 +143,6 @@ app.get("/api/analysis/empirical-probability", async (req, res) => {
       : 24;
     const stats = await getEmpiricalProbabilityStats(minLead, maxLead);
     res.json({ minLeadHours: minLead, maxLeadHours: maxLead, stats });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/analysis/sido-reliability", async (_req, res) => {
-  try {
-    const stats = await getSidoReliabilityStats();
-    res.json({ stats });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/analysis/lead-time", async (_req, res) => {
-  try {
-    const stats = await getLeadTimeAccuracyStats();
-    res.json({ stats });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

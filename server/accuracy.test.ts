@@ -68,7 +68,7 @@ test("백필은 정해진 회차 한 건만 고르고 빠진 회차를 이전 �
     assert.equal(await backfillAccuracyVerifications(client), 0);
     const rows = await client.execute(`
       SELECT target_time, sigungu_code, base_time, predicted_pop, actual_rain
-      FROM v_verified_forecast_accuracy ORDER BY sigungu_code
+      FROM forecast_verifications ORDER BY sigungu_code
     `);
     assert.deepEqual(rows.rows.map((r) => ({ ...r })), [
       { target_time: "2026-09-21 00:00", sigungu_code: "A", base_time: "2026-09-20 23:00", predicted_pop: 20, actual_rain: 0 },

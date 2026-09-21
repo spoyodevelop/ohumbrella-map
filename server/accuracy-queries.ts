@@ -11,7 +11,7 @@ export async function syncAccuracyForForecastBaseTime(baseTime: string) {
   await upsertAccuracyForForecastBaseTime(db, baseTime);
 }
 
-// 1. 기상청 예보 확률별 실제 강수 확률 (Empirical Rain Probability)
+// 기상청 예보 확률별 실제 강수 확률 (Empirical Rain Probability)
 export async function getEmpiricalProbabilityStats(
   minLeadHours = 1,
   maxLeadHours = 12,
@@ -23,7 +23,7 @@ export async function getEmpiricalProbabilityStats(
         COUNT(*) as totalForecasts,
         SUM(actual_rain) as actualRainedCount,
         ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as empiricalRainRate
-      FROM v_verified_forecast_accuracy
+      FROM forecast_verifications
       WHERE actual_rain IS NOT NULL
         AND lead_hours BETWEEN ? AND ?
       GROUP BY predicted_pop
@@ -35,42 +35,7 @@ export async function getEmpiricalProbabilityStats(
   return res.rows;
 }
 
-// 2. 17개 광역시도별 예보 신뢰도 & 적중률
-export async function getSidoReliabilityStats() {
-  const res = await db.execute(`
-    SELECT
-      sido_code as sidoCode,
-      ROUND(AVG(predicted_pop), 1) as avgPredictedPop,
-      ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as actualRainRate,
-      ROUND(100.0 * SUM(is_accurate_30) / COUNT(*), 1) as accuracyRate30,
-      COUNT(*) as sampleCount
-    FROM v_verified_forecast_accuracy
-    WHERE actual_rain IS NOT NULL
-    GROUP BY sido_code
-    ORDER BY sido_code ASC
-  `);
-
-  return res.rows;
-}
-
-export async function getLeadTimeAccuracyStats() {
-  const res = await db.execute(`
-    SELECT
-      lead_hours as leadHours,
-      ROUND(AVG(predicted_pop), 1) as avgPredictedPop,
-      ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as actualRainRate,
-      ROUND(100.0 * SUM(is_accurate_30) / COUNT(*), 1) as accuracyRate,
-      COUNT(*) as sampleCount
-    FROM v_forecast_accuracy
-    WHERE actual_rain IS NOT NULL
-    GROUP BY lead_hours
-    ORDER BY lead_hours ASC
-  `);
-
-  return res.rows;
-}
-
-// 4. 특정 지역 & 강수확률(POP) 기준 실측/경험적 강수 확률 및 현재 현황 조회
+// 특정 지역 & 강수확률(POP) 기준 실측/경험적 강수 확률 및 현재 현황 조회
 export interface RegionProbabilityInsight {
   code: string;
   name: string;
@@ -147,7 +112,7 @@ export async function getRegionProbabilityInsight(
         SELECT
           COUNT(*) as sampleCount,
           ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as actualRainRate
-        FROM v_verified_forecast_accuracy
+        FROM forecast_verifications
         WHERE sigungu_code = ? AND predicted_pop = ? AND actual_rain IS NOT NULL
       `,
       args: [sigunguCode, popToQuery],
@@ -157,7 +122,7 @@ export async function getRegionProbabilityInsight(
         SELECT
           COUNT(*) as sidoSampleCount,
           ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as sidoRainRate
-        FROM v_verified_forecast_accuracy
+        FROM forecast_verifications
         WHERE sido_code = ? AND predicted_pop = ? AND actual_rain IS NOT NULL
       `,
       args: [sidoCode, popToQuery],
@@ -167,7 +132,7 @@ export async function getRegionProbabilityInsight(
         SELECT
           COUNT(*) as nationalSampleCount,
           ROUND(100.0 * SUM(actual_rain) / COUNT(*), 1) as nationalRainRate
-        FROM v_verified_forecast_accuracy
+        FROM forecast_verifications
         WHERE predicted_pop = ? AND actual_rain IS NOT NULL
       `,
       args: [popToQuery],

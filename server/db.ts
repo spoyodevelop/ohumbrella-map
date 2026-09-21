@@ -120,30 +120,7 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_weather_sigungu_time ON hourly_weather(sigungu_code, time);
   `);
 
-    await db.execute(`DROP VIEW IF EXISTS v_forecast_accuracy;`);
-    await db.execute(`
-    CREATE VIEW v_forecast_accuracy AS
-    SELECT 
-      f.target_time,
-      f.base_time,
-      f.sigungu_code,
-      f.sido_code,
-      f.name,
-      f.lead_hours,
-      f.pop AS predicted_pop,
-      o.is_raining AS actual_rain,
-      o.rn1 AS actual_rn1,
-      o.tmp AS actual_tmp,
-      CASE 
-        WHEN o.is_raining IS NULL THEN NULL
-        WHEN (f.pop >= 30 AND o.is_raining = 1) OR (f.pop < 30 AND o.is_raining = 0) THEN 1
-        ELSE 0
-      END AS is_accurate_30
-    FROM weather_forecasts f
-    LEFT JOIN weather_observations o 
-      ON f.target_time = o.time 
-     AND f.sigungu_code = o.sigungu_code;
-  `);
+    await db.execute("DROP VIEW IF EXISTS v_forecast_accuracy");
     // 기존 forecast_accuracy_stats는 보존하되 더 이상 갱신·조회하지 않는다.
     await createAccuracySchema(db);
     // 이전 버전 워커가 돌아가는 동안 생긴 표본도 재시작 때 보충한다.
