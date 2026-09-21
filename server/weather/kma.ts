@@ -6,12 +6,12 @@ import { parseForecastItems, parseObservationItems, type KmaForecastItem, type K
 import { fetchKmaWithRetry, type KmaFetchResult } from "./kmaClient.ts";
 import {
   upsertObservationsBatch,
-  upsertWeatherBatch,
+  upsertObservationReadModelBatch,
   upsertForecastsBatch,
-  updateForecastPopBatch,
+  updateLatestForecastReadModelBatch,
   type ObservationRecord,
   type ForecastRecord,
-  type HourlyWeatherWriteRecord,
+  type ObservationReadModelRecord,
 } from "./write.ts";
 import {
   syncAccuracyForObservationTime,
@@ -67,7 +67,7 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
   console.log(`[실황 수집] 관측기준: ${obsTimeStr} (238개 격자)`);
 
   const observationsToInsert: ObservationRecord[] = [];
-  const hourlyToInsert: HourlyWeatherWriteRecord[] = [];
+  const hourlyToInsert: ObservationReadModelRecord[] = [];
   let missingGrids = 0;
   const chunkSize = 12;
 
@@ -91,7 +91,7 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
         const { pty, rn1, tmp, isRaining } = parseObservationItems(result.items);
 
         const obsList: ObservationRecord[] = [];
-        const hourList: HourlyWeatherWriteRecord[] = [];
+        const hourList: ObservationReadModelRecord[] = [];
 
         for (const code of grid.sigunguCodes) {
           const sigungu = sigunguMap.get(code);
@@ -116,11 +116,9 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
             sidoCode,
             sigunguCode: code,
             name,
-            pop: null, // 기존 POP 보존(COALESCE)
             pty,
             rn1,
             tmp,
-            sky: 1,
             updatedAt: createdAt,
           });
         }
@@ -147,7 +145,7 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
   }
 
   await upsertObservationsBatch(observationsToInsert);
-  await upsertWeatherBatch(hourlyToInsert);
+  await upsertObservationReadModelBatch(hourlyToInsert);
   // 이 관측 시각에 매칭되는 예보들로 정확도 집계 누적
   await syncAccuracyForObservationTime(obsTimeStr);
 
@@ -260,7 +258,7 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
   }
   await upsertForecastsBatch(forecastsToInsert);
   await syncAccuracyForForecastBaseTime(baseTimeStr);
-  await updateForecastPopBatch(forecastPopUpdates);
+  await updateLatestForecastReadModelBatch(forecastPopUpdates);
 
   if (missingGrids > 0 || invalidPopGrids > 0) {
     reportServerWarning("예보 수집에서 일부 격자 누락", "worker.forecast", {

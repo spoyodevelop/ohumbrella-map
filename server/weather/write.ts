@@ -25,16 +25,14 @@ export interface ForecastRecord {
   createdAt: string;
 }
 
-export interface HourlyWeatherWriteRecord {
+export interface ObservationReadModelRecord {
   time: string;
   sidoCode: string;
   sigunguCode: string;
   name: string;
-  pop: number | null;
   pty: number;
   rn1: number;
   tmp: number | null;
-  sky: number;
   updatedAt: string;
 }
 
@@ -119,20 +117,18 @@ export async function upsertForecastsBatch(records: ForecastRecord[]) {
   }
 }
 
-// 3. 기존 지도 렌더링용 업서트
-export async function upsertWeatherBatch(records: HourlyWeatherWriteRecord[]) {
+// 3. 현재 날씨 조회용 테이블에는 실황 필드만 반영한다. 예보 필드는 예보 수집이 소유한다.
+export async function upsertObservationReadModelBatch(records: ObservationReadModelRecord[]) {
   if (records.length === 0) return;
 
   const sql = `
     INSERT INTO hourly_weather (
       time, sido_code, sigungu_code, name, pop, pty, rn1, tmp, sky, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?)
     ON CONFLICT(time, sigungu_code) DO UPDATE SET
-      pop = coalesce(excluded.pop, hourly_weather.pop),
       pty = excluded.pty,
       rn1 = excluded.rn1,
       tmp = coalesce(excluded.tmp, hourly_weather.tmp),
-      sky = coalesce(excluded.sky, hourly_weather.sky),
       updated_at = excluded.updated_at
   `;
 
@@ -145,11 +141,9 @@ export async function upsertWeatherBatch(records: HourlyWeatherWriteRecord[]) {
         r.sidoCode,
         r.sigunguCode,
         r.name,
-        r.pop,
         r.pty,
         r.rn1,
         r.tmp,
-        r.sky,
         r.updatedAt,
       ],
     }));
@@ -159,7 +153,7 @@ export async function upsertWeatherBatch(records: HourlyWeatherWriteRecord[]) {
 
 // 4. 예보 수집 후 기존 실황 row의 pop/sky만 업데이트 (JOIN 제거용)
 // 예보 발표 시각이 아닌, 시군구별 최신 실황 row에 덮어씀
-export async function updateForecastPopBatch(
+export async function updateLatestForecastReadModelBatch(
   records: {
     sigunguCode: string;
     pop: number;
