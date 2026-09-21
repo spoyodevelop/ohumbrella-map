@@ -80,6 +80,8 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
         await syncObservations();
         lastSyncedBaseTime = canary.baseTime;
         await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
+      } else if (canary.lastCheckOfRound && canary.baseTime !== lastSyncedBaseTime) {
+        throw new Error(`실황 ${canary.baseDate} ${canary.baseTime} 자료가 58분까지 열리지 않았습니다.`);
       }
     } catch (err) {
       console.error("[워커 실황 확인·수집 에러]", err);

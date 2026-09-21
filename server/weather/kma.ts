@@ -31,6 +31,7 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
   const serviceKey = requireKmaServiceKey();
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const lastCheckOfRound = kst.getUTCMinutes() >= 58;
   const currentHour = kst.getUTCHours();
   const baseDate =
     kst.getUTCFullYear() +
@@ -39,7 +40,7 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
   const candidateBaseTime = String(currentHour).padStart(2, "0") + "00";
 
   if (candidateBaseTime === lastKnownBaseTime) {
-    return { updated: false, baseDate, baseTime: candidateBaseTime };
+    return { updated: false, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
   }
 
   const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${serviceKey}`;
@@ -49,10 +50,10 @@ export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
     console.log(
       `[카나리 감지] 종로구에 실황 오픈 (${baseDate} ${candidateBaseTime})`,
     );
-    return { updated: true, baseDate, baseTime: candidateBaseTime };
+    return { updated: true, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
   }
 
-  return { updated: false, baseDate, baseTime: candidateBaseTime };
+  return { updated: false, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
 }
 
 // --------------------------------------------------------------------------
