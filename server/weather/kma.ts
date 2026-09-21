@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
+import { calculateLeadHours, getNcstBaseDateTime, getVilageBaseDateTime } from "./kmaTime.ts";
+import { parseForecastItems, parseObservationItems, type KmaForecastItem, type KmaObservationItem } from "./kmaParse.ts";
 import {
   upsertObservationsBatch,
   upsertWeatherBatch,
@@ -37,18 +39,6 @@ interface KmaApiResponse<T> {
       };
     };
   };
-}
-
-interface KmaObservationItem {
-  category: string;
-  obsrValue: string;
-}
-
-interface KmaForecastItem {
-  category: string;
-  fcstDate: string;
-  fcstTime: string;
-  fcstValue: string;
 }
 
 async function fetchKmaWithRetry<T>(
@@ -102,87 +92,6 @@ async function fetchKmaWithRetry<T>(
   return [];
 }
 
-function parseKmaNumber(val: number): number | null {
-  return Number.isNaN(val) || val <= -900 || val >= 900 ? null : val;
-}
-
-function parsePty(val: number): number {
-  if (val === 1 || val === 5) return 1;
-  if (val === 2 || val === 6) return 2;
-  if (val === 3 || val === 7) return 3;
-  return 0;
-}
-
-export function getNcstBaseDateTime(d = new Date()) {
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  let hours = kst.getUTCHours();
-  let minutes = kst.getUTCMinutes();
-
-  // 초단기실황: 매시 30분 생성, 40분 이후 API 제공
-  // 따라서 40분 이전에는 직전 시간대 정시 데이터가 최신
-  if (minutes < 40) {
-    hours -= 1;
-    if (hours < 0) {
-      hours = 23;
-      kst.setUTCDate(kst.getUTCDate() - 1);
-    }
-  }
-
-  const baseDate =
-    kst.getUTCFullYear() +
-    String(kst.getUTCMonth() + 1).padStart(2, "0") +
-    String(kst.getUTCDate()).padStart(2, "0");
-  const baseTime = String(hours).padStart(2, "0") + "00";
-
-  return { baseDate, baseTime };
-}
-
-export function getVilageBaseDateTime(d = new Date()) {
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  const hours = kst.getUTCHours();
-  const minutes = kst.getUTCMinutes();
-
-  const baseHours = [2, 5, 8, 11, 14, 17, 20, 23];
-  let selectedHour = 23;
-  let dayOffset = 0;
-
-  if (hours < 2 || (hours === 2 && minutes < 15)) {
-    selectedHour = 23;
-    dayOffset = -1;
-  } else {
-    for (let i = baseHours.length - 1; i >= 0; i--) {
-      const bh = baseHours[i];
-      if (hours > bh || (hours === bh && minutes >= 15)) {
-        selectedHour = bh;
-        break;
-      }
-    }
-  }
-
-  if (dayOffset < 0) {
-    kst.setUTCDate(kst.getUTCDate() - 1);
-  }
-
-  const baseDate =
-    kst.getUTCFullYear() +
-    String(kst.getUTCMonth() + 1).padStart(2, "0") +
-    String(kst.getUTCDate()).padStart(2, "0");
-  const baseTime = String(selectedHour).padStart(2, "0") + "00";
-
-  return { baseDate, baseTime };
-}
-
-function calculateLeadHours(baseStr: string, targetStr: string): number {
-  const parseTime = (str: string) => {
-    const [d, t] = str.split(" ");
-    const [year, mon, day] = d.split("-").map(Number);
-    const [hour, min] = t.split(":").map(Number);
-    return new Date(Date.UTC(year, mon - 1, day, hour, min)).getTime();
-  };
-  const diffMs = parseTime(targetStr) - parseTime(baseStr);
-  return Math.max(0, Math.round(diffMs / (1000 * 60 * 60)));
-}
-
 // 카나리 방식으로 찔러보는 용도
 // 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
 export async function checkCanaryNcstUpdated(lastKnownBaseTime: string) {
@@ -232,10 +141,6 @@ export async function syncObservations(): Promise<number> {
 
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
-        let pty = 0;
-        let rn1 = 0;
-        let tmp: number | null = null;
-
         const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
         // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
         const items = await fetchKmaWithRetry<KmaObservationItem>(
@@ -248,18 +153,7 @@ export async function syncObservations(): Promise<number> {
           return { obsList: [], hourList: [] };
         }
 
-        for (const item of items) {
-          const val = parseFloat(item.obsrValue);
-          if (item.category === "PTY") {
-            pty = parsePty(val);
-          } else if (item.category === "RN1") {
-            rn1 = parseKmaNumber(val) ?? 0;
-          } else if (item.category === "T1H") {
-            tmp = parseKmaNumber(val);
-          }
-        }
-
-        const isRaining = pty > 0 || rn1 > 0 ? 1 : 0;
+        const { pty, rn1, tmp, isRaining } = parseObservationItems(items);
 
         const obsList: ObservationRecord[] = [];
         const hourList: HourlyWeatherWriteRecord[] = [];
@@ -341,11 +235,6 @@ export async function syncForecasts(): Promise<number> {
 
     const chunkResults = await Promise.all(
       chunk.map(async (grid: DistinctGrid) => {
-        const targetMap = new Map<
-          string,
-          { pop: number | null; sky: number; tmp: number | null }
-        >();
-
         const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
         // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
         const items = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
@@ -354,51 +243,27 @@ export async function syncForecasts(): Promise<number> {
           return { fcstList: [] as ForecastRecord[], popUpdates: [] };
         }
 
-        for (const item of items) {
-          const fDate = item.fcstDate;
-          const fTime = item.fcstTime;
-          const targetTimeStr = `${fDate.slice(0, 4)}-${fDate.slice(4, 6)}-${fDate.slice(6, 8)} ${fTime.slice(0, 2)}:00`;
-
-          if (!targetMap.has(targetTimeStr)) {
-            targetMap.set(targetTimeStr, { pop: null, sky: 1, tmp: null });
-          }
-          const currentEntry = targetMap.get(targetTimeStr)!;
-
-          if (item.category === "POP") {
-            const pop = Number(item.fcstValue);
-            currentEntry.pop = item.fcstValue.trim() !== "" &&
-              Number.isInteger(pop) && pop >= 0 && pop <= 100 ? pop : null;
-          } else if (item.category === "SKY") {
-            currentEntry.sky = parseInt(item.fcstValue, 10);
-          } else if (item.category === "TMP") {
-            currentEntry.tmp = parseKmaNumber(parseFloat(item.fcstValue));
-          }
-        }
-
         const fcstList: ForecastRecord[] = [];
         const popUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
-        const validForecasts = [...targetMap.entries()].filter(
-          (entry): entry is [string, { pop: number; sky: number; tmp: number | null }] =>
-            entry[1].pop !== null,
-        );
+        const validForecasts = parseForecastItems(items);
         if (validForecasts.length === 0) {
           console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
           return { fcstList, popUpdates };
         }
 
-        const currentPop = validForecasts[0][1].pop;
-        const currentSky = validForecasts[0][1].sky;
+        const currentPop = validForecasts[0].pop;
+        const currentSky = validForecasts[0].sky;
 
         for (const code of grid.sigunguCodes) {
           const sigungu = sigunguMap.get(code);
           const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
           const name = sigungu?.name ?? code;
 
-          for (const [targetTimeStr, val] of validForecasts) {
-            const leadHours = calculateLeadHours(baseTimeStr, targetTimeStr);
+          for (const val of validForecasts) {
+            const leadHours = calculateLeadHours(baseTimeStr, val.targetTime);
             fcstList.push({
               baseTime: baseTimeStr,
-              targetTime: targetTimeStr,
+              targetTime: val.targetTime,
               sigunguCode: code,
               sidoCode,
               name,

@@ -7,9 +7,9 @@ import {
   syncObservations,
   syncForecasts,
   syncAllWeather,
-  getNcstBaseDateTime,
 } from "./weather/kma.ts";
 import { initDb } from "./db.ts";
+import { getNcstBaseDateTime } from "./weather/kmaTime.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: resolve(process.cwd(), ".env") });
