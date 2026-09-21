@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { loadServerEnv, requireKmaServiceKey } from "./env.ts";
+import { loadServerEnv, requireKmaServiceKey, requireTursoDatabaseUrl } from "./env.ts";
 
 test("환경 변수는 프로세스, .env.local, .env 순서로 우선하고 한 번만 읽는다", () => {
   const root = mkdtempSync(join(tmpdir(), "ohumbrella-env-"));
@@ -43,5 +43,20 @@ test("기상청 인증키가 없거나 공백이면 서버 시작용 검증에�
   } finally {
     if (previous === undefined) delete process.env.KMA_SERVICE_KEY;
     else process.env.KMA_SERVICE_KEY = previous;
+  }
+});
+
+test("DB 주소가 없거나 공백이면 모든 환경에서 실패한다", () => {
+  const previous = process.env.TURSO_DATABASE_URL;
+  try {
+    delete process.env.TURSO_DATABASE_URL;
+    assert.throws(requireTursoDatabaseUrl, /TURSO_DATABASE_URL/);
+    process.env.TURSO_DATABASE_URL = "  ";
+    assert.throws(requireTursoDatabaseUrl, /TURSO_DATABASE_URL/);
+    process.env.TURSO_DATABASE_URL = " file::memory: ";
+    assert.equal(requireTursoDatabaseUrl(), "file::memory:");
+  } finally {
+    if (previous === undefined) delete process.env.TURSO_DATABASE_URL;
+    else process.env.TURSO_DATABASE_URL = previous;
   }
 });

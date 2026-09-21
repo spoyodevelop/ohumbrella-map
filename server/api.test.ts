@@ -3,7 +3,9 @@ import { test } from "node:test";
 
 test("서버 설정 오류의 상세 내용을 500 응답에 노출하지 않는다", async () => {
   const previousDsn = process.env.SENTRY_DSN;
+  const previousDbUrl = process.env.TURSO_DATABASE_URL;
   process.env.SENTRY_DSN = "";
+  process.env.TURSO_DATABASE_URL = "file::memory:";
   const { app } = await import("./api.ts");
   const previousId = process.env.NAVER_CLIENT_ID;
   const previousViteId = process.env.VITE_NAVER_CLIENT_ID;
@@ -29,5 +31,7 @@ test("서버 설정 오류의 상세 내용을 500 응답에 노출하지 않는
     else process.env.NAVER_CLIENT_SECRET = previousSecret;
     if (previousDsn === undefined) delete process.env.SENTRY_DSN;
     else process.env.SENTRY_DSN = previousDsn;
+    if (previousDbUrl === undefined) delete process.env.TURSO_DATABASE_URL;
+    else process.env.TURSO_DATABASE_URL = previousDbUrl;
   }
 });

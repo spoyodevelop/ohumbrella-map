@@ -1,37 +1,22 @@
 import { createClient, type Client } from "@libsql/client";
-import { resolve, dirname } from "node:path";
-import { mkdirSync } from "node:fs";
 import { backfillAccuracyVerifications, createAccuracySchema } from "./verification/accuracy.ts";
-import { loadServerEnv } from "./env.ts";
+import { loadServerEnv, requireTursoDatabaseUrl } from "./env.ts";
+import { flushMonitoring, initMonitoring, reportServerError } from "./monitoring.ts";
 
 loadServerEnv();
 
-const tursoUrl = process.env.TURSO_DATABASE_URL;
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
-
 let client: Client;
-
-if (tursoUrl) {
-  console.log(`=============================================`);
-  console.log(`☁️  [DB] Turso 원격 클라우드 DB 연결 성공!`);
-  console.log(`   Endpoint: ${tursoUrl}`);
-  console.log(`=============================================`);
+try {
   client = createClient({
-    url: tursoUrl,
+    url: requireTursoDatabaseUrl(),
     authToken: tursoAuthToken,
   });
-} else {
-  const dbPath = process.env.DATABASE_PATH
-    ? resolve(process.cwd(), process.env.DATABASE_PATH)
-    : resolve(process.cwd(), "data", "weather.sqlite");
-  mkdirSync(dirname(dbPath), { recursive: true });
-  console.log(`=============================================`);
-  console.warn(`📁 [DB 주의] TURSO_DATABASE_URL 환경변수 없음!`);
-  console.warn(`   -> 로컬 SQLite 파일 모드로 동작합니다: ${dbPath}`);
-  console.log(`=============================================`);
-  client = createClient({
-    url: `file:${dbPath}`,
-  });
+} catch (error) {
+  initMonitoring();
+  reportServerError(error, "server.startup");
+  await flushMonitoring();
+  throw error;
 }
 
 export const db = client;

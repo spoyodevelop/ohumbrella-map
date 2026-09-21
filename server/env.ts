@@ -17,3 +17,9 @@ export function requireKmaServiceKey(): string {
   if (!key) throw new Error("KMA_SERVICE_KEY 환경 변수가 필요합니다.");
   return key;
 }
+
+export function requireTursoDatabaseUrl(): string {
+  const url = process.env.TURSO_DATABASE_URL?.trim();
+  if (!url) throw new Error("TURSO_DATABASE_URL 환경 변수가 필요합니다.");
+  return url;
+}
