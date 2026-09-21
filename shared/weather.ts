@@ -16,7 +16,7 @@ export interface RegionWeatherInfo {
   tmp: number | null;
   sky: number;
   updatedAt: string;
-  isRaining: 0 | 1;
+  isRaining: boolean;
   empiricalRate: number | null;
   sampleCount: number;
   sidoEmpiricalRate: number | null;

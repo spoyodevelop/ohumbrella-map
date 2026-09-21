@@ -70,7 +70,7 @@ function getWeatherVisual(
       sub: `실시간 강수량 ${weather.rn1 ?? 0}mm/h (${getPtyText(weather.pty)})`,
     };
   }
-  if (weather.isRaining === 1 || weather.pty > 0 || (weather.rn1 ?? 0) > 0) {
+  if (weather.isRaining) {
     return {
       status: "rain",
       icon: "🌧️",

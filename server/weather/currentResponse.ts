@@ -80,7 +80,7 @@ export function assembleCurrentWeatherResponse(
       tmp: rawRow.tmp,
       sky: rawRow.sky,
       updatedAt: rawRow.updatedAt,
-      isRaining: rawRow.pty > 0 || rawRow.rn1 > 0 ? 1 : 0,
+      isRaining: rawRow.pty > 0 || rawRow.rn1 > 0,
       empiricalRate: local?.rate ?? null,
       sampleCount: local?.samples ?? 0,
       sidoEmpiricalRate: sido?.rate ?? null,

@@ -54,7 +54,7 @@ test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단�
       A: {
         ...rows[0],
         isStale: false,
-        isRaining: 0,
+        isRaining: false,
         empiricalRate: 50,
         sampleCount: 2,
         sidoEmpiricalRate: 60,
@@ -65,7 +65,7 @@ test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단�
       B: {
         ...rows[1],
         isStale: false,
-        isRaining: 1,
+        isRaining: true,
         empiricalRate: null,
         sampleCount: 0,
         sidoEmpiricalRate: null,
@@ -102,7 +102,7 @@ test("표본이 없는 지역도 응답 기본값을 유지한다", () => {
       A: {
         ...row,
         isStale: false,
-        isRaining: 0,
+        isRaining: false,
         empiricalRate: null,
         sampleCount: 0,
         sidoEmpiricalRate: null,
