@@ -1,23 +1,22 @@
 import { db } from "../db.ts";
 import { latestKnownPopForH } from "./sql.ts";
 import type { ForecastRecord } from "./write.ts";
-import type { CurrentWeatherResponse } from "../../shared/weather.ts";
+import type {
+  CurrentWeatherResponse,
+  SidoStatsResponse,
+} from "../../shared/weather.ts";
 import {
   assembleCurrentWeatherResponse,
   type CurrentWeatherRow,
   type VerifiedPopBucketRow,
 } from "./currentResponse.ts";
+import {
+  assembleSidoStatsResponse,
+  type SidoPopBucketRow,
+  type SidoStatRow,
+} from "./sidoResponse.ts";
 
 type WeatherHistoryRow = Omit<CurrentWeatherRow, "kmaPop">;
-
-export interface SidoStat {
-  sidoCode: string;
-  avgPop: number;
-  maxPop: number;
-  totalRain: number;
-  rainingCount: number;
-  totalCount: number;
-}
 
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
 export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
@@ -75,7 +74,7 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
 }
 
 // 17개 광역시도별 최신 집계 통계
-export async function getSidoStats() {
+export async function getSidoStats(): Promise<SidoStatsResponse> {
   const latestTimeRes = await db.execute(
     `SELECT MAX(time) as maxTime FROM hourly_weather`,
   );
@@ -124,33 +123,9 @@ export async function getSidoStats() {
     `),
   ]);
 
-  const stats = res.rows as unknown as SidoStat[];
-  const buckets = bucketsRes.rows as unknown as {
-    sidoCode: string;
-    predictedPop: number;
-    rainCount: number;
-    samples: number;
-  }[];
-
-  const bucketMap = new Map<
-    string,
-    Record<number, { rate: number; samples: number }>
-  >();
-  for (const b of buckets) {
-    if (!bucketMap.has(b.sidoCode)) bucketMap.set(b.sidoCode, {});
-    const m = bucketMap.get(b.sidoCode)!;
-    m[b.predictedPop] = {
-      rate: Math.round(((100.0 * b.rainCount) / b.samples) * 10) / 10,
-      samples: b.samples,
-    };
-  }
-
-  const enrichedStats = stats.map((s) => ({
-    ...s,
-    stats: bucketMap.get(s.sidoCode) || {},
-  }));
-
-  return { time: maxTime, stats: enrichedStats };
+  const stats = res.rows as unknown as SidoStatRow[];
+  const buckets = bucketsRes.rows as unknown as SidoPopBucketRow[];
+  return assembleSidoStatsResponse(maxTime, stats, buckets);
 }
 
 // 특정 시군구 미래 예보 타임라인 조회

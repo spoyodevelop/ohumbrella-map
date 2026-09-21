@@ -1,21 +1,12 @@
 import type { RegionWeatherInfo } from "../types";
-import type { CurrentWeatherResponse } from "../../shared/weather.ts";
+import type {
+  CurrentWeatherResponse,
+  SidoStat,
+  SidoStatsResponse,
+} from "../../shared/weather.ts";
 import { fetchJson } from "../lib/http";
 
-export interface SidoStat {
-  sidoCode: string;
-  avgPop: number | null;
-  maxPop: number | null;
-  totalRain: number;
-  rainingCount: number;
-  totalCount: number;
-  stats?: Record<number, { rate: number; samples: number }>;
-}
-
-interface SidoStatsResponse {
-  time: string | null;
-  stats: SidoStat[];
-}
+export type { SidoStat } from "../../shared/weather.ts";
 
 export interface WeatherSnapshot {
   weatherMap: Record<string, RegionWeatherInfo>;

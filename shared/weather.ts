@@ -29,3 +29,18 @@ export interface CurrentWeatherResponse {
   count: number;
   data: Record<string, RegionWeatherInfo>;
 }
+
+export interface SidoStat {
+  sidoCode: string;
+  avgPop: number | null;
+  maxPop: number | null;
+  totalRain: number;
+  rainingCount: number;
+  totalCount: number;
+  stats: Record<number, ProbabilityBucket>;
+}
+
+export interface SidoStatsResponse {
+  time: string | null;
+  stats: SidoStat[];
+}
