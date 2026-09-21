@@ -1,5 +1,5 @@
 import { app } from "./api.ts";
-import { initDb } from "./db.ts";
+import { assertDbReady } from "./db.ts";
 import { startWorker } from "./worker.ts";
 import { loadServerEnv, requireKmaServiceKey } from "./env.ts";
 import { flushMonitoring, reportServerError } from "./monitoring.ts";
@@ -11,7 +11,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 (async () => {
   try {
     requireKmaServiceKey();
-    await initDb();
+    await assertDbReady();
     app.listen(PORT, () => {
       startWorker();
       console.log(`=============================================`);

@@ -89,7 +89,7 @@ export async function createAccuracySchema(client: Client): Promise<void> {
   await client.execute("DROP VIEW IF EXISTS v_verified_forecast_accuracy");
 }
 
-// 시작할 때마다 새로 들어온 원본만 보충한다. INSERT 한 문장이므로 부분 백필은 남지 않는다.
+// 마이그레이션 명령에서 빠진 원본만 보충한다. INSERT 한 문장이므로 부분 백필은 남지 않는다.
 export async function backfillAccuracyVerifications(client: Client): Promise<number> {
   const result = await client.execute(`
     INSERT OR IGNORE INTO forecast_verifications (

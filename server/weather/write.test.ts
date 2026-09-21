@@ -4,9 +4,12 @@ import { test } from "node:test";
 test("실황을 다시 수집해도 조회용 테이블의 예보 POP와 SKY는 유지한다", async () => {
   process.env.TURSO_DATABASE_URL = "file::memory:";
   process.env.SENTRY_DSN = "";
-  const { db, initDb } = await import("../db.ts");
+  const { db, assertDbReady } = await import("../db.ts");
+  const { migrateDb } = await import("../db/schema.ts");
   const { upsertObservationReadModelBatch, updateLatestForecastReadModelBatch } = await import("./write.ts");
-  await initDb();
+  await assert.rejects(assertDbReady, /DB 마이그레이션/);
+  await migrateDb();
+  await assert.doesNotReject(assertDbReady);
 
   const observation = {
     time: "2026-09-21 04:00",
