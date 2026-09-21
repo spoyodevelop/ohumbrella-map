@@ -6,12 +6,14 @@ import {
   upsertWeatherBatch,
   upsertForecastsBatch,
   updateForecastPopBatch,
-  syncAccuracyForObservationTime,
-  syncAccuracyForForecastBaseTime,
   type ObservationRecord,
   type ForecastRecord,
-  type WeatherRecord,
-} from "./queries.ts";
+  type HourlyWeatherWriteRecord,
+} from "./weather-write.ts";
+import {
+  syncAccuracyForObservationTime,
+  syncAccuracyForForecastBaseTime,
+} from "./accuracy-queries.ts";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: resolve(process.cwd(), ".env") });
@@ -222,7 +224,7 @@ export async function syncObservations(): Promise<number> {
   console.log(`[실황 수집] 관측기준: ${obsTimeStr} (238개 격자)`);
 
   const observationsToInsert: ObservationRecord[] = [];
-  const hourlyToInsert: WeatherRecord[] = [];
+  const hourlyToInsert: HourlyWeatherWriteRecord[] = [];
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -260,7 +262,7 @@ export async function syncObservations(): Promise<number> {
         const isRaining = pty > 0 || rn1 > 0 ? 1 : 0;
 
         const obsList: ObservationRecord[] = [];
-        const hourList: WeatherRecord[] = [];
+        const hourList: HourlyWeatherWriteRecord[] = [];
 
         for (const code of grid.sigunguCodes) {
           const sigungu = sigunguMap.get(code);
