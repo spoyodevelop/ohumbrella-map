@@ -15,7 +15,7 @@ function parseKmaNumber(val: number): number | null {
 }
 
 function parsePty(val: number): number {
-  if (val === 1 || val === 5) return 1;
+  if (val === 1 || val === 4 || val === 5) return 1;
   if (val === 2 || val === 6) return 2;
   if (val === 3 || val === 7) return 3;
   return 0;

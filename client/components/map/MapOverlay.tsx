@@ -21,7 +21,6 @@ function getPtyText(pty?: number) {
   if (pty === 1) return "비";
   if (pty === 2) return "비/눈";
   if (pty === 3) return "눈";
-  if (pty === 4) return "소나기";
   return "강수 없음";
 }
 
@@ -54,7 +53,7 @@ function getWeatherVisual(
   }
 
   // 1. 적설/강수(PTY)
-  if (weather.pty === 3 || weather.pty === 7) {
+  if (weather.pty === 3) {
     return {
       status: "snow",
       icon: "❄️",
@@ -62,7 +61,7 @@ function getWeatherVisual(
       sub: `실시간 적설/강수량 ${weather.rn1 ?? 0}mm/h (${getPtyText(weather.pty)})`,
     };
   }
-  if (weather.pty === 2 || weather.pty === 6) {
+  if (weather.pty === 2) {
     return {
       status: "snow",
       icon: "🌨️",

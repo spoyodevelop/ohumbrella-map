@@ -14,6 +14,13 @@ test("실황 원본의 강수형태를 내부 코드로 모으고 결측 기온�
     { category: "RN1", obsrValue: "0.3" },
     { category: "T1H", obsrValue: "18.5" },
   ]), { pty: 0, rn1: 0.3, tmp: 18.5, isRaining: 1 });
+
+  for (const [raw, expected] of [[4, 1], [6, 2], [7, 3]]) {
+    assert.deepEqual(parseObservationItems([
+      { category: "PTY", obsrValue: String(raw) },
+      { category: "RN1", obsrValue: "0" },
+    ]), { pty: expected, rn1: 0, tmp: null, isRaining: 1 });
+  }
 });
 
 test("예보는 시각별 POP·SKY·TMP를 합치고 유효한 POP만 남긴다", () => {
