@@ -1,27 +1,14 @@
 import { db } from "./db.ts";
 import { latestKnownPopForH } from "./weather-sql.ts";
 import type { ForecastRecord } from "./weather-write.ts";
+import {
+  assembleCurrentWeatherResponse,
+  type CurrentWeatherResponse,
+  type CurrentWeatherRow,
+  type VerifiedPopBucketRow,
+} from "./current-weather-response.ts";
 
-interface WeatherRecord {
-  time: string;
-  sidoCode: string;
-  sigunguCode: string;
-  name: string;
-  pop: number | null;
-  kmaPop?: number | null;
-  pty: number;
-  rn1: number;
-  tmp: number | null;
-  sky: number;
-  isRaining?: number;
-  empiricalRate?: number | null;
-  sampleCount?: number;
-  stats?: Record<number, { rate: number; samples: number }>;
-  sidoStats?: Record<number, { rate: number; samples: number }>;
-  sidoSampleCount?: number;
-  sidoEmpiricalRate?: number | null;
-  updatedAt: string;
-}
+type WeatherHistoryRow = Omit<CurrentWeatherRow, "kmaPop">;
 
 export interface SidoStat {
   sidoCode: string;
@@ -33,7 +20,7 @@ export interface SidoStat {
 }
 
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
-export async function getLatestWeather() {
+export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
   const latestTimeRes = await db.execute(
     `SELECT MAX(time) as maxTime FROM hourly_weather`,
   );
@@ -82,67 +69,9 @@ export async function getLatestWeather() {
     `),
   ]);
 
-  const rows = rowsRes.rows as unknown as WeatherRecord[];
-  const localStats = localStatsRes.rows as unknown as {
-    sigungu_code: string;
-    sido_code: string;
-    predicted_pop: number;
-    rain_count: number;
-    rate: number;
-    samples: number;
-  }[];
-  const localMap = new Map(
-    localStats.map((s) => [`${s.sigungu_code}_${s.predicted_pop}`, s]),
-  );
-
-  // Aggregate sido stats
-  const sidoAggMap = new Map<string, { rain_count: number; samples: number }>();
-  for (const s of localStats) {
-    const key = `${s.sido_code}_${s.predicted_pop}`;
-    const curr = sidoAggMap.get(key) || { rain_count: 0, samples: 0 };
-    curr.rain_count += s.rain_count;
-    curr.samples += s.samples;
-    sidoAggMap.set(key, curr);
-  }
-  const sidoMap = new Map<string, { rate: number; samples: number }>();
-  for (const [key, agg] of sidoAggMap.entries()) {
-    sidoMap.set(key, {
-      rate: Math.round((100.0 * agg.rain_count) / agg.samples * 10) / 10,
-      samples: agg.samples,
-    });
-  }
-
-  const data: Record<string, WeatherRecord> = {};
-  for (const rawRow of rows) {
-    const row = { ...rawRow };
-    const pop = row.kmaPop;
-    const local = pop == null ? undefined : localMap.get(`${row.sigunguCode}_${pop}`);
-    const sido = pop == null ? undefined : sidoMap.get(`${row.sidoCode}_${pop}`);
-    row.isRaining = row.pty > 0 || row.rn1 > 0 ? 1 : 0;
-    row.empiricalRate = local?.rate ?? null;
-    row.sampleCount = local?.samples ?? 0;
-    row.sidoEmpiricalRate = sido?.rate ?? null;
-    row.sidoSampleCount = sido?.samples ?? 0;
-
-    // 0~100%까지 모든 버킷의 통계 매핑 (UI select 박스용)
-    row.stats = {};
-    row.sidoStats = {};
-    for (let p = 0; p <= 100; p += 10) {
-      const l = localMap.get(`${row.sigunguCode}_${p}`);
-      if (l) {
-        row.stats[p] = { rate: l.rate, samples: l.samples };
-      }
-
-      const s = sidoMap.get(`${row.sidoCode}_${p}`);
-      if (s) {
-        row.sidoStats[p] = { rate: s.rate, samples: s.samples };
-      }
-    }
-
-    data[row.sigunguCode] = row;
-  }
-
-  return { time: maxTime, count: rows.length, data };
+  const rows = rowsRes.rows as unknown as CurrentWeatherRow[];
+  const localStats = localStatsRes.rows as unknown as VerifiedPopBucketRow[];
+  return assembleCurrentWeatherResponse(maxTime, rows, localStats);
 }
 
 // 17개 광역시도별 최신 집계 통계
@@ -276,5 +205,5 @@ export async function getTimeSeries(sigunguCode: string, limitHours = 48) {
     args: [sigunguCode, limitHours],
   });
 
-  return res.rows as unknown as WeatherRecord[];
+  return res.rows as unknown as WeatherHistoryRow[];
 }
