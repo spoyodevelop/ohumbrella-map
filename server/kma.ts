@@ -340,24 +340,31 @@ export async function syncForecasts(): Promise<number> {
       chunk.map(async (grid: DistinctGrid) => {
         const targetMap = new Map<
           string,
-          { pop: number; sky: number; tmp: number | null }
+          { pop: number | null; sky: number; tmp: number | null }
         >();
 
         const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${SERVICE_KEY}`;
         // 끝까지 재시도하고 안 되면 []로 소모되어 반환됨
         const items = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
+        if (items.length === 0) {
+          console.warn(`[예보 누락] ${grid.gridKey}: 빈 응답, 저장·지도 갱신 건너뜀`);
+          return { fcstList: [] as ForecastRecord[], popUpdates: [] };
+        }
+
         for (const item of items) {
           const fDate = item.fcstDate;
           const fTime = item.fcstTime;
           const targetTimeStr = `${fDate.slice(0, 4)}-${fDate.slice(4, 6)}-${fDate.slice(6, 8)} ${fTime.slice(0, 2)}:00`;
 
           if (!targetMap.has(targetTimeStr)) {
-            targetMap.set(targetTimeStr, { pop: 0, sky: 1, tmp: null });
+            targetMap.set(targetTimeStr, { pop: null, sky: 1, tmp: null });
           }
           const currentEntry = targetMap.get(targetTimeStr)!;
 
           if (item.category === "POP") {
-            currentEntry.pop = parseInt(item.fcstValue, 10);
+            const pop = Number(item.fcstValue);
+            currentEntry.pop = item.fcstValue.trim() !== "" &&
+              Number.isInteger(pop) && pop >= 0 && pop <= 100 ? pop : null;
           } else if (item.category === "SKY") {
             currentEntry.sky = parseInt(item.fcstValue, 10);
           } else if (item.category === "TMP") {
@@ -366,18 +373,25 @@ export async function syncForecasts(): Promise<number> {
         }
 
         const fcstList: ForecastRecord[] = [];
-        const hourList: WeatherRecord[] = [];
+        const popUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
+        const validForecasts = [...targetMap.entries()].filter(
+          (entry): entry is [string, { pop: number; sky: number; tmp: number | null }] =>
+            entry[1].pop !== null,
+        );
+        if (validForecasts.length === 0) {
+          console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
+          return { fcstList, popUpdates };
+        }
 
-        const firstFcst = targetMap.values().next().value;
-        const currentPop = firstFcst?.pop ?? 20;
-        const currentSky = firstFcst?.sky ?? 1;
+        const currentPop = validForecasts[0][1].pop;
+        const currentSky = validForecasts[0][1].sky;
 
         for (const code of grid.sigunguCodes) {
           const sigungu = sigunguMap.get(code);
           const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
           const name = sigungu?.name ?? code;
 
-          for (const [targetTimeStr, val] of targetMap.entries()) {
+          for (const [targetTimeStr, val] of validForecasts) {
             const leadHours = calculateLeadHours(baseTimeStr, targetTimeStr);
             fcstList.push({
               baseTime: baseTimeStr,
@@ -393,33 +407,22 @@ export async function syncForecasts(): Promise<number> {
             });
           }
 
-          // 지도 렌더링용: 기존 실황 row의 pop/sky 업데이트용 레코드
-          hourList.push({
-            time: baseTimeStr,
-            sidoCode,
+          // 최신 실황 row에 검증된 예보만 반영한다.
+          popUpdates.push({
             sigunguCode: code,
-            name,
             pop: currentPop,
-            pty: 0,
-            rn1: 0,
-            tmp: null,
             sky: currentSky,
             updatedAt: createdAt,
           });
         }
 
-        return { fcstList, hourList };
+        return { fcstList, popUpdates };
       }),
     );
 
     for (const res of chunkResults) {
       forecastsToInsert.push(...res.fcstList);
-      forecastPopUpdates.push(...res.hourList.map((r) => ({
-        sigunguCode: r.sigunguCode,
-        pop: r.pop ?? 0,
-        sky: r.sky,
-        updatedAt: r.updatedAt,
-      })));
+      forecastPopUpdates.push(...res.popUpdates);
     }
 
     process.stdout.write(

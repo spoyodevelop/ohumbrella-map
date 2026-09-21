@@ -1,5 +1,17 @@
 import { db } from "./db.ts";
 
+// 최신 실황 row에 새 예보가 없으면 같은 지역의 마지막 유효 POP를 표시한다.
+// 이 값은 조회용 fallback이며 예보 이력이나 정확도 통계에는 기록하지 않는다.
+const latestKnownPopForH = `COALESCE(h.pop, (
+  SELECT previous.pop
+  FROM hourly_weather previous
+  WHERE previous.sigungu_code = h.sigungu_code
+    AND previous.time <= h.time
+    AND previous.pop IS NOT NULL
+  ORDER BY previous.time DESC
+  LIMIT 1
+))`;
+
 export interface ObservationRecord {
   time: string;
   sigunguCode: string;
@@ -247,8 +259,8 @@ export async function getLatestWeather() {
         h.sido_code as sidoCode,
         h.sigungu_code as sigunguCode,
         h.name,
-        COALESCE(h.pop, 0) as pop,
-        COALESCE(h.pop, 0) as kmaPop,
+        ${latestKnownPopForH} as pop,
+        ${latestKnownPopForH} as kmaPop,
         h.pty,
         h.rn1,
         h.tmp,
@@ -311,9 +323,9 @@ export async function getLatestWeather() {
   const data: Record<string, WeatherRecord> = {};
   for (const rawRow of rows) {
     const row = { ...rawRow };
-    const pop = row.kmaPop ?? 0;
-    const local = localMap.get(`${row.sigunguCode}_${pop}`);
-    const sido = sidoMap.get(`${row.sidoCode}_${pop}`);
+    const pop = row.kmaPop;
+    const local = pop == null ? undefined : localMap.get(`${row.sigunguCode}_${pop}`);
+    const sido = pop == null ? undefined : sidoMap.get(`${row.sidoCode}_${pop}`);
     row.isRaining = row.pty > 0 || row.rn1 > 0 ? 1 : 0;
     row.empiricalRate = local?.rate ?? null;
     row.sampleCount = local?.samples ?? 0;
@@ -354,21 +366,29 @@ export async function getSidoStats() {
 
   const [res, bucketsRes] = await Promise.all([
     db.execute(`
-      SELECT 
-        h.sido_code as sidoCode,
-        ROUND(AVG(COALESCE(h.pop, 0)), 1) as avgPop,
-        MAX(COALESCE(h.pop, 0)) as maxPop,
-        ROUND(SUM(COALESCE(h.rn1, 0)), 1) as totalRain,
-        SUM(CASE WHEN h.pty > 0 OR h.rn1 > 0 THEN 1 ELSE 0 END) as rainingCount,
+      WITH latest_weather AS (
+        SELECT
+          h.sido_code,
+          ${latestKnownPopForH} as effective_pop,
+          h.rn1,
+          h.pty
+        FROM hourly_weather h
+        INNER JOIN (
+          SELECT sigungu_code, MAX(time) as max_time
+          FROM hourly_weather
+          GROUP BY sigungu_code
+        ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
+      )
+      SELECT
+        sido_code as sidoCode,
+        ROUND(AVG(effective_pop), 1) as avgPop,
+        MAX(effective_pop) as maxPop,
+        ROUND(SUM(COALESCE(rn1, 0)), 1) as totalRain,
+        SUM(CASE WHEN pty > 0 OR rn1 > 0 THEN 1 ELSE 0 END) as rainingCount,
         COUNT(*) as totalCount
-      FROM hourly_weather h
-      INNER JOIN (
-        SELECT sigungu_code, MAX(time) as max_time
-        FROM hourly_weather
-        GROUP BY sigungu_code
-      ) latest ON h.sigungu_code = latest.sigungu_code AND h.time = latest.max_time
-      GROUP BY h.sido_code
-      ORDER BY h.sido_code ASC
+      FROM latest_weather
+      GROUP BY sido_code
+      ORDER BY sido_code ASC
     `),
     db.execute(`
       SELECT 
@@ -562,14 +582,14 @@ export async function getRegionProbabilityInsight(
         sido_code as sidoCode,
         sigungu_code as sigunguCode,
         name,
-        pop as kmaPop,
+        ${latestKnownPopForH} as kmaPop,
         pty,
         rn1,
         tmp,
         sky
-      FROM hourly_weather
-      WHERE sigungu_code = ?
-      ORDER BY time DESC
+      FROM hourly_weather h
+      WHERE h.sigungu_code = ?
+      ORDER BY h.time DESC
       LIMIT 1
     `,
     args: [sigunguCode],

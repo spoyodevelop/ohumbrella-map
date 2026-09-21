@@ -85,7 +85,9 @@ export function useMapData(sidoCode: string | undefined) {
       if (!sidoWeatherStats) return region;
       return {
         ...region,
-        rainChance: Math.round(sidoWeatherStats.avgPop),
+        rainChance: sidoWeatherStats.avgPop == null
+          ? region.rainChance
+          : Math.round(sidoWeatherStats.avgPop),
         stats: sidoWeatherStats.stats,
         sampleCount: sidoWeatherStats.totalCount,
       };

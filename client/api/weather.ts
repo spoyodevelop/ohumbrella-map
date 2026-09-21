@@ -3,8 +3,8 @@ import { fetchJson } from "../lib/http";
 
 export interface SidoStat {
   sidoCode: string;
-  avgPop: number;
-  maxPop: number;
+  avgPop: number | null;
+  maxPop: number | null;
   totalRain: number;
   rainingCount: number;
   totalCount: number;
