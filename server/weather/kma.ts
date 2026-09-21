@@ -166,9 +166,9 @@ export async function syncObservations(): Promise<number> {
 // --------------------------------------------------------------------------
 // 2. [단기예보 전용 수집] 3시간마다 딱 1회만 호출 (getVilageFcst만 238콜)
 // --------------------------------------------------------------------------
-export async function syncForecasts(): Promise<number> {
+export async function syncForecasts(round = getVilageBaseDateTime()): Promise<number> {
   const serviceKey = requireKmaServiceKey();
-  const { baseDate: fcstDate, baseTime: fcstTime } = getVilageBaseDateTime();
+  const { baseDate: fcstDate, baseTime: fcstTime } = round;
   const baseTimeStr = `${fcstDate.slice(0, 4)}-${fcstDate.slice(4, 6)}-${fcstDate.slice(6, 8)} ${fcstTime.slice(0, 2)}:00`;
   const createdAt = new Date().toISOString();
 

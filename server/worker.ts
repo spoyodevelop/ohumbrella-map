@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import https from "node:https";
 import { reportServerError } from "./monitoring.ts";
+import { getVilageBaseDateTime } from "./weather/kmaTime.ts";
 import {
   checkCanaryNcstUpdated,
   syncObservations,
@@ -15,7 +16,13 @@ const registerKstSchedule: RegisterSchedule = (expression, task) => {
 
 let isSyncing = false;
 let lastSyncedBaseTime = "";
+let pendingForecastRound: string | null = null;
 let workerStarted = false;
+
+function currentForecastRound() {
+  const { baseDate, baseTime } = getVilageBaseDateTime();
+  return { baseDate, baseTime, key: `${baseDate} ${baseTime}` };
+}
 
 /**
  * Healthchecks.io Ping 신호 전송
@@ -92,21 +99,39 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
     }
   });
 
-  // 02:20부터 3시간마다 단기예보 수집
-  registerSchedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
+  async function collectForecast(round: ReturnType<typeof currentForecastRound>): Promise<void> {
     if (isSyncing) return;
-    console.log("[워커] 3시간 주기 단기예보 발표 시점 - 정기 예보 수집 시작");
     isSyncing = true;
     try {
-      await syncForecasts();
+      await syncForecasts(round);
+      pendingForecastRound = null;
       await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL);
     } catch (err) {
+      pendingForecastRound = round.key;
       console.error("[워커 단기예보 에러]", err);
       reportServerError(err, "worker.forecast");
       await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
     } finally {
       isSyncing = false;
     }
+  }
+
+  // 02:20부터 3시간마다 단기예보 수집
+  registerSchedule("20 2,5,8,11,14,17,20,23 * * *", async () => {
+    console.log("[워커] 3시간 주기 단기예보 발표 시점 - 정기 예보 수집 시작");
+    await collectForecast(currentForecastRound());
+  });
+
+  // 실패한 발표 회차만 10분 간격으로 다시 수집한다.
+  registerSchedule("5,15,25,35,45,55 * * * *", async () => {
+    if (!pendingForecastRound) return;
+    const round = currentForecastRound();
+    if (round.key !== pendingForecastRound) {
+      pendingForecastRound = null;
+      return;
+    }
+    console.log(`[워커] 단기예보 ${round.key} 재시도`);
+    await collectForecast(round);
   });
 
   workerStarted = true;
