@@ -240,6 +240,11 @@ export async function syncObservations(): Promise<number> {
           3,
           400,
         );
+        if (items.length === 0) {
+          console.warn(`[실황 누락] ${grid.gridKey}: 빈 응답, 저장 건너뜀`);
+          return { obsList: [], hourList: [] };
+        }
+
         for (const item of items) {
           const val = parseFloat(item.obsrValue);
           if (item.category === "PTY") {
@@ -304,6 +309,8 @@ export async function syncObservations(): Promise<number> {
   }
 
   console.log(`\n[실황 저장] ${observationsToInsert.length}건 DB 저장 완료!`);
+  if (observationsToInsert.length === 0) return 0;
+
   await upsertObservationsBatch(observationsToInsert);
   await upsertWeatherBatch(hourlyToInsert);
   // 이 관측 시각에 매칭되는 예보들로 정확도 집계 누적
