@@ -3,7 +3,6 @@ import cors from "cors";
 import { getLatestWeather, getSidoStats } from "./weather/read.ts";
 import { loadServerEnv } from "./env.ts";
 import { initMonitoring, reportServerError } from "./monitoring.ts";
-import type { TimingReporter } from "./weather/timing.ts";
 
 loadServerEnv();
 initMonitoring();
@@ -11,25 +10,6 @@ initMonitoring();
 export const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 const INTERNAL_ERROR = { error: "서버 내부 오류가 발생했습니다." };
-
-function weatherTiming(route: string, res: express.Response): {
-  report: TimingReporter;
-  finish: () => void;
-} {
-  const startedAt = performance.now();
-  const timings: string[] = [];
-  return {
-    report: (name, durationMs) => {
-      timings.push(`${name};dur=${durationMs.toFixed(1)}`);
-    },
-    finish: () => {
-      timings.push(`app;dur=${(performance.now() - startedAt).toFixed(1)}`);
-      const summary = timings.join(", ");
-      res.setHeader("Server-Timing", summary);
-      console.info(`[weather timing] ${route}: ${summary}`);
-    },
-  };
-}
 
 app.use(cors());
 
@@ -78,26 +58,20 @@ app.get("/api/gc", async (req, res) => {
 });
 
 app.get("/api/weather/current", async (_req, res) => {
-  const timing = weatherTiming("current", res);
   try {
-    const data = await getLatestWeather(timing.report);
-    timing.finish();
+    const data = await getLatestWeather();
     res.json(data);
   } catch (err) {
-    timing.finish();
     reportServerError(err, "api.weather.current");
     res.status(500).json(INTERNAL_ERROR);
   }
 });
 
 app.get("/api/weather/sido-stats", async (_req, res) => {
-  const timing = weatherTiming("sido-stats", res);
   try {
-    const data = await getSidoStats(timing.report);
-    timing.finish();
+    const data = await getSidoStats();
     res.json(data);
   } catch (err) {
-    timing.finish();
     reportServerError(err, "api.weather.sido-stats");
     res.status(500).json(INTERNAL_ERROR);
   }

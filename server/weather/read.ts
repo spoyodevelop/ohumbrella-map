@@ -13,15 +13,12 @@ import {
   type SidoPopBucketRow,
   type SidoStatRow,
 } from "./sidoResponse.ts";
-import { timedQuery, type TimingReporter } from "./timing.ts";
 
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
-export async function getLatestWeather(
-  reportTiming?: TimingReporter,
-): Promise<CurrentWeatherResponse> {
+export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
   // 시군구별 최신 상태는 수집 시점에 계산해 둔다.
   const [rowsRes, localStatsRes] = await Promise.all([
-    timedQuery("db-weather", reportTiming, () => db.execute(`
+    db.execute(`
       SELECT
         h.time,
         h.sido_code as sidoCode,
@@ -36,9 +33,9 @@ export async function getLatestWeather(
         h.sky_source_time as skySourceTime,
         h.updated_at as updatedAt
       FROM current_weather h
-    `)),
+    `),
 
-    timedQuery("db-accuracy", reportTiming, () => db.execute(`
+    db.execute(`
       SELECT
         f.sigungu_code,
         h.sido_code,
@@ -49,7 +46,7 @@ export async function getLatestWeather(
       FROM verified_accuracy_stats f
       JOIN current_weather h ON f.sigungu_code = h.sigungu_code
       WHERE f.total_count > 0
-    `)),
+    `),
   ]);
 
   const rows = rowsRes.rows as unknown as CurrentWeatherRow[];
@@ -66,11 +63,9 @@ export async function getLatestWeather(
 }
 
 // 17개 광역시도별 최신 집계 통계
-export async function getSidoStats(
-  reportTiming?: TimingReporter,
-): Promise<SidoStatsResponse> {
+export async function getSidoStats(): Promise<SidoStatsResponse> {
   const [res, bucketsRes] = await Promise.all([
-    timedQuery("db-sido", reportTiming, () => db.execute(`
+    db.execute(`
       SELECT
         sido_code as sidoCode,
         MAX(time) as latestTime,
@@ -82,8 +77,8 @@ export async function getSidoStats(
       FROM current_weather
       GROUP BY sido_code
       ORDER BY sido_code ASC
-    `)),
-    timedQuery("db-buckets", reportTiming, () => db.execute(`
+    `),
+    db.execute(`
       SELECT
         h.sido_code as sidoCode,
         f.predicted_pop as predictedPop,
@@ -93,7 +88,7 @@ export async function getSidoStats(
       JOIN current_weather h ON f.sigungu_code = h.sigungu_code
       WHERE f.total_count > 0
       GROUP BY h.sido_code, f.predicted_pop
-    `)),
+    `),
   ]);
 
   const stats = res.rows as unknown as (SidoStatRow & { latestTime: string })[];

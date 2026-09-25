@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test("날씨 API는 가져온 행에서 최신 시각을 고르고 조회 시간을 표시한다", async () => {
+test("날씨 API는 가져온 행에서 최신 시각을 고른다", async () => {
   process.env.SENTRY_DSN = "";
   process.env.TURSO_DATABASE_URL = "file::memory:";
   const [{ app }, { db }] = await Promise.all([
@@ -54,13 +54,6 @@ test("날씨 API는 가져온 행에서 최신 시각을 고르고 조회 시간
     const body = await response.json() as { count: number; time: string | null };
     assert.equal(body.count, 3);
     assert.equal(body.time, "2026-09-26 11:00:00");
-    const timing = response.headers.get("server-timing");
-    assert.ok(timing);
-    assert.doesNotMatch(timing, /db-max/);
-    for (const name of ["db-weather", "db-accuracy", "app"]) {
-      assert.match(timing, new RegExp(`(?:^|, )${name};dur=\\d+\\.\\d`));
-    }
-
     const sidoResponse = await fetch(`${baseUrl}/sido-stats`);
     assert.equal(sidoResponse.status, 200);
     const sidoBody = await sidoResponse.json() as {
@@ -69,13 +62,6 @@ test("날씨 API는 가져온 행에서 최신 시각을 고르고 조회 시간
     };
     assert.equal(sidoBody.time, "2026-09-26 11:00:00");
     assert.deepEqual(sidoBody.stats.map((stat) => stat.sidoCode), ["11", "26"]);
-    const sidoTiming = sidoResponse.headers.get("server-timing");
-    assert.ok(sidoTiming);
-    assert.doesNotMatch(sidoTiming, /db-max/);
-    for (const name of ["db-sido", "db-buckets", "app"]) {
-      assert.match(sidoTiming, new RegExp(`(?:^|, )${name};dur=\\d+\\.\\d`));
-    }
-
     await db.execute("DELETE FROM current_weather");
     const emptyResponse = await fetch(`${baseUrl}/current`);
     assert.equal(emptyResponse.status, 200);
