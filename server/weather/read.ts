@@ -19,15 +19,6 @@ import { timedQuery, type TimingReporter } from "./timing.ts";
 export async function getLatestWeather(
   reportTiming?: TimingReporter,
 ): Promise<CurrentWeatherResponse> {
-  const latestTimeRes = await timedQuery("db-max", reportTiming, () =>
-    db.execute(`SELECT MAX(time) as maxTime FROM current_weather`),
-  );
-  const maxTime = (latestTimeRes.rows[0]?.maxTime as string | null) ?? null;
-
-  if (!maxTime) {
-    return { time: null, isStale: true, count: 0, data: {} };
-  }
-
   // 시군구별 최신 상태는 수집 시점에 계산해 둔다.
   const [rowsRes, localStatsRes] = await Promise.all([
     timedQuery("db-weather", reportTiming, () => db.execute(`
@@ -62,6 +53,14 @@ export async function getLatestWeather(
   ]);
 
   const rows = rowsRes.rows as unknown as CurrentWeatherRow[];
+  if (rows.length === 0) {
+    return { time: null, isStale: true, count: 0, data: {} };
+  }
+
+  const maxTime = rows.reduce(
+    (latest, row) => row.time > latest ? row.time : latest,
+    rows[0].time,
+  );
   const localStats = localStatsRes.rows as unknown as VerifiedPopBucketRow[];
   return assembleCurrentWeatherResponse(maxTime, rows, localStats);
 }
