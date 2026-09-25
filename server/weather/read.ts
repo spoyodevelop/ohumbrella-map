@@ -69,19 +69,11 @@ export async function getLatestWeather(
 export async function getSidoStats(
   reportTiming?: TimingReporter,
 ): Promise<SidoStatsResponse> {
-  const latestTimeRes = await timedQuery("db-max", reportTiming, () =>
-    db.execute(`SELECT MAX(time) as maxTime FROM current_weather`),
-  );
-  const maxTime = (latestTimeRes.rows[0]?.maxTime as string | null) ?? null;
-
-  if (!maxTime) {
-    return { time: null, stats: [] };
-  }
-
   const [res, bucketsRes] = await Promise.all([
     timedQuery("db-sido", reportTiming, () => db.execute(`
       SELECT
         sido_code as sidoCode,
+        MAX(time) as latestTime,
         ROUND(AVG(pop), 1) as avgPop,
         MAX(pop) as maxPop,
         ROUND(SUM(COALESCE(rn1, 0)), 1) as totalRain,
@@ -104,7 +96,15 @@ export async function getSidoStats(
     `)),
   ]);
 
-  const stats = res.rows as unknown as SidoStatRow[];
+  const stats = res.rows as unknown as (SidoStatRow & { latestTime: string })[];
+  if (stats.length === 0) {
+    return { time: null, stats: [] };
+  }
+
+  const maxTime = stats.reduce(
+    (latest, row) => row.latestTime > latest ? row.latestTime : latest,
+    stats[0].latestTime,
+  );
   const buckets = bucketsRes.rows as unknown as SidoPopBucketRow[];
   return assembleSidoStatsResponse(maxTime, stats, buckets);
 }

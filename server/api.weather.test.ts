@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test("날씨 응답에 각 DB 조회 시간과 API 처리 시간을 표시한다", async () => {
+test("날씨 API는 가져온 행에서 최신 시각을 고르고 조회 시간을 표시한다", async () => {
   process.env.SENTRY_DSN = "";
   process.env.TURSO_DATABASE_URL = "file::memory:";
   const [{ app }, { db }] = await Promise.all([
@@ -36,17 +36,24 @@ test("날씨 응답에 각 DB 조회 시간과 API 처리 시간을 표시한다
       19, 1, '2026-09-26 09:00:00', '2026-09-26 09:01:00'
     )
   `);
+  await db.execute(`
+    INSERT INTO current_weather VALUES (
+      '2026-09-26 11:00:00', '26', '26110', '중구',
+      40, '2026-09-26 11:00:00', 0, 0,
+      21, 1, '2026-09-26 11:00:00', '2026-09-26 11:01:00'
+    )
+  `);
 
   const server = app.listen(0);
   try {
     const address = server.address();
     assert.ok(address && typeof address !== "string");
-    const url = `http://127.0.0.1:${address.port}/api/weather/current`;
-    const response = await fetch(url);
+    const baseUrl = `http://127.0.0.1:${address.port}/api/weather`;
+    const response = await fetch(`${baseUrl}/current`);
     assert.equal(response.status, 200);
     const body = await response.json() as { count: number; time: string | null };
-    assert.equal(body.count, 2);
-    assert.equal(body.time, "2026-09-26 10:00:00");
+    assert.equal(body.count, 3);
+    assert.equal(body.time, "2026-09-26 11:00:00");
     const timing = response.headers.get("server-timing");
     assert.ok(timing);
     assert.doesNotMatch(timing, /db-max/);
@@ -54,12 +61,30 @@ test("날씨 응답에 각 DB 조회 시간과 API 처리 시간을 표시한다
       assert.match(timing, new RegExp(`(?:^|, )${name};dur=\\d+\\.\\d`));
     }
 
+    const sidoResponse = await fetch(`${baseUrl}/sido-stats`);
+    assert.equal(sidoResponse.status, 200);
+    const sidoBody = await sidoResponse.json() as {
+      time: string | null;
+      stats: { sidoCode: string }[];
+    };
+    assert.equal(sidoBody.time, "2026-09-26 11:00:00");
+    assert.deepEqual(sidoBody.stats.map((stat) => stat.sidoCode), ["11", "26"]);
+    const sidoTiming = sidoResponse.headers.get("server-timing");
+    assert.ok(sidoTiming);
+    assert.doesNotMatch(sidoTiming, /db-max/);
+    for (const name of ["db-sido", "db-buckets", "app"]) {
+      assert.match(sidoTiming, new RegExp(`(?:^|, )${name};dur=\\d+\\.\\d`));
+    }
+
     await db.execute("DELETE FROM current_weather");
-    const emptyResponse = await fetch(url);
+    const emptyResponse = await fetch(`${baseUrl}/current`);
     assert.equal(emptyResponse.status, 200);
     assert.deepEqual(await emptyResponse.json(), {
       time: null, isStale: true, count: 0, data: {},
     });
+    const emptySidoResponse = await fetch(`${baseUrl}/sido-stats`);
+    assert.equal(emptySidoResponse.status, 200);
+    assert.deepEqual(await emptySidoResponse.json(), { time: null, stats: [] });
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     db.close();
