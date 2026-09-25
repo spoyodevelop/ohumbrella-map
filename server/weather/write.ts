@@ -131,22 +131,51 @@ export async function upsertObservationReadModelBatch(records: ObservationReadMo
       tmp = coalesce(excluded.tmp, hourly_weather.tmp),
       updated_at = excluded.updated_at
   `;
+  const currentSql = `
+    INSERT INTO current_weather (
+      sigungu_code, sido_code, name, time, pty, rn1, tmp, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(sigungu_code) DO UPDATE SET
+      sido_code = excluded.sido_code,
+      name = excluded.name,
+      time = excluded.time,
+      pty = excluded.pty,
+      rn1 = excluded.rn1,
+      tmp = coalesce(excluded.tmp, current_weather.tmp),
+      updated_at = excluded.updated_at
+    WHERE excluded.time >= current_weather.time
+  `;
 
-  const chunks = chunkArray(records, 100);
+  const chunks = chunkArray(records, 50);
   for (const chunk of chunks) {
-    const stmts = chunk.map((r) => ({
-      sql,
-      args: [
-        r.time,
-        r.sidoCode,
-        r.sigunguCode,
-        r.name,
-        r.pty,
-        r.rn1,
-        r.tmp,
-        r.updatedAt,
-      ],
-    }));
+    const stmts = chunk.flatMap((r) => [
+      {
+        sql,
+        args: [
+          r.time,
+          r.sidoCode,
+          r.sigunguCode,
+          r.name,
+          r.pty,
+          r.rn1,
+          r.tmp,
+          r.updatedAt,
+        ],
+      },
+      {
+        sql: currentSql,
+        args: [
+          r.sigunguCode,
+          r.sidoCode,
+          r.name,
+          r.time,
+          r.pty,
+          r.rn1,
+          r.tmp,
+          r.updatedAt,
+        ],
+      },
+    ]);
     await db.batch(stmts, "write");
   }
 }
@@ -169,13 +198,26 @@ export async function updateLatestForecastReadModelBatch(
     WHERE sigungu_code = ?
       AND time = (SELECT MAX(time) FROM hourly_weather WHERE sigungu_code = ?)
   `;
+  const currentSql = `
+    UPDATE current_weather
+    SET pop = ?, pop_source_time = time,
+        sky = ?, sky_source_time = time,
+        updated_at = ?
+    WHERE sigungu_code = ?
+  `;
 
-  const chunks = chunkArray(records, 100);
+  const chunks = chunkArray(records, 50);
   for (const chunk of chunks) {
-    const stmts = chunk.map((r) => ({
-      sql,
-      args: [r.pop, r.sky, r.updatedAt, r.sigunguCode, r.sigunguCode],
-    }));
+    const stmts = chunk.flatMap((r) => [
+      {
+        sql,
+        args: [r.pop, r.sky, r.updatedAt, r.sigunguCode, r.sigunguCode],
+      },
+      {
+        sql: currentSql,
+        args: [r.pop, r.sky, r.updatedAt, r.sigunguCode],
+      },
+    ]);
     await db.batch(stmts, "write");
   }
 }

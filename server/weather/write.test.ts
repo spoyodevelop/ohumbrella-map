@@ -50,4 +50,18 @@ test("실황을 다시 수집해도 조회용 테이블의 예보 POP와 SKY는 
   assert.equal(current.data[later.sigunguCode].sky, 4);
   assert.equal(current.data[later.sigunguCode].kmaPopSourceTime, observation.time);
   assert.equal(current.data[later.sigunguCode].skySourceTime, observation.time);
+
+  const latest = await db.execute({
+    sql: "SELECT time, pty, rn1, pop, pop_source_time, sky, sky_source_time FROM current_weather WHERE sigungu_code = ?",
+    args: [later.sigunguCode],
+  });
+  assert.deepEqual({ ...latest.rows[0] }, {
+    time: later.time,
+    pty: 0,
+    rn1: 0,
+    pop: 80,
+    pop_source_time: observation.time,
+    sky: 4,
+    sky_source_time: observation.time,
+  });
 });

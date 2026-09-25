@@ -1,5 +1,6 @@
 import { db } from "../db.ts";
 import { backfillAccuracyVerifications, createAccuracySchema } from "../verification/accuracy.ts";
+import { createCurrentWeatherTable } from "./currentWeatherTable.ts";
 
 let migrationPromise: Promise<void> | null = null;
 
@@ -82,6 +83,8 @@ export async function migrateDb() {
     await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_weather_sigungu_time ON hourly_weather(sigungu_code, time);
   `);
+
+    await createCurrentWeatherTable(db);
 
     await db.execute("DROP VIEW IF EXISTS v_forecast_accuracy");
     await db.execute("DROP TABLE IF EXISTS forecast_accuracy_stats");

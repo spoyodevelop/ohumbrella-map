@@ -24,6 +24,7 @@ const requiredObjects = [
   "weather_observations",
   "weather_forecasts",
   "hourly_weather",
+  "current_weather",
   "forecast_verifications",
   "verified_accuracy_stats",
   "trg_verifications_insert",
