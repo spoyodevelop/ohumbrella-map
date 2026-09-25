@@ -44,7 +44,7 @@ test("실황을 다시 수집해도 조회용 테이블의 예보 POP와 SKY는 
   });
   assert.deepEqual({ ...stored.rows[0] }, { pop: null, sky: null });
 
-  const { getLatestWeather } = await import("./read.ts");
+  const { getLatestWeather, getSidoStats } = await import("./read.ts");
   const current = await getLatestWeather();
   assert.equal(current.data[later.sigunguCode].kmaPop, 80);
   assert.equal(current.data[later.sigunguCode].sky, 4);
@@ -64,4 +64,16 @@ test("실황을 다시 수집해도 조회용 테이블의 예보 POP와 SKY는 
     sky: 4,
     sky_source_time: observation.time,
   });
+
+  const sido = await getSidoStats();
+  assert.equal(sido.time, later.time);
+  assert.deepEqual(sido.stats, [{
+    sidoCode: observation.sidoCode,
+    avgPop: 80,
+    maxPop: 80,
+    totalRain: 0,
+    rainingCount: 0,
+    totalCount: 1,
+    stats: {},
+  }]);
 });
