@@ -17,6 +17,7 @@ export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
         <Status>
           <div>마지막 갱신 일시</div>
           <strong>{weatherTime}</strong>
+          <KmaCredit>자료제공 및 출처: 기상청</KmaCredit>
         </Status>
       )}
     </Header>
@@ -65,6 +66,16 @@ const Status = styled.div`
     color: #dce5f2;
     font-size: 1rem;
   }
+`;
+
+const KmaCredit = styled.span`
+  display: block;
+  margin-top: 4px;
+  color: #4a5568;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
 `;
 
 const BetaBadge = styled.span`
