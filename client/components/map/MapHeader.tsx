@@ -10,7 +10,7 @@ export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
   return (
     <Header>
       <div>
-        <Eyebrow>아 맞다 우산 | 강수 확률 통계</Eyebrow>
+        <Eyebrow>아 맞다 우산 | 강수 확률 통계 <BetaBadge>beta</BetaBadge></Eyebrow>
         <Title>{currentSido?.name ?? "전국"} 실시간 날씨 & 강수 확률</Title>
       </div>
       {weatherTime && (
@@ -65,4 +65,19 @@ const Status = styled.div`
     color: #dce5f2;
     font-size: 1rem;
   }
+`;
+
+const BetaBadge = styled.span`
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid #3a5a8a;
+  border-radius: 4px;
+  background: rgb(30 60 110 / 0.35);
+  color: #7eb8f7;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
 `;
