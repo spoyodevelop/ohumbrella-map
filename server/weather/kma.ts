@@ -25,6 +25,10 @@ const BASE_URL =
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function gridRegionNames(grid: DistinctGrid): string {
+  return grid.sigunguCodes.map((code) => sigunguMap.get(code)?.name ?? code).join("·");
+}
+
 // 카나리 방식으로 찔러보는 용도
 // 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
 export async function checkCanaryNcstUpdated(lastKnownRound: string, checkedAt = new Date()) {
@@ -81,10 +85,10 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
         try {
           result = await fetchKmaWithRetry<KmaObservationItem>(ncstUrl, 3, 400);
         } catch (error) {
-          throw new Error(`실황 격자 ${grid.gridKey} 요청 실패`, { cause: error });
+          throw new Error(`실황 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`, { cause: error });
         }
         if (result.kind === "no-data") {
-          console.warn(`[실황 자료 없음] ${grid.gridKey}: 저장 건너뜀`);
+          console.warn(`[실황 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`);
           return { obsList: [], hourList: [], missing: true };
         }
 
@@ -133,8 +137,8 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
       if (res.missing) missingGrids++;
     }
 
-    process.stdout.write(
-      `\r[실황 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료...`,
+    console.log(
+      `[실황 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료... [처리 지역] ${chunk.map(gridRegionNames).join(", ")}`,
     );
     await sleep(150);
   }
@@ -187,10 +191,10 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
         try {
           result = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
         } catch (error) {
-          throw new Error(`예보 격자 ${grid.gridKey} 요청 실패`, { cause: error });
+          throw new Error(`예보 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`, { cause: error });
         }
         if (result.kind === "no-data") {
-          console.warn(`[예보 자료 없음] ${grid.gridKey}: 저장·지도 갱신 건너뜀`);
+          console.warn(`[예보 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`);
           return { fcstList: [] as ForecastRecord[], popUpdates: [], missing: true, invalidPop: false };
         }
 
@@ -246,8 +250,8 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
       if (res.invalidPop) invalidPopGrids++;
     }
 
-    process.stdout.write(
-      `\r[단기예보 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료...`,
+    console.log(
+      `[단기예보 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료... [처리 지역] ${chunk.map(gridRegionNames).join(", ")}`,
     );
     await sleep(150);
   }
