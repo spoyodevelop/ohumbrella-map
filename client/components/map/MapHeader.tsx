@@ -15,7 +15,7 @@ export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
       </div>
       {weatherTime && (
         <Status>
-          <div>마지막 갱신 일시</div>
+          <div>실황 기준 시각</div>
           <strong>{weatherTime}</strong>
           <KmaCredit>자료제공 및 출처: 기상청</KmaCredit>
         </Status>

@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseForecastItems, parseObservationItems, type KmaForecastItem } from "./kmaParse.ts";
 
-test("실황 원본의 강수형태를 내부 코드로 모으고 결측 기온을 제외한다", () => {
+test("실황 원본의 강수형태를 유지하고 결측 기온을 제외한다", () => {
   assert.deepEqual(parseObservationItems([
     { category: "PTY", obsrValue: "5" },
     { category: "RN1", obsrValue: "0" },
     { category: "T1H", obsrValue: "-900" },
-  ]), { pty: 1, rn1: 0, tmp: null, isRaining: 1 });
+  ]), { pty: 5, rn1: 0, tmp: null, isRaining: 1 });
 
   assert.deepEqual(parseObservationItems([
     { category: "PTY", obsrValue: "0" },
@@ -15,7 +15,7 @@ test("실황 원본의 강수형태를 내부 코드로 모으고 결측 기온�
     { category: "T1H", obsrValue: "18.5" },
   ]), { pty: 0, rn1: 0.3, tmp: 18.5, isRaining: 1 });
 
-  for (const [raw, expected] of [[4, 1], [6, 2], [7, 3]]) {
+  for (const [raw, expected] of [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7]]) {
     assert.deepEqual(parseObservationItems([
       { category: "PTY", obsrValue: String(raw) },
       { category: "RN1", obsrValue: "0" },

@@ -16,8 +16,8 @@ export interface WeatherSnapshot {
 
 export async function loadWeatherSnapshot(): Promise<WeatherSnapshot> {
   const [current, sido] = await Promise.all([
-    fetchJson<CurrentWeatherResponse>("/api/weather/current"),
-    fetchJson<SidoStatsResponse>("/api/weather/sido-stats"),
+    fetchJson<CurrentWeatherResponse>("/api/weather/current", { cache: "no-store" }),
+    fetchJson<SidoStatsResponse>("/api/weather/sido-stats", { cache: "no-store" }),
   ]);
 
   const sidoStatsMap: Record<string, SidoStat> = {};

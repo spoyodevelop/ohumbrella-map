@@ -15,10 +15,8 @@ function parseKmaNumber(val: number): number | null {
 }
 
 function parsePty(val: number): number {
-  if (val === 1 || val === 4 || val === 5) return 1;
-  if (val === 2 || val === 6) return 2;
-  if (val === 3 || val === 7) return 3;
-  return 0;
+  // 빗방울·눈날림을 비·눈과 구분할 수 있도록 원본 코드를 유지한다.
+  return [0, 1, 2, 3, 4, 5, 6, 7].includes(val) ? val : 0;
 }
 
 export function parseObservationItems(items: KmaObservationItem[]) {
