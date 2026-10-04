@@ -10,17 +10,6 @@ interface MapOverlayProps {
   onCloseDetail?: () => void;
 }
 
-function getPreviousForecastAge(currentTime: string, sourceTime: string | null) {
-  if (!sourceTime || sourceTime === currentTime) return null;
-  const current = Date.parse(`${currentTime.replace(" ", "T")}+09:00`);
-  const source = Date.parse(`${sourceTime.replace(" ", "T")}+09:00`);
-  if (!Number.isFinite(current) || !Number.isFinite(source) || source > current) {
-    return "이전 자료";
-  }
-  const hours = Math.floor((current - source) / (60 * 60 * 1000));
-  return hours > 0 ? `${hours}시간 전 자료` : "이전 자료";
-}
-
 type WeatherStatus = "rain" | "snow" | "summary";
 
 interface WeatherVisual {
@@ -28,6 +17,7 @@ interface WeatherVisual {
   icon: string;
   title: string;
   sub: string;
+  sourceLabel?: string;
 }
 
 function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
@@ -44,10 +34,7 @@ function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
   const elapsed = Date.now() - observedAt;
   const isStale = weather.isStale || !Number.isFinite(observedAt) ||
     elapsed >= 2 * 60 * 60 * 1000;
-  const ageLabel = Number.isFinite(observedAt) && elapsed >= 0
-    ? `${Math.floor(elapsed / 60_000)}분 전 관측`
-    : "관측 시각 확인 필요";
-  const timeLabel = `${weather.time} 기준 · ${ageLabel}`;
+  const timeLabel = `${weather.time} 기준 실황 · 매시간 갱신`;
   if (isStale) {
     return {
       status: "summary",
@@ -58,7 +45,7 @@ function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
   }
 
   const precipitation: Record<number, { status: WeatherStatus; icon: string; text: string }> = {
-    0: { status: "summary", icon: "🌡️", text: "강수 없음" },
+    0: { status: "summary", icon: "🌂", text: "강수 없음" },
     1: { status: "rain", icon: "🌧️", text: "비" },
     2: { status: "snow", icon: "🌨️", text: "비/눈" },
     3: { status: "snow", icon: "❄️", text: "눈" },
@@ -67,7 +54,25 @@ function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
     6: { status: "snow", icon: "🌨️", text: "빗방울/눈날림" },
     7: { status: "snow", icon: "❄️", text: "눈날림" },
   };
-  const current = precipitation[weather.pty];
+  const current = weather.pty === 0 && weather.rn1 > 0
+    ? { status: "rain" as const, icon: "💧", text: "강수 있음" }
+    : precipitation[weather.pty];
+  const skyVisual: Record<number, { icon: string; title: string }> = {
+    1: { icon: "☀️", title: "맑음" },
+    3: { icon: "⛅", title: "구름 많음" },
+    4: { icon: "☁️", title: "흐림" },
+  };
+  // 실황에 강수가 없으면 예보의 하늘 상태를 카드의 대표 상태로 보여준다.
+  const sky = weather.sky == null ? undefined : skyVisual[weather.sky];
+  if (weather.pty === 0 && weather.rn1 === 0 && sky) {
+    return {
+      status: "summary",
+      icon: sky.icon,
+      title: sky.title,
+      sourceLabel: "하늘 상태: 단기예보 · 강수 없음: 실황",
+      sub: timeLabel,
+    };
+  }
   return {
     status: current?.status ?? "summary",
     icon: current?.icon ?? "🌡️",
@@ -102,9 +107,6 @@ export function MapOverlay({
   onCloseDetail,
 }: MapOverlayProps) {
   const weather = selectedRegion?.weather;
-  const popAge = weather
-    ? getPreviousForecastAge(weather.time, weather.kmaPopSourceTime)
-    : null;
   const visual = selectedRegion
     ? getWeatherVisual(weather)
     : null;
@@ -146,6 +148,7 @@ export function MapOverlay({
               <RainIcon>{visual.icon}</RainIcon>
               <RainInfo>
                 <RainTitle>{visual.title}</RainTitle>
+                {visual.sourceLabel && <RainSub>{visual.sourceLabel}</RainSub>}
                 <RainSub>{visual.sub}</RainSub>
               </RainInfo>
             </LiveRainBanner>
@@ -161,7 +164,7 @@ export function MapOverlay({
                   {weather.kmaPop != null ? `${weather.kmaPop}%` : "—"}
                 </StatVal>
                 <StatSubText>
-                  {weather.kmaPop == null ? "예보 자료 없음" : popAge ? `기상청 예보 · ${popAge}` : "기상청 예보 (POP)"}
+                  {weather.kmaPop == null ? "예보 자료 없음" : "기상청 단기예보 (POP)"}
                 </StatSubText>
               </StatBox>
 
