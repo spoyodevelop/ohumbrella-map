@@ -1,6 +1,10 @@
 import type { MapRegion, RegionWeatherInfo } from "../../types";
 import styled from "@emotion/styled";
 import { useState } from "react";
+import type { SurpriseRainResponse } from "../../api/surpriseRain";
+import { SurpriseRainLegend, SurpriseRainPanel } from "./SurpriseRainPanel";
+
+export type MapLayerKind = "pop" | "surprise";
 
 interface MapOverlayProps {
   selectedRegion: MapRegion | undefined;
@@ -8,6 +12,10 @@ interface MapOverlayProps {
   scale: number;
   isSimgunguLod?: boolean;
   onCloseDetail?: () => void;
+  layer?: MapLayerKind;
+  surpriseRain?: SurpriseRainResponse | null;
+  surpriseRainError?: string;
+  surpriseMaxCount?: number;
 }
 
 type WeatherStatus = "rain" | "snow" | "summary";
@@ -111,7 +119,12 @@ export function MapOverlay({
   scale,
 
   onCloseDetail,
+  layer = "pop",
+  surpriseRain = null,
+  surpriseRainError = "",
+  surpriseMaxCount = 0,
 }: MapOverlayProps) {
+  const isSurprise = layer === "surprise";
   const weather = selectedRegion?.weather;
   const visual = selectedRegion ? getWeatherVisual(weather) : null;
 
@@ -162,7 +175,15 @@ export function MapOverlay({
             </LiveRainBanner>
           )}
 
-          {weather && (
+          {isSurprise && (
+            <SurpriseRainPanel
+              data={surpriseRain}
+              errorMessage={surpriseRainError}
+              selectedRegion={selectedRegion}
+            />
+          )}
+
+          {!isSurprise && weather && (
             <StatsGrid>
               <StatBox>
                 <StatLabelRow>
@@ -209,7 +230,7 @@ export function MapOverlay({
             </StatsGrid>
           )}
 
-          {!weather && selectedRegion && (
+          {!isSurprise && !weather && selectedRegion && (
             <StatsGrid>
               <StatBox record style={{ gridColumn: "1 / -1" }}>
                 <StatLabelRow>
@@ -248,17 +269,25 @@ export function MapOverlay({
         </DetailCard>
       ) : (
         <GuideBanner>
-          {sidoCode !== undefined
-            ? "구/군을 터치(클릭)하면 실시간 날씨를 확인합니다"
-            : "시도를 터치(클릭)하여 지역으로 이동하세요"}
+          {isSurprise
+            ? `예보 강수확률 ${surpriseRain?.maxPop ?? 20}% 이하였는데 비가 온 시간을 칠했어요`
+            : sidoCode !== undefined
+              ? "구/군을 터치(클릭)하면 실시간 날씨를 확인합니다"
+              : "시도를 터치(클릭)하여 지역으로 이동하세요"}
         </GuideBanner>
       )}
 
-      <Legend aria-label="강수확률 범례">
-        <span>0%</span>
-        <LegendGradient />
-        <span>100%</span>
-      </Legend>
+      {isSurprise ? (
+        <Legend aria-label="아니 땐 비 범례">
+          <SurpriseRainLegend maxCount={surpriseMaxCount} />
+        </Legend>
+      ) : (
+        <Legend aria-label="강수확률 범례">
+          <span>0%</span>
+          <LegendGradient />
+          <span>100%</span>
+        </Legend>
+      )}
 
       <DebugReadout>
         <span>scale {scale.toFixed(2)}×</span>

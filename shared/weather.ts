@@ -47,3 +47,34 @@ export interface SidoStatsResponse {
   time: string | null;
   stats: SidoStat[];
 }
+
+export interface SurpriseRainEvent {
+  time: string;
+  pop: number;
+  rn1: number;
+}
+
+export interface SurpriseRainRegion {
+  sidoCode: string;
+  name: string;
+  count: number;
+  heavyCount: number;
+  events: SurpriseRainEvent[];
+}
+
+export interface SurpriseRainSido {
+  count: number;
+  heavyCount: number;
+  regionCount: number;
+}
+
+export interface SurpriseRainResponse {
+  maxPop: number;
+  heavyMm: number;
+  since: string | null;
+  until: string | null;
+  count: number;
+  heavyCount: number;
+  regions: Record<string, SurpriseRainRegion>;
+  sidos: Record<string, SurpriseRainSido>;
+}

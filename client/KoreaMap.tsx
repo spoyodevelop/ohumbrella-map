@@ -1,14 +1,18 @@
 import { useState } from "react";
+import type { MapRegion } from "./types";
 import type { CommutePlace } from "../shared/commute";
 import type { PlaceTarget } from "./components/commute/CommuteSettings";
 import { useCommuteSettings } from "./hooks/useCommuteSettings";
 import { CommuteSettings } from "./components/commute/CommuteSettings";
 import styled from "@emotion/styled";
 import { MapHeader } from "./components/map/MapHeader";
-import { MapOverlay } from "./components/map/MapOverlay";
+import { MapLayerSwitch } from "./components/map/MapLayerSwitch";
+import { MapOverlay, type MapLayerKind } from "./components/map/MapOverlay";
 import { MapSvg } from "./components/map/MapSvg";
 import { MapToolbar } from "./components/map/MapToolbar";
+import { surpriseRainColor, surpriseRainCount } from "./lib/surpriseRain";
 import { useKoreaMap } from "./hooks/useKoreaMap";
+import { useSurpriseRain } from "./hooks/useSurpriseRain";
 import "./lib/region.css";
 
 export function KoreaMap() {
@@ -17,6 +21,22 @@ export function KoreaMap() {
   const [activePlace, setActivePlace] = useState<PlaceTarget | null>(null);
   const [hideDetails, setHideDetails] = useState(false);
   const [searchMapError, setSearchMapError] = useState("");
+  const [layer, setLayer] = useState<MapLayerKind>("pop");
+  const surpriseRain = useSurpriseRain(layer === "surprise");
+  // 보이는 단계(시도/시군구) 안에서 가장 많은 곳을 진한 색 기준으로 삼는다.
+  const surpriseMaxCount = mapState.regions.reduce(
+    (max, region) =>
+      Math.max(max, surpriseRainCount(surpriseRain.data, region.code)),
+    0,
+  );
+  const fillOf =
+    layer === "surprise"
+      ? (region: MapRegion) =>
+          surpriseRainColor(
+            surpriseRainCount(surpriseRain.data, region.code),
+            surpriseMaxCount,
+          )
+      : undefined;
   function choosePlace(key: PlaceTarget, place: CommutePlace) {
     setSearchMapError("");
     commute.setDraft((s) => ({ ...s, [key]: place }));
@@ -67,6 +87,7 @@ export function KoreaMap() {
                 mapState.showNationalMap();
               }
             }}
+            fillOf={fillOf}
             onRegionSelect={(region) => {
               if (!mapState.selectRegion(region)) return;
               if (activePlace && region.code.length === 5) {
@@ -86,8 +107,13 @@ export function KoreaMap() {
               scale={mapState.view.scale}
               isSimgunguLod={mapState.sidoCode !== undefined}
               onCloseDetail={mapState.clearSelection}
+              layer={layer}
+              surpriseRain={surpriseRain.data}
+              surpriseRainError={surpriseRain.errorMessage}
+              surpriseMaxCount={surpriseMaxCount}
             />
           )}
+          <MapLayerSwitch layer={layer} onChange={setLayer} />
         </Stage>
         <CommuteSettings
           settings={commute}

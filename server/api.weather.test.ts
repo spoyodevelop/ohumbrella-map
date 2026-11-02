@@ -68,6 +68,32 @@ test("날씨 API는 가져온 행에서 최신 시각을 고른다", async () =>
       sidoBody.stats.map((stat) => stat.sidoCode),
       ["11", "26"],
     );
+    await db.execute(`
+      CREATE TABLE forecast_verifications (
+        target_time TEXT, sigungu_code TEXT, base_time TEXT, sido_code TEXT,
+        name TEXT, predicted_pop INTEGER, lead_hours INTEGER,
+        actual_rain INTEGER, actual_rn1 REAL, actual_tmp REAL, updated_at TEXT
+      )
+    `);
+    await db.execute(`
+      INSERT INTO forecast_verifications VALUES
+        ('2026-09-26 09:00', '11110', '2026-09-26 08:00', '11', '종로구', 0, 1, 1, 1.5, 20, ''),
+        ('2026-09-26 10:00', '11110', '2026-09-26 08:00', '11', '종로구', 20, 2, 0, 0, 20, ''),
+        ('2026-09-26 11:00', '11110', '2026-09-26 08:00', '11', '종로구', 60, 3, 1, 4, 20, '')
+    `);
+    const surpriseResponse = await fetch(`${baseUrl}/surprise-rain`);
+    assert.equal(surpriseResponse.status, 200);
+    const surpriseBody = (await surpriseResponse.json()) as {
+      count: number;
+      since: string;
+      regions: Record<string, { events: { time: string }[] }>;
+    };
+    assert.equal(surpriseBody.count, 1);
+    assert.equal(surpriseBody.since, "2026-09-26 09:00");
+    assert.deepEqual(surpriseBody.regions["11110"].events, [
+      { time: "2026-09-26 09:00", pop: 0, rn1: 1.5 },
+    ]);
+
     await db.execute("DELETE FROM current_weather");
     const emptyResponse = await fetch(`${baseUrl}/current`);
     assert.equal(emptyResponse.status, 200);

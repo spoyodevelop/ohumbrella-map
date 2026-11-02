@@ -1,7 +1,11 @@
 import { getCommuteForecast, isCommuteSettings } from "./commute/service.ts";
 import express from "express";
 import cors from "cors";
-import { getLatestWeather, getSidoStats } from "./weather/read.ts";
+import {
+  getLatestWeather,
+  getSidoStats,
+  getSurpriseRain,
+} from "./weather/read.ts";
 import { loadServerEnv } from "./env.ts";
 import { initMonitoring, reportServerError } from "./monitoring.ts";
 
@@ -89,6 +93,21 @@ app.get("/api/weather/sido-stats", async (_req, res) => {
     res.json(data);
   } catch (err) {
     reportServerError(err, "api.weather.sido-stats");
+    res.status(500).json(INTERNAL_ERROR);
+  }
+});
+
+// 지난 기록이라 매시간 한 번만 바뀐다. CDN 캐시로 DB 조회를 줄인다.
+app.get("/api/weather/surprise-rain", async (_req, res) => {
+  try {
+    const data = await getSurpriseRain();
+    res.set(
+      "Cache-Control",
+      "public, max-age=300, s-maxage=600, stale-while-revalidate=3000",
+    );
+    res.json(data);
+  } catch (err) {
+    reportServerError(err, "api.weather.surprise-rain");
     res.status(500).json(INTERNAL_ERROR);
   }
 });

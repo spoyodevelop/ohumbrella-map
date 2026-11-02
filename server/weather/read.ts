@@ -2,6 +2,7 @@ import { db } from "../db.ts";
 import type {
   CurrentWeatherResponse,
   SidoStatsResponse,
+  SurpriseRainResponse,
 } from "../../shared/weather.ts";
 import {
   assembleCurrentWeatherResponse,
@@ -13,6 +14,11 @@ import {
   type SidoPopBucketRow,
   type SidoStatRow,
 } from "./sidoResponse.ts";
+import {
+  assembleSurpriseRainResponse,
+  SURPRISE_MAX_POP,
+  type SurpriseRainRow,
+} from "./surpriseRain.ts";
 
 // 전국 252개 시군구 최신 날씨 + 실측 확률 일괄 반환
 export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
@@ -102,4 +108,34 @@ export async function getSidoStats(): Promise<SidoStatsResponse> {
   );
   const buckets = bucketsRes.rows as unknown as SidoPopBucketRow[];
   return assembleSidoStatsResponse(maxTime, stats, buckets);
+}
+
+// 예보 강수확률이 낮았는데 비가 관측된 시간을 시군구별로 모은다.
+// 조건은 idx_verifications_surprise 부분 인덱스와 같아야 인덱스를 탄다.
+export async function getSurpriseRain(): Promise<SurpriseRainResponse> {
+  const [rowsRes, rangeRes] = await Promise.all([
+    db.execute(`
+      SELECT
+        target_time as time,
+        sigungu_code as sigunguCode,
+        sido_code as sidoCode,
+        name,
+        predicted_pop as pop,
+        actual_rn1 as rn1
+      FROM forecast_verifications
+      WHERE actual_rain = 1 AND predicted_pop <= ${SURPRISE_MAX_POP}
+      ORDER BY target_time DESC, sigungu_code ASC
+    `),
+    db.execute(`
+      SELECT MIN(target_time) as since, MAX(target_time) as until
+      FROM forecast_verifications
+    `),
+  ]);
+
+  const range = rangeRes.rows[0] as unknown as
+    { since: string | null; until: string | null } | undefined;
+  return assembleSurpriseRainResponse(
+    { since: range?.since ?? null, until: range?.until ?? null },
+    rowsRes.rows as unknown as SurpriseRainRow[],
+  );
 }
