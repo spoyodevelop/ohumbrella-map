@@ -41,12 +41,14 @@ export function AboutPage() {
       <h1>강수확률이 30%라면, 실제로 얼마나 비가 올까?</h1>
       <p>
         아 맞다 우산은 이 궁금증에서 시작한 서비스입니다. V1에서 17개 시도의
-        예보와 실황을 수집·비교해, 강수확률 30% 예보에서 실제로 비가 온 비율이
-        5.9%임을 확인했습니다.
+        예보와 실황을 수집·비교해,{" "}
+        <mark>강수확률 30% 예보에서 실제로 비가 온 비율이 5.9%</mark>임을
+        확인했습니다.
       </p>
       <p>
-        30개월간 축적한 API 운영 지식과 데이터 집계 경험을 바탕으로, 전국 252개
-        시군구의 예보 정확도를 비교하는 V2로 확장했습니다.
+        30개월간 축적한 API 운영 지식과 데이터 집계 경험을 바탕으로,{" "}
+        <mark>전국 252개 시군구</mark>의 예보 정확도를 비교하는 V2로
+        확장했습니다.
       </p>
       <Figures aria-label="강수확률 30% 예보에서 실제로 비가 온 비율">
         <div>
@@ -121,6 +123,15 @@ const Page = styled.main`
 
   a {
     color: #b9daf7;
+  }
+
+  /* Amber marks 아 맞다 우산's own findings, as on the map and panel. */
+  mark {
+    padding: 0 2px;
+    border-radius: 3px;
+    color: #fbbf24;
+    font-weight: 700;
+    background: rgba(251, 191, 36, 0.12);
   }
 
   @media (max-width: 640px) {
