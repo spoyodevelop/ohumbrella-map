@@ -88,6 +88,7 @@ export function KoreaMap() {
               }
             }}
             fillOf={fillOf}
+            layer={layer}
             onRegionSelect={(region) => {
               if (!mapState.selectRegion(region)) return;
               if (activePlace && region.code.length === 5) {

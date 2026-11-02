@@ -1,4 +1,5 @@
 import type { MapRegion } from "../../types";
+import type { MapLayerKind } from "./MapOverlay";
 import styled from "@emotion/styled";
 import { MAP_HEIGHT, MAP_VIEWBOX, MAP_WIDTH } from "../../constants/map";
 
@@ -85,6 +86,7 @@ interface MapSvgProps {
   onBackgroundClick: () => void;
   onRegionSelect: (region: MapRegion) => void;
   fillOf?: (region: MapRegion) => string;
+  layer?: MapLayerKind;
 }
 
 export function MapSvg({
@@ -101,10 +103,12 @@ export function MapSvg({
   onBackgroundClick,
   onRegionSelect,
   fillOf = (region) => chanceColor(region.rainChance),
+  layer = "pop",
 }: MapSvgProps) {
   return (
     <SvgRoot
       ref={svgRef}
+      data-layer={layer}
       viewBox={MAP_VIEWBOX}
       role="img"
       aria-label={

@@ -19,6 +19,16 @@
   filter: brightness(1.2);
 }
 
+/* 아니 땐 비 레이어는 밝은 단계가 이미 흰색에 가까워 밝기 대신 기록 색 테두리로 선택을 표시한다. */
+[data-layer="surprise"] .region:hover {
+  filter: brightness(1.1);
+}
+
+[data-layer="surprise"] .region.is-selected {
+  stroke: var(--record);
+  filter: none;
+}
+
 .region-label {
   transform-box: view-box;
   transform-origin: 0 0;
