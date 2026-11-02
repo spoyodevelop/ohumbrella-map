@@ -11,8 +11,8 @@ import type {
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 const pointLabels: Record<CommutePointKind, string> = {
   leaveHome: "집에서 출발",
-  arriveWork: "회사 도착",
-  leaveWork: "회사에서 출발",
+  arriveWork: "목적지 도착",
+  leaveWork: "목적지에서 출발",
   arriveHome: "집 도착",
 };
 const precipitation: Record<number, string> = {
@@ -92,16 +92,16 @@ function noUmbrella(day: CommuteDay) {
   );
 }
 const legs: Record<CommutePointKind, string> = {
-  leaveHome: "출근길",
-  arriveWork: "출근길",
-  leaveWork: "퇴근길",
-  arriveHome: "퇴근길",
+  leaveHome: "가는 길",
+  arriveWork: "가는 길",
+  leaveWork: "오는 길",
+  arriveHome: "오는 길",
 };
 function recordLine(top: CommutePoint) {
   const lead = `${legs[top.kind]} ${popOf(top)}%`;
   if (!top.record) return `${lead}, 아직 이 확률의 기록이 없어요`;
   const often = top.record.rainCount / top.record.samples >= 0.5;
-  return `${lead}, ${often ? "실제로도" : "실제로는"} ${recordSentence(top.record)}`;
+  return `${lead}, 비가 ${often ? "실제로도" : "실제로는"} ${recordSentence(top.record)}`;
 }
 // Every POP the short-term forecast issues; it skips from 30% to 60%.
 const STORY_POPS = [0, 20, 30, 60, 70, 80, 90, 100];
@@ -174,7 +174,7 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
   const top = headlinePoint(day);
   return (
     <div className="commute-results" aria-live="polite">
-      <div className="commute-days" role="group" aria-label="출퇴근 날짜">
+      <div className="commute-days" role="group" aria-label="외출 날짜">
         {data.days.map((d) => (
           <button
             key={d.key}
@@ -207,7 +207,7 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
         ) : (
           <strong>
             {day.verdict === "elapsed"
-              ? "출퇴근 시간이 모두 지났어요"
+              ? "외출 시간이 모두 지났어요"
               : "아직 강수확률 예보가 없어요"}
           </strong>
         )}
