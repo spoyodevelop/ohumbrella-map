@@ -1,3 +1,4 @@
+import { getCommuteForecast, isCommuteSettings } from "./commute/service.ts";
 import express from "express";
 import cors from "cors";
 import { getLatestWeather, getSidoStats } from "./weather/read.ts";
@@ -12,6 +13,18 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 const INTERNAL_ERROR = { error: "서버 내부 오류가 발생했습니다." };
 
 app.use(cors());
+app.use(express.json({ limit: "8kb" }));
+app.post("/api/weather/commute", async (req, res) => {
+  if (!isCommuteSettings(req.body)) {
+    res.status(400).json({ error: "지역과 시간을 확인해주세요." });
+    return;
+  }
+  try {
+    res.json(await getCommuteForecast(req.body));
+  } catch {
+    res.status(500).json(INTERNAL_ERROR);
+  }
+});
 
 // --- 0. 위치 기반 역지오코딩 API (네이버 클라우드 프록시) ---
 app.get("/api/gc", async (req, res) => {
@@ -21,7 +34,10 @@ app.get("/api/gc", async (req, res) => {
     const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      reportServerError(new Error("네이버 지도 API 키가 서버에 설정되어 있지 않습니다."), "api.gc");
+      reportServerError(
+        new Error("네이버 지도 API 키가 서버에 설정되어 있지 않습니다."),
+        "api.gc",
+      );
       res.status(500).json(INTERNAL_ERROR);
       return;
     }

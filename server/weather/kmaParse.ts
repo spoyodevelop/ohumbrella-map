@@ -63,8 +63,13 @@ export function parseForecastItems(items: KmaForecastItem[]): ParsedForecast[] {
 
     if (item.category === "POP") {
       const pop = Number(item.fcstValue);
-      currentEntry.pop = item.fcstValue.trim() !== "" &&
-        Number.isInteger(pop) && pop >= 0 && pop <= 100 ? pop : null;
+      currentEntry.pop =
+        item.fcstValue.trim() !== "" &&
+        Number.isInteger(pop) &&
+        pop >= 0 &&
+        pop <= 100
+          ? pop
+          : null;
     } else if (item.category === "SKY") {
       currentEntry.sky = parseInt(item.fcstValue, 10);
     } else if (item.category === "TMP") {
@@ -73,6 +78,8 @@ export function parseForecastItems(items: KmaForecastItem[]): ParsedForecast[] {
   }
 
   return [...targetMap.entries()].flatMap(([targetTime, val]) =>
-    val.pop === null ? [] : [{ targetTime, pop: val.pop, sky: val.sky, tmp: val.tmp }]
+    val.pop === null
+      ? []
+      : [{ targetTime, pop: val.pop, sky: val.sky, tmp: val.tmp }],
   );
 }

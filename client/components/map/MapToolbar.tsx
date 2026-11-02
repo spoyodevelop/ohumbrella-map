@@ -87,7 +87,9 @@ const ToolBtn = styled.button`
   cursor: pointer;
   backdrop-filter: blur(12px);
   user-select: none;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover:not(:disabled) {
     background: #202838;

@@ -8,11 +8,14 @@ export function expectedForecastBaseTime(targetTime: string): string {
 
   const [, year, month, day, hour] = match;
   const target = new Date(Date.UTC(+year, +month - 1, +day, +hour));
-  if (Number.isNaN(target.getTime()) || target.toISOString().slice(0, 13) !== `${year}-${month}-${day}T${hour}`) {
+  if (
+    Number.isNaN(target.getTime()) ||
+    target.toISOString().slice(0, 13) !== `${year}-${month}-${day}T${hour}`
+  ) {
     throw new Error(`잘못된 관측 시각: ${targetTime}`);
   }
 
-  target.setUTCHours(target.getUTCHours() - (+hour % 3 + 1));
+  target.setUTCHours(target.getUTCHours() - ((+hour % 3) + 1));
   return target.toISOString().slice(0, 16).replace("T", " ");
 }
 
@@ -90,7 +93,9 @@ export async function createAccuracySchema(client: Client): Promise<void> {
 }
 
 // 마이그레이션 명령에서 빠진 원본만 보충한다. INSERT 한 문장이므로 부분 백필은 남지 않는다.
-export async function backfillAccuracyVerifications(client: Client): Promise<number> {
+export async function backfillAccuracyVerifications(
+  client: Client,
+): Promise<number> {
   const result = await client.execute(`
     INSERT OR IGNORE INTO forecast_verifications (
       target_time, sigungu_code, base_time, sido_code, name,
@@ -109,7 +114,10 @@ export async function backfillAccuracyVerifications(client: Client): Promise<num
 }
 
 // 같은 시각을 다시 수집해도 검증 결과 한 행만 갱신한다.
-export async function upsertAccuracyForObservationTime(client: Client, observationTime: string): Promise<number> {
+export async function upsertAccuracyForObservationTime(
+  client: Client,
+  observationTime: string,
+): Promise<number> {
   const baseTime = expectedForecastBaseTime(observationTime);
   const result = await client.execute({
     sql: `
@@ -142,7 +150,10 @@ export async function upsertAccuracyForObservationTime(client: Client, observati
 }
 
 // 예보가 관측보다 늦게 저장되거나 정정된 경우에도 검증 결과를 맞춘다.
-export async function upsertAccuracyForForecastBaseTime(client: Client, baseTime: string): Promise<number> {
+export async function upsertAccuracyForForecastBaseTime(
+  client: Client,
+  baseTime: string,
+): Promise<number> {
   const result = await client.execute({
     sql: `
       INSERT INTO forecast_verifications (

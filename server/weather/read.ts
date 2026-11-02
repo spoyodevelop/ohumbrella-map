@@ -55,7 +55,7 @@ export async function getLatestWeather(): Promise<CurrentWeatherResponse> {
   }
 
   const maxTime = rows.reduce(
-    (latest, row) => row.time > latest ? row.time : latest,
+    (latest, row) => (row.time > latest ? row.time : latest),
     rows[0].time,
   );
   const localStats = localStatsRes.rows as unknown as VerifiedPopBucketRow[];
@@ -97,7 +97,7 @@ export async function getSidoStats(): Promise<SidoStatsResponse> {
   }
 
   const maxTime = stats.reduce(
-    (latest, row) => row.latestTime > latest ? row.latestTime : latest,
+    (latest, row) => (row.latestTime > latest ? row.latestTime : latest),
     stats[0].latestTime,
   );
   const buckets = bucketsRes.rows as unknown as SidoPopBucketRow[];

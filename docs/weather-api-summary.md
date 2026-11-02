@@ -13,12 +13,12 @@ http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
 
 주요 API는 다음 4개다.
 
-| API | Endpoint | 용도 |
-|---|---|---|
-| 초단기실황 | `getUltraSrtNcst` | 현재 관측값 조회 |
-| 초단기예보 | `getUltraSrtFcst` | 최대 6시간 이내 예보 |
-| 단기예보 | `getVilageFcst` | 단기 기상예보 조회 |
-| 예보버전 | `getFcstVersion` | 수정된 예보 버전 확인 |
+| API        | Endpoint          | 용도                  |
+| ---------- | ----------------- | --------------------- |
+| 초단기실황 | `getUltraSrtNcst` | 현재 관측값 조회      |
+| 초단기예보 | `getUltraSrtFcst` | 최대 6시간 이내 예보  |
+| 단기예보   | `getVilageFcst`   | 단기 기상예보 조회    |
+| 예보버전   | `getFcstVersion`  | 수정된 예보 버전 확인 |
 
 ---
 
@@ -71,16 +71,16 @@ ny
 
 ## 주요 응답 Category
 
-| Category | 의미 | 단위 |
-|---|---|---|
-| `T1H` | 기온 | ℃ |
-| `RN1` | 1시간 강수량 | mm |
-| `REH` | 습도 | % |
-| `PTY` | 강수형태 | 코드 |
-| `UUU` | 동서바람성분 | m/s |
-| `VVV` | 남북바람성분 | m/s |
-| `VEC` | 풍향 | deg |
-| `WSD` | 풍속 | m/s |
+| Category | 의미         | 단위 |
+| -------- | ------------ | ---- |
+| `T1H`    | 기온         | ℃    |
+| `RN1`    | 1시간 강수량 | mm   |
+| `REH`    | 습도         | %    |
+| `PTY`    | 강수형태     | 코드 |
+| `UUU`    | 동서바람성분 | m/s  |
+| `VVV`    | 남북바람성분 | m/s  |
+| `VEC`    | 풍향         | deg  |
+| `WSD`    | 풍속         | m/s  |
 
 응답 값은 `obsrValue`에 들어간다.
 
@@ -135,18 +135,18 @@ ny
 
 ### Category
 
-| Category | 의미 |
-|---|---|
-| `T1H` | 기온 |
-| `RN1` | 1시간 강수량 |
-| `SKY` | 하늘상태 |
-| `REH` | 습도 |
-| `PTY` | 강수형태 |
-| `LGT` | 낙뢰 |
-| `UUU` | 동서바람성분 |
-| `VVV` | 남북바람성분 |
-| `VEC` | 풍향 |
-| `WSD` | 풍속 |
+| Category | 의미         |
+| -------- | ------------ |
+| `T1H`    | 기온         |
+| `RN1`    | 1시간 강수량 |
+| `SKY`    | 하늘상태     |
+| `REH`    | 습도         |
+| `PTY`    | 강수형태     |
+| `LGT`    | 낙뢰         |
+| `UUU`    | 동서바람성분 |
+| `VVV`    | 남북바람성분 |
+| `VEC`    | 풍향         |
+| `WSD`    | 풍속         |
 
 ---
 
@@ -208,21 +208,21 @@ API 제공 시각:
 
 ## 주요 Category
 
-| Category | 의미 | 단위 |
-|---|---|---|
-| `POP` | 강수확률 | % |
-| `PTY` | 강수형태 | 코드 |
-| `PCP` | 1시간 강수량 | 범주 |
-| `REH` | 습도 | % |
-| `SNO` | 1시간 신적설 | 범주 |
-| `SKY` | 하늘상태 | 코드 |
-| `TMP` | 1시간 기온 | ℃ |
-| `TMN` | 일 최저기온 | ℃ |
-| `TMX` | 일 최고기온 | ℃ |
-| `UUU` | 동서바람성분 | m/s |
-| `VVV` | 남북바람성분 | m/s |
-| `VEC` | 풍향 | deg |
-| `WSD` | 풍속 | m/s |
+| Category | 의미         | 단위 |
+| -------- | ------------ | ---- |
+| `POP`    | 강수확률     | %    |
+| `PTY`    | 강수형태     | 코드 |
+| `PCP`    | 1시간 강수량 | 범주 |
+| `REH`    | 습도         | %    |
+| `SNO`    | 1시간 신적설 | 범주 |
+| `SKY`    | 하늘상태     | 코드 |
+| `TMP`    | 1시간 기온   | ℃    |
+| `TMN`    | 일 최저기온  | ℃    |
+| `TMX`    | 일 최고기온  | ℃    |
+| `UUU`    | 동서바람성분 | m/s  |
+| `VVV`    | 남북바람성분 | m/s  |
+| `VEC`    | 풍향         | deg  |
+| `WSD`    | 풍속         | m/s  |
 
 ---
 
@@ -247,25 +247,25 @@ POP=60 → 강수확률 60%
 
 ### 초단기
 
-| 값 | 의미 |
-|---:|---|
-| 0 | 없음 |
-| 1 | 비 |
-| 2 | 비/눈 |
-| 3 | 눈 |
-| 5 | 빗방울 |
-| 6 | 빗방울눈날림 |
-| 7 | 눈날림 |
+|  값 | 의미         |
+| --: | ------------ |
+|   0 | 없음         |
+|   1 | 비           |
+|   2 | 비/눈        |
+|   3 | 눈           |
+|   5 | 빗방울       |
+|   6 | 빗방울눈날림 |
+|   7 | 눈날림       |
 
 ### 단기예보
 
-| 값 | 의미 |
-|---:|---|
-| 0 | 없음 |
-| 1 | 비 |
-| 2 | 비/눈 |
-| 3 | 눈 |
-| 4 | 소나기 |
+|  값 | 의미   |
+| --: | ------ |
+|   0 | 없음   |
+|   1 | 비     |
+|   2 | 비/눈  |
+|   3 | 눈     |
+|   4 | 소나기 |
 
 ---
 
@@ -273,11 +273,11 @@ POP=60 → 강수확률 60%
 
 초단기예보의 `RN1`, 단기예보의 `PCP`는 범주형으로 제공될 수 있다.
 
-| 범주 | 표시 |
-|---|---|
-| 1mm 미만 | `1mm 미만` |
-| 1~29mm | 실제 정수값 |
-| 30~50mm | `30~50mm` |
+| 범주      | 표시        |
+| --------- | ----------- |
+| 1mm 미만  | `1mm 미만`  |
+| 1~29mm    | 실제 정수값 |
+| 30~50mm   | `30~50mm`   |
 | 50mm 이상 | `50mm 이상` |
 
 예:
@@ -296,11 +296,11 @@ PCP=30
 
 `SKY`
 
-| 코드 | 상태 |
-|---:|---|
-| 1 | 맑음 |
-| 3 | 구름많음 |
-| 4 | 흐림 |
+| 코드 | 상태     |
+| ---: | -------- |
+|    1 | 맑음     |
+|    3 | 구름많음 |
+|    4 | 흐림     |
 
 전운량 기준:
 
@@ -370,22 +370,22 @@ Y: 1~253
 
 # 9. API 에러 코드
 
-| 코드 | 의미 |
-|---:|---|
-| `00` | NORMAL_SERVICE |
-| `01` | APPLICATION_ERROR |
-| `02` | DB_ERROR |
-| `03` | NODATA_ERROR |
-| `04` | HTTP_ERROR |
-| `05` | SERVICETIME_OUT |
-| `10` | INVALID_REQUEST_PARAMETER_ERROR |
-| `11` | NO_MANDATORY_REQUEST_PARAMETERS_ERROR |
-| `12` | NO_OPENAPI_SERVICE_ERROR |
-| `20` | SERVICE_ACCESS_DENIED_ERROR |
-| `21` | TEMPORARILY_DISABLE_THE_SERVICEKEY_ERROR |
+| 코드 | 의미                                             |
+| ---: | ------------------------------------------------ |
+| `00` | NORMAL_SERVICE                                   |
+| `01` | APPLICATION_ERROR                                |
+| `02` | DB_ERROR                                         |
+| `03` | NODATA_ERROR                                     |
+| `04` | HTTP_ERROR                                       |
+| `05` | SERVICETIME_OUT                                  |
+| `10` | INVALID_REQUEST_PARAMETER_ERROR                  |
+| `11` | NO_MANDATORY_REQUEST_PARAMETERS_ERROR            |
+| `12` | NO_OPENAPI_SERVICE_ERROR                         |
+| `20` | SERVICE_ACCESS_DENIED_ERROR                      |
+| `21` | TEMPORARILY_DISABLE_THE_SERVICEKEY_ERROR         |
 | `22` | LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR |
-| `30` | SERVICE_KEY_IS_NOT_REGISTERED_ERROR |
-| `31` | DEADLINE_HAS_EXPIRED_ERROR |
-| `32` | UNREGISTERED_IP_ERROR |
-| `33` | UNSIGNED_CALL_ERROR |
-| `99` | UNKNOWN_ERROR |
+| `30` | SERVICE_KEY_IS_NOT_REGISTERED_ERROR              |
+| `31` | DEADLINE_HAS_EXPIRED_ERROR                       |
+| `32` | UNREGISTERED_IP_ERROR                            |
+| `33` | UNSIGNED_CALL_ERROR                              |
+| `99` | UNKNOWN_ERROR                                    |

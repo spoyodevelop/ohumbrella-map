@@ -1,5 +1,8 @@
 import { db } from "../db.ts";
-import { backfillAccuracyVerifications, createAccuracySchema } from "../verification/accuracy.ts";
+import {
+  backfillAccuracyVerifications,
+  createAccuracySchema,
+} from "../verification/accuracy.ts";
 import { createCurrentWeatherTable } from "./currentWeatherTable.ts";
 
 let migrationPromise: Promise<void> | null = null;
@@ -9,7 +12,9 @@ export async function migrateDb() {
   if (migrationPromise) return migrationPromise;
 
   migrationPromise = (async () => {
-    console.log(`🔨 [DB 스키마] 테이블 및 뷰(View) 존재 여부 검사 및 생성 시작...`);
+    console.log(
+      `🔨 [DB 스키마] 테이블 및 뷰(View) 존재 여부 검사 및 생성 시작...`,
+    );
     await db.execute(`
     CREATE TABLE IF NOT EXISTS weather_observations (
       time          TEXT NOT NULL,

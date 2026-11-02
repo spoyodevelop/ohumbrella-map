@@ -1,10 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import {
-  MAP_HEIGHT,
-  MAP_PADDING,
-  MAP_WIDTH,
-} from "../client/constants/map.ts";
+import { MAP_HEIGHT, MAP_PADDING, MAP_WIDTH } from "../client/constants/map.ts";
 
 const root = process.cwd();
 
@@ -184,6 +180,16 @@ for (const sido of sidos) {
     JSON.stringify(children),
   );
 }
+
+await writeFile(
+  resolve(root, "public", "map", "regions.json"),
+  JSON.stringify(
+    sigungu.map(({ code, name }) => ({
+      code,
+      name: `${sidos.find((sido) => code.startsWith(sido.code))?.name ?? ""} ${name}`.trim(),
+    })),
+  ),
+);
 
 console.log(
   `Generated ${sidos.length} sido and ${sigungu.length} sigungu SVG paths.`,

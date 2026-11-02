@@ -43,13 +43,13 @@ export function useKoreaMap() {
   }, [sigunguCode, sidoCode, mapData.sigungu, mapData.sidos]);
 
   const clearSelection = useCallback(() => {
+    mapSelection.cancelPendingSelection();
     if (selection.level === "sigungu") {
       setSelection({ level: "sido", sidoCode: selection.sidoCode });
     } else if (selection.level === "sido") {
       mapSelection.showNationalMap();
     }
   }, [selection, mapSelection]);
-
 
   return {
     svgRef: mapView.svgRef,
@@ -66,6 +66,7 @@ export function useKoreaMap() {
     currentSido: mapSelection.currentSido,
     showNationalMap: mapSelection.showNationalMap,
     selectRegion: mapSelection.selectRegion,
+    focusRegionByCode: mapSelection.focusRegionByCode,
     locateUser: mapSelection.locateUser,
     isLocating: mapSelection.isLocating,
     clearSelection,

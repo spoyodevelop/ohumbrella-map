@@ -10,8 +10,14 @@ export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
   return (
     <Header>
       <div>
-        <Eyebrow>아 맞다 우산 | 강수 확률 통계 <BetaBadge>beta</BetaBadge></Eyebrow>
-        <Title>{currentSido?.name ?? "전국"} 실시간 날씨 & 강수 확률</Title>
+        <Eyebrow>
+          아 맞다 우산 <BetaBadge>beta</BetaBadge>
+        </Eyebrow>
+        <Title>강수확률 30%, 우산 챙겨야 할까?</Title>
+        <Subtitle>
+          {currentSido?.name ?? "전국 252개 시군구"}의 예보와 실제 비를 매시간
+          기록하고 있어요
+        </Subtitle>
       </div>
       {weatherTime && (
         <Status>
@@ -28,6 +34,7 @@ const Header = styled.header`
   display: flex;
   align-items: end;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 18px;
 `;
 
@@ -49,6 +56,14 @@ const Title = styled.h1`
   font-size: clamp(1.8rem, 5vw, 3.3rem);
   line-height: 1;
   letter-spacing: -0.055em;
+`;
+
+const Subtitle = styled.p`
+  margin: 10px 0 0;
+  color: #9aa6b8;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: keep-all;
 `;
 
 const Status = styled.div`
@@ -76,6 +91,7 @@ const KmaCredit = styled.span`
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: none;
+  white-space: nowrap;
 `;
 
 const BetaBadge = styled.span`

@@ -32,7 +32,9 @@ function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
 
   const observedAt = Date.parse(`${weather.time.replace(" ", "T")}+09:00`);
   const elapsed = Date.now() - observedAt;
-  const isStale = weather.isStale || !Number.isFinite(observedAt) ||
+  const isStale =
+    weather.isStale ||
+    !Number.isFinite(observedAt) ||
     elapsed >= 2 * 60 * 60 * 1000;
   const timeLabel = `${weather.time} 기준 실황 · 매시간 갱신`;
   if (isStale) {
@@ -44,7 +46,10 @@ function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
     };
   }
 
-  const precipitation: Record<number, { status: WeatherStatus; icon: string; text: string }> = {
+  const precipitation: Record<
+    number,
+    { status: WeatherStatus; icon: string; text: string }
+  > = {
     0: { status: "summary", icon: "🌂", text: "강수 없음" },
     1: { status: "rain", icon: "🌧️", text: "비" },
     2: { status: "snow", icon: "🌨️", text: "비/눈" },
@@ -54,9 +59,10 @@ function getWeatherVisual(weather?: RegionWeatherInfo): WeatherVisual {
     6: { status: "snow", icon: "🌨️", text: "빗방울/눈날림" },
     7: { status: "snow", icon: "❄️", text: "눈날림" },
   };
-  const current = weather.pty === 0 && weather.rn1 > 0
-    ? { status: "rain" as const, icon: "💧", text: "강수 있음" }
-    : precipitation[weather.pty];
+  const current =
+    weather.pty === 0 && weather.rn1 > 0
+      ? { status: "rain" as const, icon: "💧", text: "강수 있음" }
+      : precipitation[weather.pty];
   const skyVisual: Record<number, { icon: string; title: string }> = {
     1: { icon: "☀️", title: "맑음" },
     3: { icon: "⛅", title: "구름 많음" },
@@ -107,20 +113,22 @@ export function MapOverlay({
   onCloseDetail,
 }: MapOverlayProps) {
   const weather = selectedRegion?.weather;
-  const visual = selectedRegion
-    ? getWeatherVisual(weather)
-    : null;
+  const visual = selectedRegion ? getWeatherVisual(weather) : null;
 
   const [userPop, setUserPop] = useState<number | null>(null);
   const selectedPop = userPop ?? getDefaultPop(selectedRegion);
 
-  const displayRate = selectedPop !== null && weather?.stats?.[selectedPop]
-    ? Math.round(weather.stats[selectedPop].rate)
-    : (weather?.empiricalRate != null ? Math.round(weather.empiricalRate) : null);
-    
-  const displaySamples = selectedPop !== null && weather?.stats?.[selectedPop]
-    ? weather.stats[selectedPop].samples
-    : (weather?.sampleCount ?? 0);
+  const displayRate =
+    selectedPop !== null && weather?.stats?.[selectedPop]
+      ? Math.round(weather.stats[selectedPop].rate)
+      : weather?.empiricalRate != null
+        ? Math.round(weather.empiricalRate)
+        : null;
+
+  const displaySamples =
+    selectedPop !== null && weather?.stats?.[selectedPop]
+      ? weather.stats[selectedPop].samples
+      : (weather?.sampleCount ?? 0);
 
   return (
     <>
@@ -164,7 +172,9 @@ export function MapOverlay({
                   {weather.kmaPop != null ? `${weather.kmaPop}%` : "—"}
                 </StatVal>
                 <StatSubText>
-                  {weather.kmaPop == null ? "예보 자료 없음" : "기상청 단기예보 (POP)"}
+                  {weather.kmaPop == null
+                    ? "예보 자료 없음"
+                    : "기상청 단기예보 (POP)"}
                 </StatSubText>
               </StatBox>
 
@@ -209,7 +219,8 @@ export function MapOverlay({
                     onChange={(e) => setUserPop(Number(e.target.value))}
                     aria-label="예보 확률 기준 선택 (시/도)"
                   >
-                    {selectedRegion.stats && Object.keys(selectedRegion.stats).length > 0 ? (
+                    {selectedRegion.stats &&
+                    Object.keys(selectedRegion.stats).length > 0 ? (
                       Object.keys(selectedRegion.stats).map((pop) => (
                         <option key={pop} value={pop}>
                           {pop}% 예보 시
@@ -226,7 +237,8 @@ export function MapOverlay({
                     : "—"}
                 </StatVal>
                 <StatSubText>
-                  {selectedPop !== null && selectedRegion.stats?.[selectedPop]?.samples
+                  {selectedPop !== null &&
+                  selectedRegion.stats?.[selectedPop]?.samples
                     ? `시/도 표본 ${selectedRegion.stats[selectedPop].samples}건 검증`
                     : "표본 수집 중"}
                 </StatSubText>
@@ -407,8 +419,8 @@ const StatLabelRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
-  min-height: 24px; 
+
+  min-height: 24px;
 `;
 
 const StatLabel = styled.div`
@@ -430,12 +442,12 @@ const PopSelect = styled.select`
   cursor: pointer;
   transition: all 0.2s ease;
   margin-left: 6px;
-  
+
   &:hover {
     background: rgba(56, 189, 248, 0.25);
     border-color: rgba(56, 189, 248, 0.6);
   }
-  
+
   option {
     background: #0f172a;
     color: #e2e8f0;

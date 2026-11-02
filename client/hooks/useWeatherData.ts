@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  loadWeatherSnapshot,
-  type WeatherSnapshot,
-} from "../api/weather";
+import { loadWeatherSnapshot, type WeatherSnapshot } from "../api/weather";
 
 interface WeatherDataState extends WeatherSnapshot {
   errorMessage: string;
@@ -35,7 +32,9 @@ export function useWeatherData(): WeatherDataState {
         }
       } catch (reason: unknown) {
         if (isEffectActive) {
-          setErrorMessage(reason instanceof Error ? reason.message : String(reason));
+          setErrorMessage(
+            reason instanceof Error ? reason.message : String(reason),
+          );
         }
       } finally {
         isRefreshing = false;

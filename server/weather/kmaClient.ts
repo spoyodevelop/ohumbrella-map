@@ -13,8 +13,7 @@ interface KmaApiResponse<T> {
 }
 
 export type KmaFetchResult<T> =
-  | { kind: "items"; items: T[] }
-  | { kind: "no-data" };
+  { kind: "items"; items: T[] } | { kind: "no-data" };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -29,7 +28,9 @@ export async function fetchKmaWithRetry<T>(
 
   for (let tries = 1; tries <= maxTries; tries++) {
     try {
-      const response = await fetchImpl(url, { signal: AbortSignal.timeout(8000) });
+      const response = await fetchImpl(url, {
+        signal: AbortSignal.timeout(8000),
+      });
       if (!response.ok) {
         throw new Error(`HTTP Error ${response.status}`);
       }

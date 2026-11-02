@@ -2,13 +2,13 @@ import type { RegionWeatherInfo } from "../shared/weather.ts";
 
 export type { RegionWeatherInfo } from "../shared/weather.ts";
 
-export type MapPoint = { x: number; y: number }
+export type MapPoint = { x: number; y: number };
 
 export type MapView = {
-  x: number
-  y: number
-  scale: number
-}
+  x: number;
+  y: number;
+  scale: number;
+};
 
 export type MapRegion = {
   code: string;
