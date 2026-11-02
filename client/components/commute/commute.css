@@ -45,7 +45,7 @@
 }
 .commute-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 64px;
+  grid-template-columns: 40px minmax(0, 1fr) 64px;
   align-items: center;
   gap: 6px;
   padding: 6px;
@@ -329,7 +329,7 @@
     display: none;
   }
   .commute-row {
-    grid-template-columns: 32px minmax(0, 1fr) 72px;
+    grid-template-columns: 44px minmax(0, 1fr) 72px;
   }
   .commute-fields {
     gap: 8px;

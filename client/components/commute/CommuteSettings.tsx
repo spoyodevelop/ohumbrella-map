@@ -45,9 +45,9 @@ export function CommuteSettings({
     : [];
   const changed = JSON.stringify(draft) !== JSON.stringify(saved);
   return (
-    <aside className="commute-panel" aria-label="출퇴근 날씨">
+    <aside className="commute-panel" aria-label="외출 날씨">
       <div className="commute-controls">
-        <h2>출퇴근 날씨</h2>
+        <h2>외출 날씨</h2>
         <div className="commute-travel">
           <label htmlFor="commute-travel">이동 시간</label>
           <select
@@ -71,7 +71,7 @@ export function CommuteSettings({
               key={key}
             >
               <label htmlFor={`commute-${key}`}>
-                {key === "home" ? "집" : "회사"}
+                {key === "home" ? "집" : "목적지"}
               </label>
               <input
                 id={`commute-${key}`}
@@ -120,9 +120,7 @@ export function CommuteSettings({
                 }}
               />
               <select
-                aria-label={
-                  key === "home" ? "집에서 나가는 시각" : "회사에서 나가는 시각"
-                }
+                aria-label={key === "home" ? "나가는 시각" : "돌아오는 시각"}
                 value={key === "home" ? draft.homeHour : draft.workHour}
                 onChange={(e) =>
                   setDraft((s) => ({
@@ -146,7 +144,7 @@ export function CommuteSettings({
           <div className="commute-picker">
             <div className="commute-hint">
               <span>
-                {activePlace === "home" ? "집" : "회사"} 지역을 검색하거나
+                {activePlace === "home" ? "집" : "목적지"} 지역을 검색하거나
                 지도에서 선택하세요.
               </span>
               <button type="button" onClick={() => onActivate(null)}>
