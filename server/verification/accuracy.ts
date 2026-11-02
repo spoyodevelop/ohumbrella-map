@@ -43,6 +43,12 @@ export async function createAccuracySchema(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_verifications_region_pop
     ON forecast_verifications(sigungu_code, predicted_pop)
   `);
+  // "아니 땐 비" 조회용(SURPRISE_MAX_POP). 비가 온 낮은 확률 예보만 담아 작게 유지한다.
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_verifications_surprise
+    ON forecast_verifications(target_time)
+    WHERE actual_rain = 1 AND predicted_pop <= 20
+  `);
   await client.execute(`
     CREATE TABLE IF NOT EXISTS verified_accuracy_stats (
       sigungu_code  TEXT NOT NULL,
