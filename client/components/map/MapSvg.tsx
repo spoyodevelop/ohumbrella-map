@@ -17,7 +17,7 @@ function RegionPath({ region, fill, selected, onSelect }: RegionPathProps) {
   return (
     <path
       d={region.path}
-      fill={fill}
+      style={{ fill }}
       className={selected ? "region is-selected" : "region"}
       vectorEffect="non-scaling-stroke"
       onClick={onSelect}

@@ -237,7 +237,7 @@
   color: #94a3b8;
 }
 .commute-record-part {
-  color: #fbbf24;
+  color: var(--record);
 }
 .commute-headline button::after {
   content: " ›";
@@ -288,11 +288,11 @@
   margin-left: 2px;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #fbbf24;
+  color: var(--record);
 }
 .commute-story-query strong {
   font-size: 1rem;
-  color: #fbbf24;
+  color: var(--record);
 }
 .commute-points {
   list-style: none;

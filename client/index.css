@@ -12,6 +12,15 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* 아 맞다 우산의 기록은 amber, 기상청 예보는 blue/neutral로 구분한다. */
+  --record: #fbbf24;
+  --record-rgb: 251 191 36;
+
+  /* 아니 땐 비 지도 단계. 넓은 면적을 칠하므로 --record보다 어둡고 차분하게 둔다. */
+  --surprise-map-empty: #1b212d;
+  --surprise-map-low: #33301f;
+  --surprise-map-high: #c4983f;
 }
 
 html {

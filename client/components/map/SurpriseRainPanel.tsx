@@ -4,7 +4,6 @@ import type {
   SurpriseRainResponse,
 } from "../../api/surpriseRain";
 import type { MapRegion } from "../../types";
-import { surpriseRainColor } from "../../lib/surpriseRain";
 
 // "2026-10-20 15:00" → "10/20 15시"
 function formatEventTime(time: string): string {
@@ -140,8 +139,8 @@ const Box = styled.div`
   gap: 4px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.32);
+  background: rgb(var(--record-rgb) / 0.08);
+  border: 1px solid rgb(var(--record-rgb) / 0.32);
 `;
 
 const Label = styled.div`
@@ -155,7 +154,7 @@ const Count = styled.div`
   font-size: 1.7rem;
   font-weight: 800;
   line-height: 1.15;
-  color: #fbbf24;
+  color: var(--record);
 `;
 
 const Muted = styled.div`
@@ -188,7 +187,7 @@ const Row = styled.li<{ $heavy?: boolean }>`
   font-variant-numeric: tabular-nums;
   color: ${(props) => (props.$heavy ? "#f8fafc" : "#aab5c6")};
   background: ${(props) =>
-    props.$heavy ? "rgba(251, 191, 36, 0.14)" : "transparent"};
+    props.$heavy ? "rgb(var(--record-rgb) / 0.14)" : "transparent"};
 `;
 
 const RowMeta = styled.span`
@@ -197,7 +196,7 @@ const RowMeta = styled.span`
 `;
 
 const Heavy = styled.strong`
-  color: #fbbf24;
+  color: var(--record);
   font-weight: 700;
 `;
 
@@ -215,7 +214,7 @@ const LegendBar = styled.div`
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    ${surpriseRainColor(1, 100)},
-    ${surpriseRainColor(1, 1)}
+    var(--surprise-map-low),
+    var(--surprise-map-high)
   );
 `;

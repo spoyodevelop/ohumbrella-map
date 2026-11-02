@@ -60,9 +60,13 @@ const Option = styled.button<{ $active: boolean; $record: boolean }>`
   font-weight: 700;
   cursor: pointer;
   color: ${({ $active, $record }) =>
-    $active ? ($record ? "#1a1406" : "#edf6ff") : "#8b96a8"};
+    $active ? ($record ? "var(--record)" : "#edf6ff") : "#8b96a8"};
   background: ${({ $active, $record }) =>
-    $active ? ($record ? "#fbbf24" : "#17466a") : "transparent"};
+    $active
+      ? $record
+        ? "rgb(var(--record-rgb) / 0.16)"
+        : "#17466a"
+      : "transparent"};
   transition:
     background 0.15s ease,
     color 0.15s ease;

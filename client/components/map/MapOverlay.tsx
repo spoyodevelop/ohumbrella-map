@@ -439,10 +439,10 @@ const StatBox = styled.div<{ record?: boolean }>`
   padding: 10px 12px;
   border-radius: 10px;
   background: ${(props) =>
-    props.record ? "rgba(251, 191, 36, 0.08)" : "rgba(30, 41, 59, 0.35)"};
+    props.record ? "rgb(var(--record-rgb) / 0.08)" : "rgba(30, 41, 59, 0.35)"};
   border: 1px solid
     ${(props) =>
-      props.record ? "rgba(251, 191, 36, 0.32)" : "rgba(51, 65, 85, 0.3)"};
+      props.record ? "rgb(var(--record-rgb) / 0.32)" : "rgba(51, 65, 85, 0.3)"};
 `;
 
 const StatLabelRow = styled.div`
@@ -462,9 +462,9 @@ const StatLabel = styled.div`
 `;
 
 const PopSelect = styled.select`
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgb(var(--record-rgb) / 0.12);
+  color: var(--record);
+  border: 1px solid rgb(var(--record-rgb) / 0.4);
   border-radius: 999px;
   font-size: 0.65rem;
   padding: 3px 8px;
@@ -474,8 +474,8 @@ const PopSelect = styled.select`
   margin-left: 6px;
 
   &:hover {
-    background: rgba(251, 191, 36, 0.22);
-    border-color: rgba(251, 191, 36, 0.6);
+    background: rgb(var(--record-rgb) / 0.22);
+    border-color: rgb(var(--record-rgb) / 0.6);
   }
 
   option {
@@ -488,7 +488,7 @@ const StatVal = styled.div<{ record?: boolean }>`
   font-size: ${(props) => (props.record ? "1.7rem" : "1.3rem")};
   font-weight: 800;
   line-height: 1.15;
-  color: ${(props) => (props.record ? "#fbbf24" : "#cbd5e1")};
+  color: ${(props) => (props.record ? "var(--record)" : "#cbd5e1")};
 `;
 
 const StatSubText = styled.div`
