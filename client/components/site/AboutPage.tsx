@@ -45,29 +45,38 @@ export function AboutPage() {
         그런데 30%라고 했을 때, 정말로 비가 왔을까요? 아 맞다 우산은 이걸
         하나하나 맞춰봐요. 원리는 간단해요.
       </p>
-      <ol>
-        <li>매시간, 그 시각의 기상청 강수확률을 적어둬요.</li>
-        <li>그 시각이 되면 실제로 비가 왔는지 관측(초단기실황)을 확인해요.</li>
+      <Steps>
         <li>
-          강수확률별(0%, 20%, 30%, 60% …)로 모아서, 몇 번 중 몇 번 비가 왔는지
-          세요.
+          <b>예보 적기</b>
+          <span>매시간, 그 시각의 기상청 강수확률을 적어둬요.</span>
         </li>
-      </ol>
-      <p>
-        예를 들어 우리 동네에 30% 예보가 100번 있었고 그중 6번 비가 왔다면, 이
-        동네의 30%는 실제로 6%였던 셈이에요.
-      </p>
-      <p>
-        처음에는 17개 시도만 기록했는데, 이번에는 <mark>전국 252개 시군구</mark>
-        로 넓혔어요. 이제 내가 사는 구에서 예보가 몇 번 나왔고, 그중 실제로 비가
-        몇 번 왔는지 확인할 수 있어요.
-      </p>
+        <li>
+          <b>실제 비 확인</b>
+          <span>
+            그 시각이 되면 관측(초단기실황)으로 실제로 비가 왔는지 확인해요.
+          </span>
+        </li>
+        <li>
+          <b>확률별로 세기</b>
+          <span>
+            0%, 20%, 30%, 60% … 강수확률마다 몇 번 중 몇 번 비가 왔는지 세요.
+          </span>
+        </li>
+      </Steps>
+      <Example>
+        <span>예시</span>
+        <p>
+          우리 동네에 <b>30% 예보가 100번</b> 있었고 그중 <b>6번</b> 비가
+          왔다면, 이 동네의 30%는 실제로 <mark>6%</mark>였던 셈이에요.
+        </p>
+      </Example>
+      <p>실제로 재보니, 기상청 강수확률 30% 예보 때 비가 온 비율은 이랬어요.</p>
       <Figures aria-label="강수확률 30% 예보에서 실제로 비가 온 비율">
         <div>
           <span>V1 · 17개 시도</span>
           <span className="forecast">예보 30%</span>
           <strong>
-            <span className="prefix">실제</span>5.9%
+            <span className="prefix">실제</span> 5.9%
           </strong>
           <small>31,469번 기록</small>
         </div>
@@ -75,15 +84,22 @@ export function AboutPage() {
           <span>지금 · 252개 시군구</span>
           <span className="forecast">예보 30%</span>
           <strong>
-            <span className="prefix">실제</span>
+            <span className="prefix">실제</span>{" "}
             {record ? `${record.rate.toFixed(1)}%` : "—"}
           </strong>
           {record && (
             <small>{record.samples.toLocaleString("ko-KR")}번 기록</small>
           )}
         </div>
-        <p>기상청 강수확률 30% 예보 때 실제로 비가 온 비율</p>
       </Figures>
+      <Expansion>
+        <p>
+          처음에는 17개 시도만 기록했는데, 이번에는{" "}
+          <mark>전국 252개 시군구</mark>로 넓혔어요. 이제 내가 사는 구에서
+          예보가 몇 번 나왔고, 그중 실제로 비가 몇 번 왔는지 확인할 수 있어요.
+        </p>
+        <Link to="/">우리 동네 기록 보러 가기 →</Link>
+      </Expansion>
       <Story>
         <h2>왜 만들었나요?</h2>
         <p>
@@ -151,18 +167,6 @@ const Page = styled.main`
     word-break: keep-all;
   }
 
-  ol {
-    margin: 0 0 16px;
-    padding-left: 1.4em;
-    color: #b4bfcf;
-    line-height: 1.7;
-    word-break: keep-all;
-  }
-
-  li + li {
-    margin-top: 4px;
-  }
-
   section {
     margin: 32px 0 24px;
     padding: 20px;
@@ -193,6 +197,74 @@ const Page = styled.main`
   }
 `;
 
+const Steps = styled.ol`
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+
+  li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+    padding: 12px 14px;
+    border: 1px solid #252e3c;
+    border-radius: 10px;
+    background: #0d131c;
+    counter-increment: step;
+  }
+
+  li::before {
+    content: counter(step);
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #0b1220;
+    font-weight: 800;
+    background: #94a3b8;
+  }
+
+  b {
+    color: #e9eef7;
+  }
+
+  span {
+    color: #b4bfcf;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+`;
+
+const Example = styled.div`
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-left: 3px solid #fbbf24;
+  border-radius: 0 10px 10px 0;
+  background: rgba(251, 191, 36, 0.06);
+
+  > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #fbbf24;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  && p {
+    margin: 0;
+  }
+
+  b {
+    color: #e9eef7;
+  }
+`;
+
 const Story = styled.div`
   margin-top: 40px;
 
@@ -209,7 +281,7 @@ const Figures = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 32px 0 0;
+  margin: 0;
 
   div {
     padding: 18px;
@@ -249,12 +321,13 @@ const Figures = styled.div`
     font-weight: 600;
     letter-spacing: 0;
   }
+`;
 
-  && p {
-    grid-column: 1 / -1;
-    margin: 0;
-    color: #758095;
-    font-size: 0.8rem;
+const Expansion = styled.div`
+  margin-top: 24px;
+
+  a {
+    font-weight: 600;
   }
 `;
 
