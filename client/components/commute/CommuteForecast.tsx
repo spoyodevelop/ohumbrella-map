@@ -97,11 +97,31 @@ const legs: Record<CommutePointKind, string> = {
   leaveWork: "오는 길",
   arriveHome: "오는 길",
 };
-function recordLine(top: CommutePoint) {
-  const lead = `${legs[top.kind]} ${popOf(top)}%`;
-  if (!top.record) return `${lead}, 아직 이 확률의 기록이 없어요`;
+// The forecast stays muted; the record carries the accent.
+function RecordLine({ top }: { top: CommutePoint }) {
+  const lead = (
+    <span className="commute-forecast-part">
+      {legs[top.kind]} 강수확률 {popOf(top)}%
+    </span>
+  );
+  if (!top.record)
+    return (
+      <>
+        {lead}
+        <span className="commute-record-part">
+          아직 이 확률의 기록이 없어요
+        </span>
+      </>
+    );
   const often = top.record.rainCount / top.record.samples >= 0.5;
-  return `${lead}, 비가 ${often ? "실제로도" : "실제로는"} ${recordSentence(top.record)}`;
+  return (
+    <>
+      {lead}
+      <span className="commute-record-part">
+        비가 {often ? "실제로도" : "실제로는"} {recordSentence(top.record)}
+      </span>
+    </>
+  );
 }
 // Every POP the short-term forecast issues; it skips from 30% to 60%.
 const STORY_POPS = [0, 20, 30, 60, 70, 80, 90, 100];
@@ -158,6 +178,12 @@ function Story({
               : record.rainCount === 0
                 ? `${record.samples}번 중 한 번도 비가 오지 않았어요`
                 : `${record.samples}번 중 ${record.rainCount}번 비가 왔어요`}
+            {record && " "}
+            {record && (
+              <span className="commute-story-rate">
+                ({((100 * record.rainCount) / record.samples).toFixed(1)}%)
+              </span>
+            )}
           </strong>
         </div>
       ) : (
@@ -198,10 +224,12 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
                 aria-expanded={storyOpen}
                 onClick={() => setStoryOpen((open) => !open)}
               >
-                {recordLine(top)}
+                <RecordLine top={top} />
               </button>
             ) : (
-              <p>{recordLine(top)}</p>
+              <p>
+                <RecordLine top={top} />
+              </p>
             )}
           </>
         ) : (

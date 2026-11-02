@@ -230,6 +230,15 @@
   background: none;
   border: 0;
 }
+.commute-forecast-part {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+.commute-record-part {
+  color: #fbbf24;
+}
 .commute-headline button::after {
   content: " ›";
 }
@@ -275,9 +284,15 @@
   outline: 2px solid #6ebaff;
   outline-offset: 2px;
 }
+.commute-story-rate {
+  margin-left: 2px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
 .commute-story-query strong {
   font-size: 1rem;
-  color: #e9eef7;
+  color: #fbbf24;
 }
 .commute-points {
   list-style: none;
