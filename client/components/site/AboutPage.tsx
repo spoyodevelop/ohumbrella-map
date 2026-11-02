@@ -53,19 +53,24 @@ export function AboutPage() {
       <Figures aria-label="강수확률 30% 예보에서 실제로 비가 온 비율">
         <div>
           <span>V1 · 17개 시도</span>
-          <strong>5.9%</strong>
-          <small>30% 예보 31,469번 기록</small>
+          <span className="forecast">예보 30%</span>
+          <strong>
+            <span className="prefix">실제</span>5.9%
+          </strong>
+          <small>31,469번 기록</small>
         </div>
         <div>
           <span>지금 · 252개 시군구</span>
-          <strong>{record ? `${record.rate.toFixed(1)}%` : "—"}</strong>
+          <span className="forecast">예보 30%</span>
+          <strong>
+            <span className="prefix">실제</span>
+            {record ? `${record.rate.toFixed(1)}%` : "—"}
+          </strong>
           {record && (
-            <small>
-              30% 예보 {record.samples.toLocaleString("ko-KR")}번 기록
-            </small>
+            <small>{record.samples.toLocaleString("ko-KR")}번 기록</small>
           )}
         </div>
-        <p>강수확률 30% 예보에서 실제로 비가 온 비율</p>
+        <p>기상청 강수확률 30% 예보 때 실제로 비가 온 비율</p>
       </Figures>
       <section>
         <h2>기상청 강수확률 대신 써도 되나요?</h2>
@@ -160,12 +165,28 @@ const Figures = styled.div`
     word-break: keep-all;
   }
 
+  .forecast {
+    margin-top: 10px;
+    color: #94a3b8;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
   strong {
     display: block;
-    margin: 6px 0;
-    color: #f5f7fb;
+    margin: 2px 0 6px;
+    color: #fbbf24;
     font-size: clamp(2rem, 6vw, 3rem);
     letter-spacing: -0.04em;
+  }
+
+  strong .prefix {
+    display: inline;
+    margin-right: 6px;
+    color: #fbbf24;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0;
   }
 
   && p {
