@@ -187,9 +187,9 @@ const Page = styled.main`
   mark {
     padding: 0 2px;
     border-radius: 3px;
-    color: #fbbf24;
+    color: var(--record);
     font-weight: 700;
-    background: rgba(251, 191, 36, 0.12);
+    background: rgb(var(--record-rgb) / 0.12);
   }
 
   @media (max-width: 640px) {
@@ -244,14 +244,14 @@ const Steps = styled.ol`
 const Example = styled.div`
   margin: 0 0 16px;
   padding: 12px 14px;
-  border-left: 3px solid #fbbf24;
+  border-left: 3px solid var(--record);
   border-radius: 0 10px 10px 0;
-  background: rgba(251, 191, 36, 0.06);
+  background: rgb(var(--record-rgb) / 0.06);
 
   > span {
     display: block;
     margin-bottom: 4px;
-    color: #fbbf24;
+    color: var(--record);
     font-size: 0.75rem;
     font-weight: 700;
   }
@@ -308,7 +308,7 @@ const Figures = styled.div`
   strong {
     display: block;
     margin: 2px 0 6px;
-    color: #fbbf24;
+    color: var(--record);
     font-size: clamp(2rem, 6vw, 3rem);
     letter-spacing: -0.04em;
   }
@@ -316,7 +316,7 @@ const Figures = styled.div`
   strong .prefix {
     display: inline;
     margin-right: 6px;
-    color: #fbbf24;
+    color: var(--record);
     font-size: 1rem;
     font-weight: 600;
     letter-spacing: 0;
