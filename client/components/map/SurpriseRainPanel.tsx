@@ -215,6 +215,7 @@ const LegendBar = styled.div`
   background: linear-gradient(
     90deg,
     var(--surprise-map-low),
+    var(--surprise-map-mid),
     var(--surprise-map-high)
   );
 `;
