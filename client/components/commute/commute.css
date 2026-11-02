@@ -326,7 +326,8 @@
     padding: 12px;
   }
   .commute-controls h2 {
-    display: none;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
   }
   .commute-row {
     grid-template-columns: 44px minmax(0, 1fr) 72px;

@@ -45,9 +45,9 @@ export function CommuteSettings({
     : [];
   const changed = JSON.stringify(draft) !== JSON.stringify(saved);
   return (
-    <aside className="commute-panel" aria-label="외출 날씨">
+    <aside className="commute-panel" aria-labelledby="commute-title">
       <div className="commute-controls">
-        <h2>외출 날씨</h2>
+        <h2 id="commute-title">나가기 전에, 우산 필요할까?</h2>
         <div className="commute-travel">
           <label htmlFor="commute-travel">이동 시간</label>
           <select
@@ -186,7 +186,7 @@ export function CommuteSettings({
             save();
           }}
         >
-          날씨 확인
+          우산 필요한지 보기
         </button>
         {storageError && <p role="status">{storageError}</p>}
       </div>
@@ -196,7 +196,9 @@ export function CommuteSettings({
         {data && (
           <>
             {changed && (
-              <p>설정이 바뀌었어요. 날씨 확인을 눌러 갱신해주세요.</p>
+              <p>
+                설정이 바뀌었어요. 우산 필요한지 보기를 눌러 다시 확인해주세요.
+              </p>
             )}
             <CommuteForecast key={data.fetchedAt} data={data} />
           </>
