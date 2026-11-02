@@ -163,7 +163,7 @@ function Story({
       ) : (
         <p>지금은 기록을 불러오지 못했어요.</p>
       )}
-      <Link to="/about">어떻게 기록했나요 →</Link>
+      <Link to="/about">이 숫자는 어디서 왔나요? →</Link>
     </section>
   );
 }
