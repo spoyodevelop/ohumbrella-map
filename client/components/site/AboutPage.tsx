@@ -39,39 +39,99 @@ export function AboutPage() {
     <Page>
       <Eyebrow>아 맞다 우산 이야기</Eyebrow>
       <h1>강수확률이 30%라면, 실제로 얼마나 비가 올까?</h1>
+      <h2>어떤 사이트인가요?</h2>
       <p>
-        아 맞다 우산은 이 궁금증에서 시작한 서비스입니다. V1에서 17개 시도의
-        예보와 실황을 수집·비교해, 강수확률 30% 예보에서 실제로 비가 온 비율이
-        5.9%임을 확인했습니다.
+        기상청 단기예보에는 &ldquo;강수확률 30%&rdquo; 같은 숫자가 붙어요.
+        그런데 30%라고 했을 때, 정말로 비가 왔을까요? 아 맞다 우산은 이걸
+        하나하나 맞춰봐요. 원리는 간단해요.
       </p>
-      <p>
-        30개월간 축적한 API 운영 지식과 데이터 집계 경험을 바탕으로, 전국 252개
-        시군구의 예보 정확도를 비교하는 V2로 확장했습니다.
-      </p>
+      <Steps>
+        <li>
+          <b>예보 적기</b>
+          <span>매시간, 그 시각의 기상청 강수확률을 적어둬요.</span>
+        </li>
+        <li>
+          <b>실제 비 확인</b>
+          <span>
+            그 시각이 되면 관측(초단기실황)으로 실제로 비가 왔는지 확인해요.
+          </span>
+        </li>
+        <li>
+          <b>확률별로 세기</b>
+          <span>
+            0%, 20%, 30%, 60% … 강수확률마다 몇 번 중 몇 번 비가 왔는지 세요.
+          </span>
+        </li>
+      </Steps>
+      <Example>
+        <span>예시</span>
+        <p>
+          우리 동네에 <b>30% 예보가 100번</b> 있었고 그중 <b>6번</b> 비가
+          왔다면, 이 동네의 30%는 실제로 <mark>6%</mark>였던 셈이에요.
+        </p>
+      </Example>
+      <p>실제로 재보니, 기상청 강수확률 30% 예보 때 비가 온 비율은 이랬어요.</p>
       <Figures aria-label="강수확률 30% 예보에서 실제로 비가 온 비율">
         <div>
           <span>V1 · 17개 시도</span>
-          <strong>5.9%</strong>
-          <small>30% 예보 31,469번 기록</small>
+          <span className="forecast">예보 30%</span>
+          <strong>
+            <span className="prefix">실제</span> 5.9%
+          </strong>
+          <small>31,469번 기록</small>
         </div>
         <div>
           <span>지금 · 252개 시군구</span>
-          <strong>{record ? `${record.rate.toFixed(1)}%` : "—"}</strong>
+          <span className="forecast">예보 30%</span>
+          <strong>
+            <span className="prefix">실제</span>{" "}
+            {record ? `${record.rate.toFixed(1)}%` : "—"}
+          </strong>
           {record && (
-            <small>
-              30% 예보 {record.samples.toLocaleString("ko-KR")}번 기록
-            </small>
+            <small>{record.samples.toLocaleString("ko-KR")}번 기록</small>
           )}
         </div>
-        <p>강수확률 30% 예보에서 실제로 비가 온 비율</p>
       </Figures>
-      <section>
-        <h2>기상청 강수확률 대신 써도 되나요?</h2>
+      <Expansion>
         <p>
-          간단히 말하면, 안 됩니다. 통계는 통계일 뿐, 실제 자료를 바탕으로 하는
-          날씨예보와는 차이가 많고 한계점도 많습니다. 하지만 유용한 참고 자료가
-          될 수 있어요. 항상 기상청의 예보와 비교하며, 참고용으로 사용하는 게
-          바람직합니다.
+          처음에는 17개 시도만 기록했는데, 이번에는{" "}
+          <mark>전국 252개 시군구</mark>로 넓혔어요. 이제 내가 사는 구에서
+          예보가 몇 번 나왔고, 그중 실제로 비가 몇 번 왔는지 확인할 수 있어요.
+        </p>
+        <Link to="/">우리 동네 기록 보러 가기 →</Link>
+      </Expansion>
+      <Story>
+        <h2>왜 만들었나요?</h2>
+        <p>
+          시작은 단순했어요. 예보를 보고 나갔다가 비를 맞는 일이 잦아서,
+          강수확률이 실제로 얼마나 들어맞는지 직접 재보고 싶었어요.
+        </p>
+        <h2>V1, 30개월의 기록</h2>
+        <p>
+          17개 시도의 강수를 기록하던 V1은 30개월 넘게 운영했어요. 그 기록에서{" "}
+          <mark>강수확률 30% 예보 때 실제로 비가 온 비율은 5.9%</mark>였어요. 큰
+          계획이 있던 건 아니었지만, 예보 때문에 속상했던 분들이 가끔 찾아와
+          재밌는 반응을 남겨주셔서 오래 이어올 수 있었어요.
+        </p>
+        <p>
+          그동안 사고도 있었어요. 국가정보자원관리원 화재로 수집이 일주일 가까이
+          멈춘 적이 있었고, 바람에 날아온 파라솔이 집 앞 전봇대에 걸리면서 몇
+          회차의 자료가 통째로 사라진 적도 있었어요. 그때마다 복구하며 거의
+          사명감으로 기록을 이어왔어요.
+        </p>
+        <h2>그리고 V2</h2>
+        <p>
+          그렇게 쌓은 운영 경험을 바탕으로, 이번에는 더 좋은 통찰을 드릴 수 있지
+          않을까 해서 기존 프로젝트를 252개 시군구로 확장했어요.
+        </p>
+      </Story>
+      <section>
+        <h2>이 숫자, 예보 대신 믿어도 되나요?</h2>
+        <p>
+          기록은 &ldquo;지난번엔 이랬다&rdquo;를 알려줘요. &ldquo;내일은 이럴
+          것이다&rdquo;는 여전히 기상청 예보가 가장 잘 알아요. 예보를 볼 때 옆에
+          두고, 우리 동네에서 이 숫자가 어떤 뜻이었는지 떠올리는 용도로
+          써주세요.
         </p>
       </section>
       <Credit>자료제공 및 출처: 기상청</Credit>
@@ -87,7 +147,7 @@ const Page = styled.main`
   box-sizing: border-box;
 
   h1 {
-    margin: 0 0 24px;
+    margin: 0 0 28px;
     font-size: clamp(1.8rem, 5vw, 2.8rem);
     line-height: 1.15;
     letter-spacing: -0.05em;
@@ -123,8 +183,97 @@ const Page = styled.main`
     color: #b9daf7;
   }
 
+  /* Amber marks 아 맞다 우산's own findings, as on the map and panel. */
+  mark {
+    padding: 0 2px;
+    border-radius: 3px;
+    color: #fbbf24;
+    font-weight: 700;
+    background: rgba(251, 191, 36, 0.12);
+  }
+
   @media (max-width: 640px) {
     padding: 32px 16px;
+  }
+`;
+
+const Steps = styled.ol`
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+
+  li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+    padding: 12px 14px;
+    border: 1px solid #252e3c;
+    border-radius: 10px;
+    background: #0d131c;
+    counter-increment: step;
+  }
+
+  li::before {
+    content: counter(step);
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #0b1220;
+    font-weight: 800;
+    background: #94a3b8;
+  }
+
+  b {
+    color: #e9eef7;
+  }
+
+  span {
+    color: #b4bfcf;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+`;
+
+const Example = styled.div`
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-left: 3px solid #fbbf24;
+  border-radius: 0 10px 10px 0;
+  background: rgba(251, 191, 36, 0.06);
+
+  > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #fbbf24;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  && p {
+    margin: 0;
+  }
+
+  b {
+    color: #e9eef7;
+  }
+`;
+
+const Story = styled.div`
+  margin-top: 40px;
+
+  h2 {
+    margin-top: 28px;
+  }
+
+  h2:first-of-type {
+    margin-top: 0;
   }
 `;
 
@@ -132,7 +281,7 @@ const Figures = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 32px 0 0;
+  margin: 0;
 
   div {
     padding: 18px;
@@ -149,19 +298,36 @@ const Figures = styled.div`
     word-break: keep-all;
   }
 
+  .forecast {
+    margin-top: 10px;
+    color: #94a3b8;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
   strong {
     display: block;
-    margin: 6px 0;
-    color: #f5f7fb;
+    margin: 2px 0 6px;
+    color: #fbbf24;
     font-size: clamp(2rem, 6vw, 3rem);
     letter-spacing: -0.04em;
   }
 
-  && p {
-    grid-column: 1 / -1;
-    margin: 0;
-    color: #758095;
-    font-size: 0.8rem;
+  strong .prefix {
+    display: inline;
+    margin-right: 6px;
+    color: #fbbf24;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+`;
+
+const Expansion = styled.div`
+  margin-top: 24px;
+
+  a {
+    font-weight: 600;
   }
 `;
 

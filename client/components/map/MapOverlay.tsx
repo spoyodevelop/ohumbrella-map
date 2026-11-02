@@ -164,11 +164,11 @@ export function MapOverlay({
 
           {weather && (
             <StatsGrid>
-              <StatBox highlight>
+              <StatBox>
                 <StatLabelRow>
                   <StatLabel>단기예보 강수확률</StatLabel>
                 </StatLabelRow>
-                <StatVal highlight>
+                <StatVal>
                   {weather.kmaPop != null ? `${weather.kmaPop}%` : "—"}
                 </StatVal>
                 <StatSubText>
@@ -178,7 +178,7 @@ export function MapOverlay({
                 </StatSubText>
               </StatBox>
 
-              <StatBox>
+              <StatBox record>
                 <StatLabelRow>
                   <StatLabel>구/군 실강수확률</StatLabel>
                   <PopSelect
@@ -197,7 +197,7 @@ export function MapOverlay({
                     )}
                   </PopSelect>
                 </StatLabelRow>
-                <StatVal>
+                <StatVal record>
                   {displayRate != null ? `${displayRate}%` : "—"}
                 </StatVal>
                 <StatSubText>
@@ -211,7 +211,7 @@ export function MapOverlay({
 
           {!weather && selectedRegion && (
             <StatsGrid>
-              <StatBox style={{ gridColumn: "1 / -1" }}>
+              <StatBox record style={{ gridColumn: "1 / -1" }}>
                 <StatLabelRow>
                   <StatLabel>시/도 전체 실강수확률</StatLabel>
                   <PopSelect
@@ -231,7 +231,7 @@ export function MapOverlay({
                     )}
                   </PopSelect>
                 </StatLabelRow>
-                <StatVal>
+                <StatVal record>
                   {selectedPop !== null && selectedRegion.stats?.[selectedPop]
                     ? `${Math.round(selectedRegion.stats[selectedPop].rate)}%`
                     : "—"}
@@ -405,14 +405,15 @@ const StatsGrid = styled.div`
   margin-top: 2px;
 `;
 
-const StatBox = styled.div<{ highlight?: boolean }>`
+// Amber marks 아 맞다 우산's own records; KMA forecasts stay neutral.
+const StatBox = styled.div<{ record?: boolean }>`
   padding: 10px 12px;
   border-radius: 10px;
   background: ${(props) =>
-    props.highlight ? "rgba(56, 189, 248, 0.08)" : "rgba(30, 41, 59, 0.35)"};
+    props.record ? "rgba(251, 191, 36, 0.08)" : "rgba(30, 41, 59, 0.35)"};
   border: 1px solid
     ${(props) =>
-      props.highlight ? "rgba(56, 189, 248, 0.22)" : "rgba(51, 65, 85, 0.3)"};
+      props.record ? "rgba(251, 191, 36, 0.32)" : "rgba(51, 65, 85, 0.3)"};
 `;
 
 const StatLabelRow = styled.div`
@@ -432,9 +433,9 @@ const StatLabel = styled.div`
 `;
 
 const PopSelect = styled.select`
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
   border-radius: 999px;
   font-size: 0.65rem;
   padding: 3px 8px;
@@ -444,8 +445,8 @@ const PopSelect = styled.select`
   margin-left: 6px;
 
   &:hover {
-    background: rgba(56, 189, 248, 0.25);
-    border-color: rgba(56, 189, 248, 0.6);
+    background: rgba(251, 191, 36, 0.22);
+    border-color: rgba(251, 191, 36, 0.6);
   }
 
   option {
@@ -454,11 +455,11 @@ const PopSelect = styled.select`
   }
 `;
 
-const StatVal = styled.div<{ highlight?: boolean }>`
-  font-size: 1.45rem;
+const StatVal = styled.div<{ record?: boolean }>`
+  font-size: ${(props) => (props.record ? "1.7rem" : "1.3rem")};
   font-weight: 800;
   line-height: 1.15;
-  color: ${(props) => (props.highlight ? "#38bdf8" : "#e2e8f0")};
+  color: ${(props) => (props.record ? "#fbbf24" : "#cbd5e1")};
 `;
 
 const StatSubText = styled.div`
