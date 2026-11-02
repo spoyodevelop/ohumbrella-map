@@ -32,7 +32,9 @@ const STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 export function isObservationStale(time: string, now = new Date()): boolean {
   const observedAt = Date.parse(`${time.replace(" ", "T")}+09:00`);
-  return !Number.isFinite(observedAt) || now.getTime() - observedAt >= STALE_AFTER_MS;
+  return (
+    !Number.isFinite(observedAt) || now.getTime() - observedAt >= STALE_AFTER_MS
+  );
 }
 
 export function assembleCurrentWeatherResponse(
@@ -109,7 +111,8 @@ export function assembleCurrentWeatherResponse(
 
   return {
     time: maxTime,
-    isStale: rows.length === 0 || Object.values(data).some((row) => row.isStale),
+    isStale:
+      rows.length === 0 || Object.values(data).some((row) => row.isStale),
     count: rows.length,
     data,
   };

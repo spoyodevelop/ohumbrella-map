@@ -50,7 +50,6 @@ export function useKoreaMap() {
     }
   }, [selection, mapSelection]);
 
-
   return {
     svgRef: mapView.svgRef,
     view: mapView.view,

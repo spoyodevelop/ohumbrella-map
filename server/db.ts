@@ -1,6 +1,14 @@
 import { createClient, type Client } from "@libsql/client";
-import { loadServerEnv, requireTursoAuthToken, requireTursoDatabaseUrl } from "./env.ts";
-import { flushMonitoring, initMonitoring, reportServerError } from "./monitoring.ts";
+import {
+  loadServerEnv,
+  requireTursoAuthToken,
+  requireTursoDatabaseUrl,
+} from "./env.ts";
+import {
+  flushMonitoring,
+  initMonitoring,
+  reportServerError,
+} from "./monitoring.ts";
 
 loadServerEnv();
 
@@ -33,7 +41,9 @@ const requiredObjects = [
 ];
 
 export async function assertDbReady(): Promise<void> {
-  const result = await db.execute("SELECT name FROM sqlite_master WHERE type IN ('table', 'trigger')");
+  const result = await db.execute(
+    "SELECT name FROM sqlite_master WHERE type IN ('table', 'trigger')",
+  );
   const present = new Set(result.rows.map((row) => String(row.name)));
   const missing = requiredObjects.filter((name) => !present.has(name));
   if (missing.length > 0) {

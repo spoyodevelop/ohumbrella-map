@@ -2649,6 +2649,7 @@ __metadata:
     express: "npm:^5.2.1"
     node-cron: "npm:^4.6.0"
     oxlint: "npm:1.81.0"
+    prettier: "npm:^3.9.10"
     react: "npm:19.3.0"
     react-dom: "npm:19.3.0"
     rolldown: "npm:^1.0.0"
@@ -2823,6 +2824,15 @@ __metadata:
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
   checksum: 10c0/9fe44215a6628d89c8a75184b92f5b2f77e16f9e5b13b39b9009bb7e8e6eccddf82c8854bae922db1f17ace6ef3445073fe38abff513caeb03e5285b1b55620a
+  languageName: node
+  linkType: hard
+
+"prettier@npm:^3.9.10":
+  version: 3.9.10
+  resolution: "prettier@npm:3.9.10"
+  bin:
+    prettier: bin/prettier.cjs
+  checksum: 10c0/0b3531593aa6fb36ac6baf629cb058bda472c59a6938774f931fe55283a07c62e6f56e621b043a82d8a3e21fc284c08c34f9e539fc70072635f79b7bae1a1067
   languageName: node
   linkType: hard
 

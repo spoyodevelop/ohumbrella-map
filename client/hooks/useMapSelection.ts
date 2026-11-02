@@ -81,7 +81,9 @@ export function useMapSelection({
       }
     } catch (error) {
       console.warn("현재 위치를 가져오지 못했습니다:", error);
-      alert("현재 위치를 가져오지 못했습니다. 브라우저 위치 권한 설정을 확인해주세요.");
+      alert(
+        "현재 위치를 가져오지 못했습니다. 브라우저 위치 권한 설정을 확인해주세요.",
+      );
     } finally {
       setIsLocating(false);
     }

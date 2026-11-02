@@ -3,7 +3,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { loadServerEnv, requireKmaServiceKey, requireTursoAuthToken, requireTursoDatabaseUrl } from "./env.ts";
+import {
+  loadServerEnv,
+  requireKmaServiceKey,
+  requireTursoAuthToken,
+  requireTursoDatabaseUrl,
+} from "./env.ts";
 
 test("환경 변수는 프로세스, .env.local, .env 순서로 우선하고 한 번만 읽는다", () => {
   const root = mkdtempSync(join(tmpdir(), "ohumbrella-env-"));
@@ -11,7 +16,10 @@ test("환경 변수는 프로세스, .env.local, .env 순서로 우선하고 한
   const localKey = "OHUMBRELLA_ENV_TEST_LOCAL";
   const baseKey = "OHUMBRELLA_ENV_TEST_BASE";
   try {
-    writeFileSync(join(root, ".env.local"), `${processKey}=local\n${localKey}=local\n`);
+    writeFileSync(
+      join(root, ".env.local"),
+      `${processKey}=local\n${localKey}=local\n`,
+    );
     writeFileSync(join(root, ".env"), `${localKey}=base\n${baseKey}=base\n`);
     process.env[processKey] = "process";
 
@@ -66,7 +74,10 @@ test("원격 DB 주소에는 인증 토큰이 필요하고 명시적 SQLite 주�
   try {
     delete process.env.TURSO_AUTH_TOKEN;
     assert.equal(requireTursoAuthToken("file::memory:"), undefined);
-    assert.throws(() => requireTursoAuthToken("libsql://example.turso.io"), /TURSO_AUTH_TOKEN/);
+    assert.throws(
+      () => requireTursoAuthToken("libsql://example.turso.io"),
+      /TURSO_AUTH_TOKEN/,
+    );
     process.env.TURSO_AUTH_TOKEN = " token ";
     assert.equal(requireTursoAuthToken("libsql://example.turso.io"), "token");
   } finally {

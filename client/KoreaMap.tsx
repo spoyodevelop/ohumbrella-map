@@ -59,7 +59,6 @@ export function KoreaMap() {
           isSimgunguLod={mapState.sidoCode !== undefined}
           onCloseDetail={mapState.clearSelection}
         />
-
       </Stage>
     </Shell>
   );

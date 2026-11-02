@@ -1,8 +1,17 @@
 import { loadServerEnv, requireKmaServiceKey } from "../env.ts";
 import { reportServerWarning } from "../monitoring.ts";
 import { distinctGrids, sigunguMap, type DistinctGrid } from "./gridMap.ts";
-import { calculateLeadHours, getNcstBaseDateTime, getVilageBaseDateTime } from "./kmaTime.ts";
-import { parseForecastItems, parseObservationItems, type KmaForecastItem, type KmaObservationItem } from "./kmaParse.ts";
+import {
+  calculateLeadHours,
+  getNcstBaseDateTime,
+  getVilageBaseDateTime,
+} from "./kmaTime.ts";
+import {
+  parseForecastItems,
+  parseObservationItems,
+  type KmaForecastItem,
+  type KmaObservationItem,
+} from "./kmaParse.ts";
 import { fetchKmaWithRetry, type KmaFetchResult } from "./kmaClient.ts";
 import {
   upsertObservationsBatch,
@@ -26,12 +35,17 @@ const BASE_URL =
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function gridRegionNames(grid: DistinctGrid): string {
-  return grid.sigunguCodes.map((code) => sigunguMap.get(code)?.name ?? code).join("·");
+  return grid.sigunguCodes
+    .map((code) => sigunguMap.get(code)?.name ?? code)
+    .join("·");
 }
 
 // 카나리 방식으로 찔러보는 용도
 // 매시 40분 이후 정시 데이터가 열렸는지 1개 격자만 확인
-export async function checkCanaryNcstUpdated(lastKnownRound: string, checkedAt = new Date()) {
+export async function checkCanaryNcstUpdated(
+  lastKnownRound: string,
+  checkedAt = new Date(),
+) {
   const serviceKey = requireKmaServiceKey();
   const kst = new Date(checkedAt.getTime() + 9 * 60 * 60 * 1000);
   const lastCheckOfRound = kst.getUTCMinutes() >= 58;
@@ -43,7 +57,12 @@ export async function checkCanaryNcstUpdated(lastKnownRound: string, checkedAt =
   const candidateBaseTime = String(currentHour).padStart(2, "0") + "00";
 
   if (`${baseDate} ${candidateBaseTime}` === lastKnownRound) {
-    return { updated: false, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
+    return {
+      updated: false,
+      baseDate,
+      baseTime: candidateBaseTime,
+      lastCheckOfRound,
+    };
   }
 
   const url = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${baseDate}&base_time=${candidateBaseTime}&nx=60&ny=127&authKey=${serviceKey}`;
@@ -53,16 +72,28 @@ export async function checkCanaryNcstUpdated(lastKnownRound: string, checkedAt =
     console.log(
       `[카나리 감지] 종로구에 실황 오픈 (${baseDate} ${candidateBaseTime})`,
     );
-    return { updated: true, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
+    return {
+      updated: true,
+      baseDate,
+      baseTime: candidateBaseTime,
+      lastCheckOfRound,
+    };
   }
 
-  return { updated: false, baseDate, baseTime: candidateBaseTime, lastCheckOfRound };
+  return {
+    updated: false,
+    baseDate,
+    baseTime: candidateBaseTime,
+    lastCheckOfRound,
+  };
 }
 
 // --------------------------------------------------------------------------
 // 1. [실황 전용 수집] 1시간마다 1회만 호출 (getUltraSrtNcst만 238콜)
 // --------------------------------------------------------------------------
-export async function syncObservations(round = getNcstBaseDateTime()): Promise<number> {
+export async function syncObservations(
+  round = getNcstBaseDateTime(),
+): Promise<number> {
   const serviceKey = requireKmaServiceKey();
   const { baseDate: ncstDate, baseTime: ncstTime } = round;
   const obsTimeStr = `${ncstDate.slice(0, 4)}-${ncstDate.slice(4, 6)}-${ncstDate.slice(6, 8)} ${ncstTime.slice(0, 2)}:00`;
@@ -85,14 +116,21 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
         try {
           result = await fetchKmaWithRetry<KmaObservationItem>(ncstUrl, 3, 400);
         } catch (error) {
-          throw new Error(`실황 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`, { cause: error });
+          throw new Error(
+            `실황 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`,
+            { cause: error },
+          );
         }
         if (result.kind === "no-data") {
-          console.warn(`[실황 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`);
+          console.warn(
+            `[실황 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`,
+          );
           return { obsList: [], hourList: [], missing: true };
         }
 
-        const { pty, rn1, tmp, isRaining } = parseObservationItems(result.items);
+        const { pty, rn1, tmp, isRaining } = parseObservationItems(
+          result.items,
+        );
 
         const obsList: ObservationRecord[] = [];
         const hourList: ObservationReadModelRecord[] = [];
@@ -145,7 +183,9 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
 
   console.log(`\n[실황 저장] ${observationsToInsert.length}건 DB 저장 완료!`);
   if (observationsToInsert.length === 0) {
-    throw new Error(`실황 수집 실패: ${ncstDate} ${ncstTime}의 모든 격자에 자료가 없습니다.`);
+    throw new Error(
+      `실황 수집 실패: ${ncstDate} ${ncstTime}의 모든 격자에 자료가 없습니다.`,
+    );
   }
 
   await upsertObservationsBatch(observationsToInsert);
@@ -154,11 +194,15 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
   await syncAccuracyForObservationTime(obsTimeStr);
 
   if (missingGrids > 0) {
-    reportServerWarning("실황 수집에서 일부 격자 자료 없음", "worker.observation", {
-      baseTime: obsTimeStr,
-      missingGrids,
-      totalGrids: distinctGrids.length,
-    });
+    reportServerWarning(
+      "실황 수집에서 일부 격자 자료 없음",
+      "worker.observation",
+      {
+        baseTime: obsTimeStr,
+        missingGrids,
+        totalGrids: distinctGrids.length,
+      },
+    );
   }
 
   return observationsToInsert.length;
@@ -167,7 +211,9 @@ export async function syncObservations(round = getNcstBaseDateTime()): Promise<n
 // --------------------------------------------------------------------------
 // 2. [단기예보 전용 수집] 3시간마다 딱 1회만 호출 (getVilageFcst만 238콜)
 // --------------------------------------------------------------------------
-export async function syncForecasts(round = getVilageBaseDateTime()): Promise<number> {
+export async function syncForecasts(
+  round = getVilageBaseDateTime(),
+): Promise<number> {
   const serviceKey = requireKmaServiceKey();
   const { baseDate: fcstDate, baseTime: fcstTime } = round;
   const baseTimeStr = `${fcstDate.slice(0, 4)}-${fcstDate.slice(4, 6)}-${fcstDate.slice(6, 8)} ${fcstTime.slice(0, 2)}:00`;
@@ -176,7 +222,12 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
   console.log(`[단기예보 수집] 발표기준: ${baseTimeStr} (238개 격자)`);
 
   const forecastsToInsert: ForecastRecord[] = [];
-  const forecastPopUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
+  const forecastPopUpdates: {
+    sigunguCode: string;
+    pop: number;
+    sky: number;
+    updatedAt: string;
+  }[] = [];
   let missingGrids = 0;
   let invalidPopGrids = 0;
   const chunkSize = 12;
@@ -191,18 +242,35 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
         try {
           result = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
         } catch (error) {
-          throw new Error(`예보 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`, { cause: error });
+          throw new Error(
+            `예보 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`,
+            { cause: error },
+          );
         }
         if (result.kind === "no-data") {
-          console.warn(`[예보 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`);
-          return { fcstList: [] as ForecastRecord[], popUpdates: [], missing: true, invalidPop: false };
+          console.warn(
+            `[예보 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`,
+          );
+          return {
+            fcstList: [] as ForecastRecord[],
+            popUpdates: [],
+            missing: true,
+            invalidPop: false,
+          };
         }
 
         const fcstList: ForecastRecord[] = [];
-        const popUpdates: { sigunguCode: string; pop: number; sky: number; updatedAt: string }[] = [];
+        const popUpdates: {
+          sigunguCode: string;
+          pop: number;
+          sky: number;
+          updatedAt: string;
+        }[] = [];
         const validForecasts = parseForecastItems(result.items);
         if (validForecasts.length === 0) {
-          console.warn(`[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`);
+          console.warn(
+            `[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`,
+          );
           return { fcstList, popUpdates, missing: false, invalidPop: true };
         }
 
@@ -258,7 +326,9 @@ export async function syncForecasts(round = getVilageBaseDateTime()): Promise<nu
 
   console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
   if (forecastsToInsert.length === 0) {
-    throw new Error(`예보 수집 실패: ${fcstDate} ${fcstTime}의 모든 격자에 유효한 자료가 없습니다.`);
+    throw new Error(
+      `예보 수집 실패: ${fcstDate} ${fcstTime}의 모든 격자에 유효한 자료가 없습니다.`,
+    );
   }
   await upsertForecastsBatch(forecastsToInsert);
   await syncAccuracyForForecastBaseTime(baseTimeStr);

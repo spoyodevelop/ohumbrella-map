@@ -1,10 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import {
-  MAP_HEIGHT,
-  MAP_PADDING,
-  MAP_WIDTH,
-} from "../client/constants/map.ts";
+import { MAP_HEIGHT, MAP_PADDING, MAP_WIDTH } from "../client/constants/map.ts";
 
 const root = process.cwd();
 

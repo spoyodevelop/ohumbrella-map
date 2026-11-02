@@ -1,10 +1,6 @@
 import type { MapRegion } from "../../types";
 import styled from "@emotion/styled";
-import {
-  MAP_HEIGHT,
-  MAP_VIEWBOX,
-  MAP_WIDTH,
-} from "../../constants/map";
+import { MAP_HEIGHT, MAP_VIEWBOX, MAP_WIDTH } from "../../constants/map";
 
 function chanceColor(chance: number) {
   return `hsl(211 ${35 + chance * 0.45}% ${78 - chance * 0.42}%)`;
@@ -16,11 +12,7 @@ interface RegionPathProps {
   onSelect: () => void;
 }
 
-function RegionPath({
-  region,
-  selected,
-  onSelect,
-}: RegionPathProps) {
+function RegionPath({ region, selected, onSelect }: RegionPathProps) {
   return (
     <path
       d={region.path}
@@ -128,10 +120,7 @@ export function MapSvg({
         onClick={onBackgroundClick}
       />
 
-      <MapLayer
-        $dragging={isDragging}
-        $wheelZooming={isWheelZooming}
-      >
+      <MapLayer $dragging={isDragging} $wheelZooming={isWheelZooming}>
         {regions.map((region) => (
           <RegionPath
             key={region.code}

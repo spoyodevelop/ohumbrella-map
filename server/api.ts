@@ -21,7 +21,10 @@ app.get("/api/gc", async (req, res) => {
     const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      reportServerError(new Error("네이버 지도 API 키가 서버에 설정되어 있지 않습니다."), "api.gc");
+      reportServerError(
+        new Error("네이버 지도 API 키가 서버에 설정되어 있지 않습니다."),
+        "api.gc",
+      );
       res.status(500).json(INTERNAL_ERROR);
       return;
     }

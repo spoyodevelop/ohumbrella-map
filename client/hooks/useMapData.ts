@@ -85,9 +85,10 @@ export function useMapData(sidoCode: string | undefined) {
       if (!sidoWeatherStats) return region;
       return {
         ...region,
-        rainChance: sidoWeatherStats.avgPop == null
-          ? region.rainChance
-          : Math.round(sidoWeatherStats.avgPop),
+        rainChance:
+          sidoWeatherStats.avgPop == null
+            ? region.rainChance
+            : Math.round(sidoWeatherStats.avgPop),
         stats: sidoWeatherStats.stats,
         sampleCount: sidoWeatherStats.totalCount,
       };
@@ -96,9 +97,7 @@ export function useMapData(sidoCode: string | undefined) {
 
   const sigunguRegionsWithWeather = useMemo(() => {
     if (!sidoCode || !sigunguRegionsBySidoCode[sidoCode]) return [];
-    return attachWeatherToSigunguRegions(
-      sigunguRegionsBySidoCode[sidoCode],
-    );
+    return attachWeatherToSigunguRegions(sigunguRegionsBySidoCode[sidoCode]);
   }, [sidoCode, sigunguRegionsBySidoCode, attachWeatherToSigunguRegions]);
 
   const isLoading =

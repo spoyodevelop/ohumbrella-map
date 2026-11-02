@@ -41,9 +41,9 @@ export type UseMapViewResult = {
 
 export function useMapView(): UseMapViewResult {
   const svgRef = useRef<SVGSVGElement>(null);
-  const activePointer = useRef<
-    { id: number; point: MapPoint } | undefined
-  >(undefined);
+  const activePointer = useRef<{ id: number; point: MapPoint } | undefined>(
+    undefined,
+  );
   const dragDistance = useRef(0);
   const dragged = useRef(false);
   const liveView = useRef<MapView>(INITIAL_VIEW);
@@ -178,11 +178,7 @@ export function useMapView(): UseMapViewResult {
         svg.getScreenCTM()?.inverse(),
       );
       scheduleView(
-        zoomView(
-          liveView.current,
-          point,
-          Math.exp(-event.deltaY * 0.0014),
-        ),
+        zoomView(liveView.current, point, Math.exp(-event.deltaY * 0.0014)),
       );
       if (!wheelZooming) {
         wheelZooming = true;

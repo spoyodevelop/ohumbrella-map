@@ -12,8 +12,7 @@ export async function reverseGeocode(): Promise<GeoRegion> {
   );
 
   const { latitude, longitude } = position.coords;
-  const url =
-    `/api/gc?coords=${longitude},${latitude}&output=json&orders=admcode`;
+  const url = `/api/gc?coords=${longitude},${latitude}&output=json&orders=admcode`;
 
   const data = await fetchJson<NaverGeoResponse>(url);
   const result = data.results?.[0];

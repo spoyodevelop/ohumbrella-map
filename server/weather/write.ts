@@ -118,7 +118,9 @@ export async function upsertForecastsBatch(records: ForecastRecord[]) {
 }
 
 // 3. 현재 날씨 조회용 테이블에는 실황 필드만 반영한다. 예보 필드는 예보 수집이 소유한다.
-export async function upsertObservationReadModelBatch(records: ObservationReadModelRecord[]) {
+export async function upsertObservationReadModelBatch(
+  records: ObservationReadModelRecord[],
+) {
   if (records.length === 0) return;
 
   const sql = `

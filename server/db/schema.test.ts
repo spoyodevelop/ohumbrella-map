@@ -7,7 +7,9 @@ test("마이그레이션은 사용하지 않는 정확도 통계 테이블을 �
   const { db } = await import("../db.ts");
   const { migrateDb } = await import("./schema.ts");
 
-  await db.execute("CREATE TABLE forecast_accuracy_stats (id INTEGER PRIMARY KEY)");
+  await db.execute(
+    "CREATE TABLE forecast_accuracy_stats (id INTEGER PRIMARY KEY)",
+  );
   await db.execute("INSERT INTO forecast_accuracy_stats (id) VALUES (1)");
   await migrateDb();
 

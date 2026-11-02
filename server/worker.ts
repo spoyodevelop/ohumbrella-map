@@ -1,7 +1,10 @@
 import cron from "node-cron";
 import https from "node:https";
 import { reportServerError } from "./monitoring.ts";
-import { getNcstBaseDateTime, getVilageBaseDateTime } from "./weather/kmaTime.ts";
+import {
+  getNcstBaseDateTime,
+  getVilageBaseDateTime,
+} from "./weather/kmaTime.ts";
 import { createWorkerQueue } from "./workerQueue.ts";
 import {
   checkCanaryNcstUpdated,
@@ -75,7 +78,9 @@ function pingHealthcheck(urlStr?: string, error?: unknown): Promise<void> {
   });
 }
 
-export function startWorker(registerSchedule: RegisterSchedule = registerKstSchedule) {
+export function startWorker(
+  registerSchedule: RegisterSchedule = registerKstSchedule,
+) {
   if (workerStarted) {
     throw new Error("수집 워커가 이미 시작되었습니다.");
   }
@@ -84,26 +89,42 @@ export function startWorker(registerSchedule: RegisterSchedule = registerKstSche
   registerSchedule("40-58/2 * * * *", async () => {
     const checkedAt = new Date();
     const round = getNcstBaseDateTime(checkedAt);
-    await enqueue(`observation:${round.baseDate}:${round.baseTime}`, async () => {
-      try {
-        const canary = await checkCanaryNcstUpdated(lastSyncedObservationRound, checkedAt);
-        if (canary.updated) {
-          console.log(`[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`);
-          await syncObservations(round);
-          lastSyncedObservationRound = `${canary.baseDate} ${canary.baseTime}`;
-          await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
-        } else if (canary.lastCheckOfRound && `${canary.baseDate} ${canary.baseTime}` !== lastSyncedObservationRound) {
-          throw new Error(`실황 ${canary.baseDate} ${canary.baseTime} 자료가 58분까지 열리지 않았습니다.`);
+    await enqueue(
+      `observation:${round.baseDate}:${round.baseTime}`,
+      async () => {
+        try {
+          const canary = await checkCanaryNcstUpdated(
+            lastSyncedObservationRound,
+            checkedAt,
+          );
+          if (canary.updated) {
+            console.log(
+              `[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`,
+            );
+            await syncObservations(round);
+            lastSyncedObservationRound = `${canary.baseDate} ${canary.baseTime}`;
+            await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL);
+          } else if (
+            canary.lastCheckOfRound &&
+            `${canary.baseDate} ${canary.baseTime}` !==
+              lastSyncedObservationRound
+          ) {
+            throw new Error(
+              `실황 ${canary.baseDate} ${canary.baseTime} 자료가 58분까지 열리지 않았습니다.`,
+            );
+          }
+        } catch (err) {
+          console.error("[워커 실황 확인·수집 에러]", err);
+          reportServerError(err, "worker.observation");
+          await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
         }
-      } catch (err) {
-        console.error("[워커 실황 확인·수집 에러]", err);
-        reportServerError(err, "worker.observation");
-        await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
-      }
-    });
+      },
+    );
   });
 
-  async function collectForecast(round: ReturnType<typeof currentForecastRound>): Promise<void> {
+  async function collectForecast(
+    round: ReturnType<typeof currentForecastRound>,
+  ): Promise<void> {
     try {
       await syncForecasts(round);
       pendingForecastRound = null;

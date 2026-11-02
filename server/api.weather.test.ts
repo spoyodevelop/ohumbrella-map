@@ -51,22 +51,31 @@ test("날씨 API는 가져온 행에서 최신 시각을 고른다", async () =>
     const baseUrl = `http://127.0.0.1:${address.port}/api/weather`;
     const response = await fetch(`${baseUrl}/current`);
     assert.equal(response.status, 200);
-    const body = await response.json() as { count: number; time: string | null };
+    const body = (await response.json()) as {
+      count: number;
+      time: string | null;
+    };
     assert.equal(body.count, 3);
     assert.equal(body.time, "2026-09-26 11:00:00");
     const sidoResponse = await fetch(`${baseUrl}/sido-stats`);
     assert.equal(sidoResponse.status, 200);
-    const sidoBody = await sidoResponse.json() as {
+    const sidoBody = (await sidoResponse.json()) as {
       time: string | null;
       stats: { sidoCode: string }[];
     };
     assert.equal(sidoBody.time, "2026-09-26 11:00:00");
-    assert.deepEqual(sidoBody.stats.map((stat) => stat.sidoCode), ["11", "26"]);
+    assert.deepEqual(
+      sidoBody.stats.map((stat) => stat.sidoCode),
+      ["11", "26"],
+    );
     await db.execute("DELETE FROM current_weather");
     const emptyResponse = await fetch(`${baseUrl}/current`);
     assert.equal(emptyResponse.status, 200);
     assert.deepEqual(await emptyResponse.json(), {
-      time: null, isStale: true, count: 0, data: {},
+      time: null,
+      isStale: true,
+      count: 0,
+      data: {},
     });
     const emptySidoResponse = await fetch(`${baseUrl}/sido-stats`);
     assert.equal(emptySidoResponse.status, 200);

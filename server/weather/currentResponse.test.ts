@@ -41,42 +41,72 @@ test("현재 날씨 응답은 관측값과 POP별 표본을 지역·시도 단�
     },
   ];
   const buckets: VerifiedPopBucketRow[] = [
-    { sigungu_code: "A", sido_code: "11", predicted_pop: 30, rain_count: 1, rate: 50, samples: 2 },
-    { sigungu_code: "B", sido_code: "11", predicted_pop: 30, rain_count: 2, rate: 66.7, samples: 3 },
-    { sigungu_code: "A", sido_code: "11", predicted_pop: 60, rain_count: 1, rate: 25, samples: 4 },
+    {
+      sigungu_code: "A",
+      sido_code: "11",
+      predicted_pop: 30,
+      rain_count: 1,
+      rate: 50,
+      samples: 2,
+    },
+    {
+      sigungu_code: "B",
+      sido_code: "11",
+      predicted_pop: 30,
+      rain_count: 2,
+      rate: 66.7,
+      samples: 3,
+    },
+    {
+      sigungu_code: "A",
+      sido_code: "11",
+      predicted_pop: 60,
+      rain_count: 1,
+      rate: 25,
+      samples: 4,
+    },
   ];
   const originalRows = structuredClone(rows);
   const originalBuckets = structuredClone(buckets);
 
-  assert.deepEqual(assembleCurrentWeatherResponse("2026-09-21 04:00", rows, buckets, NOW), {
-    time: "2026-09-21 04:00",
-    isStale: false,
-    count: 2,
-    data: {
-      A: {
-        ...rows[0],
-        isStale: false,
-        isRaining: false,
-        empiricalRate: 50,
-        sampleCount: 2,
-        sidoEmpiricalRate: 60,
-        sidoSampleCount: 5,
-        stats: { 30: { rate: 50, samples: 2 }, 60: { rate: 25, samples: 4 } },
-        sidoStats: { 30: { rate: 60, samples: 5 }, 60: { rate: 25, samples: 4 } },
-      },
-      B: {
-        ...rows[1],
-        isStale: false,
-        isRaining: true,
-        empiricalRate: null,
-        sampleCount: 0,
-        sidoEmpiricalRate: null,
-        sidoSampleCount: 0,
-        stats: { 30: { rate: 66.7, samples: 3 } },
-        sidoStats: { 30: { rate: 60, samples: 5 }, 60: { rate: 25, samples: 4 } },
+  assert.deepEqual(
+    assembleCurrentWeatherResponse("2026-09-21 04:00", rows, buckets, NOW),
+    {
+      time: "2026-09-21 04:00",
+      isStale: false,
+      count: 2,
+      data: {
+        A: {
+          ...rows[0],
+          isStale: false,
+          isRaining: false,
+          empiricalRate: 50,
+          sampleCount: 2,
+          sidoEmpiricalRate: 60,
+          sidoSampleCount: 5,
+          stats: { 30: { rate: 50, samples: 2 }, 60: { rate: 25, samples: 4 } },
+          sidoStats: {
+            30: { rate: 60, samples: 5 },
+            60: { rate: 25, samples: 4 },
+          },
+        },
+        B: {
+          ...rows[1],
+          isStale: false,
+          isRaining: true,
+          empiricalRate: null,
+          sampleCount: 0,
+          sidoEmpiricalRate: null,
+          sidoSampleCount: 0,
+          stats: { 30: { rate: 66.7, samples: 3 } },
+          sidoStats: {
+            30: { rate: 60, samples: 5 },
+            60: { rate: 25, samples: 4 },
+          },
+        },
       },
     },
-  });
+  );
   assert.deepEqual(rows, originalRows);
   assert.deepEqual(buckets, originalBuckets);
 });
@@ -135,7 +165,12 @@ test("관측 시각이 두 시간 이상 지나면 지역과 전체 응답을 �
 
   assert.equal(isObservationStale("2026-09-21 04:00", NOW), false);
   assert.equal(isObservationStale("2026-09-21 02:30", NOW), true);
-  const result = assembleCurrentWeatherResponse("2026-09-21 04:00", [row], [], NOW);
+  const result = assembleCurrentWeatherResponse(
+    "2026-09-21 04:00",
+    [row],
+    [],
+    NOW,
+  );
   assert.equal(result.isStale, true);
   assert.equal(result.data.A.isStale, true);
 });
