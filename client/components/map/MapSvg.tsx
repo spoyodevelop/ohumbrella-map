@@ -102,6 +102,11 @@ export function MapSvg({
   onRegionSelect,
   fillOf = (region) => chanceColor(region.rainChance),
 }: MapSvgProps) {
+  // SVG paints later paths on top. Keep the selected outline above every
+  // neighboring fill and border so shared edges retain the same thickness.
+  const orderedRegions = [...regions].sort(
+    (a, b) => Number(a.code === sigunguCode) - Number(b.code === sigunguCode),
+  );
   return (
     <SvgRoot
       ref={svgRef}
@@ -124,7 +129,7 @@ export function MapSvg({
       />
 
       <MapLayer $dragging={isDragging} $wheelZooming={isWheelZooming}>
-        {regions.map((region) => (
+        {orderedRegions.map((region) => (
           <RegionPath
             key={region.code}
             region={region}
