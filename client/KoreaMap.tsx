@@ -11,6 +11,7 @@ import { useSurpriseRain } from "./hooks/useSurpriseRain";
 import "./lib/region.css";
 import { getRainStories, RainStories } from "./components/map/RainStories";
 import { NeighborhoodFinder } from "./components/map/NeighborhoodFinder";
+import { RainLadder } from "./components/map/RainLadder";
 import { SurpriseRainPanel } from "./components/map/SurpriseRainPanel";
 import "./rain-page.css";
 
@@ -28,6 +29,8 @@ export function KoreaMap() {
   const [searchMapError, setSearchMapError] = useState("");
   const [layer, setLayer] = useState<MapLayerKind>("surprise");
   const surpriseRain = useSurpriseRain(true);
+  const sidoStats = Object.values(mapState.sidoStatsMap);
+  const maxPop = surpriseRain.data?.maxPop ?? 20;
   const stories = getRainStories(surpriseRain.data, mapState.sidos);
   // Stories are newest first; prefer Seoul/Gyeonggi without filtering the national log.
   const featuredStory =
@@ -237,15 +240,7 @@ export function KoreaMap() {
         </div>
       </section>
       <footer className="rain-footer">
-        <strong>기록 기준</strong>
-        <p>
-          낮은 강수확률은 비가 오지 않는다는 뜻이 아니에요. 이 기록은 예보의
-          정오를 판정하지 않습니다.
-        </p>
-        <p>
-          기록 1건은 한 지역의 1시간 관측이에요. 이어지는 비도 여러 건으로
-          집계되며, 지역별 관측 조건과 수집 기간이 다를 수 있어요.
-        </p>
+        <RainLadder stats={sidoStats} maxPop={maxPop} />
         <p>자료제공 및 출처: 기상청 단기예보 · 초단기실황</p>
       </footer>
     </main>
