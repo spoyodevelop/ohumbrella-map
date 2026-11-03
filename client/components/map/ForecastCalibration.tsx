@@ -48,8 +48,8 @@ export function ForecastCalibration({
           <b>{formatRate(higher)}</b> 비가 관측돼 예보와 꽤 가까웠어요.
         </p>
         <p>
-          낮은 확률에서는 오히려 예보보다 덜 왔어요. {maxPop}% 예보는 실제{" "}
-          {formatRate(low)}였어요.
+          낮은 확률에서는 실제로 비가 관측된 경우가 드물었어요. {maxPop}%
+          예보에서 비가 관측된 시간은 {formatRate(low)}였어요.
         </p>
       </div>
       <div className="calibration-chart">
