@@ -5,10 +5,10 @@ export function SiteNav() {
   return (
     <Nav aria-label="사이트">
       <NavLink to="/" end>
-        아니 땐 비
+        20% 예보에 내린 비
       </NavLink>
-      <NavLink to="/commute">출퇴근</NavLink>
-      <NavLink to="/about">소개</NavLink>
+      <NavLink to="/commute">출퇴근길 우산</NavLink>
+      <NavLink to="/about">이야기</NavLink>
     </Nav>
   );
 }
