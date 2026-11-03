@@ -16,6 +16,8 @@ export function CommutePage() {
   const [activePlace, setActivePlace] = useState<PlaceTarget | null>(null);
   const [hideDetails, setHideDetails] = useState(false);
   const [searchMapError, setSearchMapError] = useState("");
+  // 좁은 화면에서는 지도를 접어 두고 폼과 결과를 먼저 보여준다.
+  const [mapOpen, setMapOpen] = useState(false);
   function choosePlace(key: PlaceTarget, place: CommutePlace) {
     setSearchMapError("");
     commute.setDraft((s) => ({ ...s, [key]: place }));
@@ -35,7 +37,20 @@ export function CommutePage() {
       </header>
 
       <Workspace>
-        <Stage aria-label="대한민국 행정구역 강수 확률 지도">
+        <MapToggle
+          type="button"
+          aria-expanded={mapOpen}
+          aria-controls="commute-map"
+          onClick={() => setMapOpen((open) => !open)}
+        >
+          {mapOpen ? "지도 접기" : "지도에서 보기"}
+          <span aria-hidden="true">{mapOpen ? "▴" : "▾"}</span>
+        </MapToggle>
+        <Stage
+          id="commute-map"
+          data-open={mapOpen}
+          aria-label="대한민국 행정구역 강수 확률 지도"
+        >
           <MapToolbar
             onZoomIn={mapState.zoomIn}
             onZoomOut={mapState.zoomOut}
@@ -146,10 +161,40 @@ const Stage = styled.section`
   background: #e9eee7;
 
   @media (max-width: 900px) {
-    grid-row: 2;
+    grid-row: 4;
     height: 65svh;
     min-height: 460px;
     border-radius: 10px;
+
+    &[data-open="false"] {
+      display: none;
+    }
+  }
+`;
+
+const MapToggle = styled.button`
+  display: none;
+
+  @media (max-width: 900px) {
+    grid-row: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    border: 1px solid #a7b3a6;
+    border-radius: 10px;
+    color: #19251e;
+    background: #fffdf6;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid #1752de;
+      outline-offset: 2px;
+    }
   }
 `;
 
