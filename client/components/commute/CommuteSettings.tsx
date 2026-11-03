@@ -49,22 +49,6 @@ export function CommuteSettings({
     <aside className="commute-panel" aria-labelledby="commute-title">
       <div className="commute-controls">
         <h2 id="commute-title">나가기 전에, 우산 필요할까?</h2>
-        <div className="commute-travel">
-          <label htmlFor="commute-travel">이동 시간</label>
-          <select
-            id="commute-travel"
-            value={draft.travelHours}
-            onChange={(e) =>
-              setDraft((s) => ({ ...s, travelHours: Number(e.target.value) }))
-            }
-          >
-            {TRAVEL_HOURS.map((hours) => (
-              <option key={hours} value={hours}>
-                {hours}시간
-              </option>
-            ))}
-          </select>
-        </div>
         <div className="commute-fields">
           {(["home", "work"] as const).map((key) => (
             <div
@@ -78,7 +62,7 @@ export function CommuteSettings({
                 id={`commute-${key}`}
                 type="search"
                 autoComplete="off"
-                placeholder={draft[key]?.name ?? "지역 선택"}
+                placeholder="지역 검색"
                 value={activePlace === key ? query : (draft[key]?.name ?? "")}
                 onFocus={() => {
                   if (activePlace !== key) {
@@ -138,8 +122,31 @@ export function CommuteSettings({
                   </option>
                 ))}
               </select>
+              <span
+                className="commute-word commute-word-time"
+                aria-hidden="true"
+              >
+                {key === "home" ? "에 나가서" : "에 돌아와요"}
+              </span>
             </div>
           ))}
+        </div>
+        <div className="commute-travel">
+          <label htmlFor="commute-travel">가는 데</label>
+          <select
+            id="commute-travel"
+            value={draft.travelHours}
+            onChange={(e) =>
+              setDraft((s) => ({ ...s, travelHours: Number(e.target.value) }))
+            }
+          >
+            {TRAVEL_HOURS.map((hours) => (
+              <option key={hours} value={hours}>
+                {hours}시간
+              </option>
+            ))}
+          </select>
+          <span>쯤 걸려요</span>
         </div>
         {activePlace && (
           <div className="commute-picker">
@@ -189,6 +196,11 @@ export function CommuteSettings({
         >
           우산 필요한지 보기
         </button>
+        {(!draft.home || !draft.work) && (
+          <p className="commute-submit-hint">
+            집과 목적지를 고르면 볼 수 있어요.
+          </p>
+        )}
         {storageError && <p role="status">{storageError}</p>}
       </div>
       <div className="commute-output">

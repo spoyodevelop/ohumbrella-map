@@ -28,7 +28,10 @@ export function CommutePage() {
       <header className="commute-page-header">
         <p>아 맞다 우산</p>
         <h1>출퇴근길, 우산 챙길까?</h1>
-        <p>집과 목적지, 이동 시간을 설정하고 나가기 전 예보를 확인하세요.</p>
+        <p>
+          집과 목적지, 나가고 돌아오는 시각을 정하면 가는 길과 오는 길의
+          강수확률을 보여드려요.
+        </p>
       </header>
 
       <Workspace>

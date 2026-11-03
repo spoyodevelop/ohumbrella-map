@@ -27,10 +27,9 @@
 .commute-travel {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 0.78rem;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.8rem;
   color: #526052;
 }
 .commute-travel select {
@@ -50,7 +49,10 @@
 }
 .commute-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 64px;
+  grid-template-columns: 44px 72px minmax(0, 1fr);
+  grid-template-areas:
+    "label place place"
+    ". time when";
   align-items: center;
   gap: 6px;
   padding: 6px;
@@ -63,9 +65,24 @@
   outline: 1px solid #1752de;
 }
 .commute-row > label {
+  grid-area: label;
   font-size: 0.78rem;
   text-align: center;
   color: #526052;
+}
+.commute-word {
+  font-size: 0.82rem;
+  color: #526052;
+  white-space: nowrap;
+}
+.commute-row input {
+  grid-area: place;
+}
+.commute-row select {
+  grid-area: time;
+}
+.commute-word-time {
+  grid-area: when;
 }
 .commute-row input,
 .commute-row select {
@@ -82,12 +99,21 @@
 }
 .commute-row input {
   text-overflow: ellipsis;
+  padding: 8px 10px 8px 32px;
+  border: 1px solid #bac5b7;
+  background: #fffdf6
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23526052' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat 10px center;
+}
+.commute-row input:hover {
+  border-color: #8b968a;
 }
 .commute-row input::placeholder {
   color: #5e6c60;
 }
 .commute-row select {
-  border-left: 1px solid #bac5b7;
+  border: 1px solid #bac5b7;
+  background: #fffdf6;
   cursor: pointer;
 }
 .commute-row option {
@@ -332,6 +358,12 @@
   font-size: 0.75rem;
   color: #526052;
 }
+.commute-panel .commute-submit-hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #526052;
+  text-align: center;
+}
 .commute-preview {
   display: grid;
   gap: 14px;
@@ -397,9 +429,6 @@
   .commute-controls h2 {
     margin-bottom: 10px;
     font-size: 0.95rem;
-  }
-  .commute-row {
-    grid-template-columns: 44px minmax(0, 1fr) 72px;
   }
   .commute-fields {
     gap: 8px;
