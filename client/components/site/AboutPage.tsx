@@ -3,24 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { SidoStatsResponse } from "../../../shared/weather";
 import { fetchJson } from "../../lib/http";
-
-interface NationalRecord {
-  rate: number;
-  samples: number;
-}
-// Sido buckets carry rates rounded to 0.1%, so the national rate is weighted
-// by samples; the rounding stays well under the 0.1% shown.
-function nationalRecord(res: SidoStatsResponse, pop: number) {
-  let samples = 0;
-  let rain = 0;
-  for (const stat of res.stats) {
-    const bucket = stat.stats[pop];
-    if (!bucket) continue;
-    samples += bucket.samples;
-    rain += (bucket.rate * bucket.samples) / 100;
-  }
-  return samples ? { rate: (100 * rain) / samples, samples } : null;
-}
+import { nationalRecord, type NationalRecord } from "../../lib/nationalRecord";
 
 export function AboutPage() {
   const [record, setRecord] = useState<NationalRecord | null>(null);
@@ -28,7 +11,7 @@ export function AboutPage() {
     let active = true;
     fetchJson<SidoStatsResponse>("/api/weather/sido-stats")
       .then((res) => {
-        if (active) setRecord(nationalRecord(res, 30));
+        if (active) setRecord(nationalRecord(res.stats, 30));
       })
       .catch(() => {});
     return () => {

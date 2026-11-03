@@ -126,6 +126,7 @@ export function useMapData(sidoCode: string | undefined) {
     sidos: sidoRegionsWithWeather,
     sigungu: sigunguRegionsWithWeather,
     weatherTime: weatherData.weatherTime,
+    sidoStatsMap: weatherData.sidoStatsMap,
     loading: isLoading,
     error: mapErrorMessage || weatherData.errorMessage,
     preloadSigungu,
