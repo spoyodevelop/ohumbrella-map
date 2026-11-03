@@ -174,7 +174,6 @@ function CollectingNote({ since, until }: { since: string; until: string }) {
   const days =
     (Date.parse(until.slice(0, 10)) - Date.parse(since.slice(0, 10))) / DAY_MS;
   if (!(days >= 0) || days >= 365) return null;
-  const weeks = Math.max(1, Math.round(days / 7));
   const firstMonth = Number(since.slice(5, 7));
   const lastMonth = Number(until.slice(5, 7));
   return (
@@ -183,8 +182,7 @@ function CollectingNote({ since, until }: { since: string; until: string }) {
       <p>
         처음 버전(V1)은 17개 시도의 기록을 30개월 넘게 쌓았어요. 지금 버전(V2)은
         252개 시군구로 넓히면서 동네별 기록을 <b>{formatDay(since)}</b>부터 새로
-        모으기 시작해서, 아직 약 {weeks}
-        주치예요.
+        모으기 시작해서, 아직 기록이 넉넉하지 않아요.
       </p>
       <p>
         {firstMonth === lastMonth
