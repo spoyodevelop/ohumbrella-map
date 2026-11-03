@@ -14,16 +14,8 @@ import { NeighborhoodFinder } from "./components/map/NeighborhoodFinder";
 import { RainLadder } from "./components/map/RainLadder";
 import { ForecastCalibration } from "./components/map/ForecastCalibration";
 import { SurpriseRainPanel } from "./components/map/SurpriseRainPanel";
+import { formatPeriod } from "./lib/formatTime";
 import "./rain-page.css";
-
-function formatRecordPeriod(since: string, until: string) {
-  const showYear = since.slice(0, 4) !== until.slice(0, 4);
-  const format = (value: string) => {
-    const [year, month, day] = value.slice(0, 10).split("-").map(Number);
-    return `${showYear ? `${year}년 ` : ""}${month}월 ${day}일`;
-  };
-  return `${format(since)}~${format(until)} 기록`;
-}
 
 export function KoreaMap() {
   const mapState = useKoreaMap();
@@ -94,10 +86,7 @@ export function KoreaMap() {
             </p>
             <p className="record-period">
               {surpriseRain.data?.since && surpriseRain.data.until
-                ? formatRecordPeriod(
-                    surpriseRain.data.since,
-                    surpriseRain.data.until,
-                  )
+                ? `${formatPeriod(surpriseRain.data.since, surpriseRain.data.until)} 기록`
                 : surpriseRain.errorMessage
                   ? "기록 기간을 불러오지 못했어요."
                   : surpriseRain.data

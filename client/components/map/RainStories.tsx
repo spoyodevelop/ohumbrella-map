@@ -2,6 +2,7 @@ import type {
   SurpriseRainEvent,
   SurpriseRainResponse,
 } from "../../api/surpriseRain";
+import { formatHour } from "../../lib/formatTime";
 
 export interface RainStory extends SurpriseRainEvent {
   code: string;
@@ -97,7 +98,7 @@ export function RainStories({
             <strong>{story.name}</strong>
             <span aria-hidden="true">↗</span>
           </span>
-          <time>{story.time} · KST</time>
+          <time dateTime={story.time}>{formatHour(story.time)}</time>
           <StoryNumbers story={story} />
         </button>
       ))}

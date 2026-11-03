@@ -1,5 +1,6 @@
 import type { SurpriseRainResponse } from "../../api/surpriseRain";
 import { StoryNumbers, type RainStory } from "./RainStories";
+import { formatHour } from "../../lib/formatTime";
 
 export function MapHeader({
   story,
@@ -38,7 +39,7 @@ export function MapHeader({
           <>
             <p className="featured-place">{story.name}</p>
             <p className="featured-time">
-              <time>{story.time}</time> · KST 관측
+              <time dateTime={story.time}>{formatHour(story.time)}</time> 관측
             </p>
             <StoryNumbers story={story} />
             <button

@@ -3,32 +3,8 @@ import type {
   SurpriseRainEvent,
   SurpriseRainResponse,
 } from "../../api/surpriseRain";
+import { formatHour, formatPeriod } from "../../lib/formatTime";
 import type { MapRegion } from "../../types";
-
-function formatEventTime(time: string, showYear: boolean): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2})/.exec(time);
-  if (!match) return time;
-  const [, year, month, day, hourText] = match;
-  const hour = Number(hourText);
-  const hourLabel =
-    hour === 0
-      ? "밤 12시"
-      : hour < 6
-        ? `새벽 ${hour}시`
-        : hour < 12
-          ? `오전 ${hour}시`
-          : hour === 12
-            ? "낮 12시"
-            : `오후 ${hour - 12}시`;
-  return `${showYear ? `${year}년 ` : ""}${Number(month)}월 ${Number(day)}일 ${hourLabel}`;
-}
-
-function formatDay(time: string, showYear: boolean): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(time);
-  return match
-    ? `${showYear ? `${match[1]}년 ` : ""}${Number(match[2])}월 ${Number(match[3])}일`
-    : time;
-}
 
 function formatMm(rn1: number): string {
   return `${Math.round(rn1 * 10) / 10}mm`;
@@ -94,10 +70,7 @@ export function SurpriseRainPanel({
         )}
       </Label>
       {data.since && data.until && (
-        <Muted>
-          {formatDay(data.since, showYear)}~{formatDay(data.until, showYear)}{" "}
-          기록
-        </Muted>
+        <Muted>{formatPeriod(data.since, data.until)} 기록</Muted>
       )}
       {records.length > 0 && (
         <EventList aria-label="비가 온 기록">
@@ -130,7 +103,7 @@ function EventRow({
   return (
     <Row>
       {regionName && <RegionName>{regionName}</RegionName>}
-      <strong>{formatEventTime(event.time, showYear)}</strong>
+      <strong>{formatHour(event.time, showYear)}</strong>
       <RowMeta>
         예보는 <strong>{event.pop}%</strong>, 실제로는{" "}
         <RainAmount>{formatMm(event.rn1)}</RainAmount>
