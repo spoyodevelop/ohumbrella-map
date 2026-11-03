@@ -458,7 +458,7 @@
   padding: 32px 0 8px;
   color: #596259;
 }
-.rain-footer strong {
+.rain-footer > strong {
   display: block;
   font-size: 18px;
   color: #19251e;
@@ -604,7 +604,7 @@
   width: 14px;
   height: 10px;
   border-radius: 2px;
-  background: #26362b;
+  background: var(--record);
 }
 .calibration-key-tick {
   display: inline-block;
@@ -644,9 +644,6 @@
   height: 100%;
   min-width: 3px;
   border-radius: 4px;
-  background: #26362b;
-}
-.calibration-chart li.is-quiet .calibration-bar {
   background: var(--record);
 }
 .calibration-tick {

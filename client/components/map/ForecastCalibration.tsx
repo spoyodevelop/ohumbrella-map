@@ -26,7 +26,7 @@ export function ForecastCalibration({
   const higher = combinedRecord(stats, HIGHER_POPS);
   if (!low || !high || !higher) return null;
   const rows = [
-    { label: `${maxPop}%`, forecast: maxPop, record: low, quiet: true },
+    { label: `${maxPop}%`, forecast: maxPop, record: low },
     { label: `${HIGH_POP}%`, forecast: HIGH_POP, record: high },
     {
       label: `${HIGHER_POPS[0]}% 이상`,
@@ -58,8 +58,8 @@ export function ForecastCalibration({
           <span className="calibration-key-tick" aria-hidden="true" /> 예보 숫자
         </p>
         <ol aria-label="예보 강수확률과 실제로 비가 관측된 비율 비교">
-          {rows.map(({ label, forecast, record, quiet }) => (
-            <li key={label} className={quiet ? "is-quiet" : undefined}>
+          {rows.map(({ label, forecast, record }) => (
+            <li key={label}>
               <span className="calibration-label">{label}</span>
               <span className="calibration-track" aria-hidden="true">
                 <span
