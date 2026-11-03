@@ -15,25 +15,21 @@ export function MapHeader({
   return (
     <header className="rain-hero">
       <div className="hero-copy">
-        <p className="section-kicker">아 맞다 우산의 뜻밖의 비 수집</p>
         <h1>
-          아니 땐{" "}
-          <span>
-            비<i aria-hidden="true">!</i>
-          </span>
+          아 맞다 <span>우산</span>
         </h1>
         <p className="hero-description">
-          비 올 확률은 낮았는데,
+          강수확률 {data?.maxPop ?? 20}% 이하였는데
           <br />
-          정말 비가 온 순간들.
+          비가 온 기록을 모았어요.
         </p>
         <a className="explore-link" href="#rain-map">
-          어디에 왔을까? <span aria-hidden="true">↓</span>
+          지도에서 보기 <span aria-hidden="true">↓</span>
         </a>
       </div>
       <section className="featured-story" aria-label="대표 관측 기록">
         <div className="featured-top">
-          <span className="record-stamp">그런데, 비가 왔다.</span>
+          <span className="record-stamp">예보와 실제 강수량</span>
           <span className="rain-mark" aria-hidden="true">
             ☂
           </span>
@@ -62,13 +58,13 @@ export function MapHeader({
               {errorMessage
                 ? "기록을 잠시 불러올 수 없어요."
                 : data
-                  ? "다음 뜻밖의 비를 기다리는 중."
-                  : "뜻밖의 비를 찾고 있어요."}
+                  ? "이 기간에는 해당 기록이 없어요."
+                  : "기록을 불러오는 중이에요."}
             </h2>
             <p>
               {errorMessage
                 ? "잠시 후 새로고침해 주세요."
-                : "낮은 강수확률의 예보와 실제 관측을 함께 모읍니다."}
+                : "기상청 예보와 시간별 강수 관측을 비교합니다."}
             </p>
           </div>
         )}

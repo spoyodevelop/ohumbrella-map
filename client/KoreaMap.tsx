@@ -65,8 +65,7 @@ export function KoreaMap() {
       >
         <div className="explorer-heading">
           <div>
-            <p className="section-kicker">뜻밖의 비, 한눈에</p>
-            <h2 id="map-heading">어디에 내렸을까?</h2>
+            <h2 id="map-heading">아니 땐 비 기록</h2>
           </div>
           <MapLayerSwitch layer={layer} onChange={setLayer} />
         </div>
@@ -208,7 +207,7 @@ export function KoreaMap() {
         </div>
       </section>
       <footer className="rain-footer">
-        <strong>작은 확률에도, 비는 오니까.</strong>
+        <strong>기록 기준</strong>
         <p>
           낮은 강수확률은 비가 오지 않는다는 뜻이 아니에요. 이 기록은 예보의
           정오를 판정하지 않습니다.

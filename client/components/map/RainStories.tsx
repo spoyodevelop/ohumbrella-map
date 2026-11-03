@@ -84,8 +84,7 @@ export function RainStories({
     .slice(0, 4);
   return (
     <aside className="rain-stories" aria-label="최근 아니 땐 비 기록">
-      <div className="section-kicker">THE RAIN LOG</div>
-      <h3>여기, 비 왔어요.</h3>
+      <h3>최근 기록</h3>
       <p className="stories-intro">최근 기록을 누르면 그 동네로 이동해요.</p>
       {recent.map((story) => (
         <button

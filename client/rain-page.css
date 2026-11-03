@@ -36,7 +36,7 @@
   padding: 20px 0 58px;
 }
 .hero-copy h1 {
-  font-size: clamp(64px, 7.8vw, 108px);
+  font-size: clamp(48px, 6vw, 84px);
   font-weight: 900;
   letter-spacing: -0.075em;
   line-height: 1.15;
@@ -47,12 +47,7 @@
   position: relative;
   color: #1752de;
 }
-.hero-copy h1 i {
-  font-style: normal;
-  color: #1752de;
-  display: inline-block;
-  transform: rotate(12deg);
-}
+
 .hero-description {
   font-size: 23px;
   line-height: 1.5;
@@ -387,7 +382,7 @@
     gap: 30px;
   }
   .hero-copy h1 {
-    font-size: 70px;
+    font-size: clamp(44px, 6vw, 60px);
   }
   .rain-workspace {
     grid-template-columns: minmax(0, 1fr) 290px;
@@ -406,14 +401,11 @@
     padding: 4px 0 36px;
   }
   .hero-copy h1 {
-    font-size: 72px;
+    font-size: clamp(44px, 13vw, 64px);
     margin-bottom: 12px;
   }
   .hero-description {
     font-size: 19px;
-  }
-  .hero-description br {
-    display: none;
   }
   .section-kicker {
     font-size: 10px;
