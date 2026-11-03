@@ -5,18 +5,29 @@ import type {
 } from "../../api/surpriseRain";
 import type { MapRegion } from "../../types";
 
-// "2026-10-20 15:00" → "10/20 15시"
-function formatEventTime(time: string): string {
-  const match = /^\d{4}-(\d{2})-(\d{2}) (\d{2})/.exec(time);
+function formatEventTime(time: string, showYear: boolean): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2})/.exec(time);
   if (!match) return time;
-  const [, month, day, hour] = match;
-  return `${Number(month)}/${Number(day)} ${Number(hour)}시`;
+  const [, year, month, day, hourText] = match;
+  const hour = Number(hourText);
+  const hourLabel =
+    hour === 0
+      ? "밤 12시"
+      : hour < 6
+        ? `새벽 ${hour}시`
+        : hour < 12
+          ? `오전 ${hour}시`
+          : hour === 12
+            ? "낮 12시"
+            : `오후 ${hour - 12}시`;
+  return `${showYear ? `${year}년 ` : ""}${Number(month)}월 ${Number(day)}일 ${hourLabel}`;
 }
 
-function formatDay(time: string | null): string {
-  if (!time) return "";
-  const match = /^\d{4}-(\d{2})-(\d{2})/.exec(time);
-  return match ? `${Number(match[1])}/${Number(match[2])}` : time;
+function formatDay(time: string, showYear: boolean): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(time);
+  return match
+    ? `${showYear ? `${match[1]}년 ` : ""}${Number(match[2])}월 ${Number(match[3])}일`
+    : time;
 }
 
 function formatMm(rn1: number): string {
@@ -47,78 +58,76 @@ export function SurpriseRainPanel({
   }
 
   const isSigungu = selectedRegion.code.length === 5;
-  const region = isSigungu ? data.regions[selectedRegion.code] : undefined;
-  const sido = isSigungu ? undefined : data.sidos[selectedRegion.code];
-  const count = region?.count ?? sido?.count ?? 0;
-  const heavyCount = region?.heavyCount ?? sido?.heavyCount ?? 0;
-  const topRegions = isSigungu
-    ? []
-    : Object.values(data.regions)
-        .filter((r) => r.sidoCode === selectedRegion.code)
-        .sort((a, b) => b.count - a.count || b.heavyCount - a.heavyCount)
-        .slice(0, 5);
+  const matchingRegions = Object.entries(data.regions).filter(
+    ([code, region]) =>
+      isSigungu
+        ? code === selectedRegion.code
+        : region.sidoCode === selectedRegion.code,
+  );
+  const records = matchingRegions
+    .flatMap(([code, region]) =>
+      region.events.map((event) => ({ code, name: region.name, event })),
+    )
+    .sort(
+      (a, b) =>
+        b.event.time.localeCompare(a.event.time) ||
+        a.code.localeCompare(b.code),
+    )
+    .slice(0, 30);
+  const totalRecords = matchingRegions.reduce(
+    (total, [, region]) => total + region.count,
+    0,
+  );
+  const showYear = data.since?.slice(0, 4) !== data.until?.slice(0, 4);
 
   return (
     <Box>
-      <Label>예보 강수확률 {data.maxPop}% 이하였는데 비가 온 시간</Label>
-      <Count>{count}건</Count>
-      <Muted>
-        {count === 0
-          ? `${formatDay(data.since)}~${formatDay(data.until)} 기록에는 없었어요`
-          : `${heavyCount > 0 ? `${data.heavyMm}mm 이상 ${heavyCount}건 · ` : ""}${
-              sido ? `시군구 ${sido.regionCount}곳 · ` : ""
-            }${formatDay(data.since)}~${formatDay(data.until)} 기록`}
-      </Muted>
-
-      {region && region.events.length > 0 && (
-        <EventList aria-label="비가 온 시간 목록">
-          {region.events.map((event) => (
-            <EventRow key={event.time} event={event} heavyMm={data.heavyMm} />
+      <Label>
+        {records.length
+          ? "비 올 확률이 낮았는데, 비가 왔어요."
+          : "이 기간에는 해당 기록이 없어요."}
+      </Label>
+      {data.since && data.until && (
+        <Muted>
+          {formatDay(data.since, showYear)}~{formatDay(data.until, showYear)}{" "}
+          기록
+        </Muted>
+      )}
+      {records.length > 0 && (
+        <EventList aria-label="비가 온 기록">
+          {records.map(({ code, name, event }) => (
+            <EventRow
+              key={`${code}-${event.time}`}
+              event={event}
+              regionName={isSigungu ? undefined : name}
+              showYear={showYear}
+            />
           ))}
         </EventList>
       )}
-
-      {topRegions.length > 0 && (
-        <EventList aria-label="많이 기록된 시군구">
-          {topRegions.map((r) => (
-            <Row key={r.name}>
-              <span>{r.name}</span>
-              <RowMeta>
-                {r.count}건
-                {r.heavyCount > 0 && (
-                  <Heavy>
-                    {" "}
-                    · {data.heavyMm}mm↑ {r.heavyCount}
-                  </Heavy>
-                )}
-              </RowMeta>
-            </Row>
-          ))}
-        </EventList>
+      {totalRecords > records.length && (
+        <Muted>최근 {records.length}개 기록을 표시했어요.</Muted>
       )}
-
-      <Note>
-        한 지역의 1시간 관측을 1건으로 세어요. 이어지는 비도 여러 건일 수
-        있어요. 비가 온 기준은 기상청 초단기실황이에요.
-      </Note>
     </Box>
   );
 }
 
 function EventRow({
   event,
-  heavyMm,
+  regionName,
+  showYear,
 }: {
   event: SurpriseRainEvent;
-  heavyMm: number;
+  regionName?: string;
+  showYear: boolean;
 }) {
-  const heavy = event.rn1 >= heavyMm;
   return (
-    <Row $heavy={heavy}>
-      <span>{formatEventTime(event.time)}</span>
+    <Row>
+      {regionName && <RegionName>{regionName}</RegionName>}
+      <strong>{formatEventTime(event.time, showYear)}</strong>
       <RowMeta>
-        예보 {event.pop}% ·{" "}
-        {heavy ? <Heavy>{formatMm(event.rn1)}</Heavy> : formatMm(event.rn1)}
+        예보는 <strong>{event.pop}%</strong>, 실제로는{" "}
+        <RainAmount>{formatMm(event.rn1)}</RainAmount>
       </RowMeta>
     </Row>
   );
@@ -144,17 +153,12 @@ const Box = styled.div`
 `;
 
 const Label = styled.div`
-  font-size: 0.78rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  word-break: keep-all;
   font-weight: 600;
   color: #526052;
   letter-spacing: -0.02em;
-`;
-
-const Count = styled.div`
-  font-size: 1.7rem;
-  font-weight: 800;
-  line-height: 1.15;
-  color: var(--record);
 `;
 
 const Muted = styled.div`
@@ -177,35 +181,29 @@ const EventList = styled.ul`
   }
 `;
 
-const Row = styled.li<{ $heavy?: boolean }>`
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  font-size: 0.74rem;
+const Row = styled.li`
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: 1px solid rgb(var(--record-rgb) / 0.16);
+  font-size: 0.85rem;
+  line-height: 1.6;
   font-variant-numeric: tabular-nums;
-  color: ${(props) => (props.$heavy ? "#19251e" : "#394c3d")};
-  background: ${(props) =>
-    props.$heavy ? "rgb(var(--record-rgb) / 0.14)" : "transparent"};
+  color: #19251e;
+  word-break: keep-all;
 `;
 
 const RowMeta = styled.span`
   color: #526052;
-  white-space: nowrap;
 `;
 
-const Heavy = styled.strong`
+const RainAmount = styled.strong`
   color: var(--record);
-  font-weight: 700;
 `;
 
-const Note = styled.p`
-  margin: 6px 0 0;
-  font-size: 0.72rem;
-  line-height: 1.45;
+const RegionName = styled.span`
   color: #526052;
-  word-break: keep-all;
+  font-size: 0.78rem;
 `;
 
 const LegendBar = styled.div`
