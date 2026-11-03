@@ -7,6 +7,13 @@ function formatRate(record: NationalRecord) {
   return `${record.rate.toFixed(1)}%`;
 }
 
+// 정확한 건수보다 읽기 쉽도록 만 단위로 내림한다.
+function formatCount(count: number) {
+  return count >= 10000
+    ? `${Math.floor(count / 10000)}만`
+    : count.toLocaleString("ko-KR");
+}
+
 // 예보 강수확률별 실제 강수 비율을 사다리로 보여주고, 20%에서 선을 그은 이유를 말한다.
 export function RainLadder({
   stats,
@@ -57,8 +64,8 @@ export function RainLadder({
           ))}
         </ol>
         <small>
-          예보 {samples.toLocaleString("ko-KR")}시간을 1시간 관측과 짝지은
-          기록이에요. 계절에 따라 달라질 수 있어요.
+          9월 13일부터 전국 시군구에서 매시간 예보와 실제 날씨를 맞춰 본 기록{" "}
+          {formatCount(samples)}건이에요. 기록이 쌓이면서 변할 수 있어요.
         </small>
       </div>
     </section>
