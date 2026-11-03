@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { CommuteExample } from "../commute/CommuteExample";
 
 // 출퇴근 페이지가 지금 보여주는 결과 모양을 그대로 예시로 보여주고 넘겨준다.
 export function CommuteTeaser() {
@@ -18,14 +19,7 @@ export function CommuteTeaser() {
           출퇴근길 우산 보기 <span aria-hidden="true">→</span>
         </Link>
       </div>
-      <div className="teaser-example" aria-label="출퇴근 결과 예시">
-        <span className="teaser-badge">예시</span>
-        <p className="teaser-advice">우산 없이 나가도 괜찮겠어요</p>
-        <p className="teaser-line">
-          <span>오는 길 강수확률 30%</span>
-          <strong>비가 실제로는 10번 중 1번도 안 왔어요</strong>
-        </p>
-      </div>
+      <CommuteExample />
     </section>
   );
 }

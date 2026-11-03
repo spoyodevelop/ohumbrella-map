@@ -3,6 +3,7 @@ import { TRAVEL_HOURS, type CommutePlace } from "../../../shared/commute";
 import type { useCommuteSettings } from "../../hooks/useCommuteSettings";
 import { useCommuteForecast } from "../../hooks/useCommuteForecast";
 import { fetchJson } from "../../lib/http";
+import { CommuteExample } from "./CommuteExample";
 import { CommuteForecast } from "./CommuteForecast";
 import "./commute.css";
 
@@ -191,6 +192,12 @@ export function CommuteSettings({
         {storageError && <p role="status">{storageError}</p>}
       </div>
       <div className="commute-output">
+        {!data && !loading && !error && (
+          <div className="commute-preview">
+            <p>설정하면 이렇게 알려드려요.</p>
+            <CommuteExample />
+          </div>
+        )}
         {loading && <p role="status">예보를 확인하고 있어요…</p>}
         {error && <p role="alert">{error}</p>}
         {data && (

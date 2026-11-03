@@ -332,6 +332,54 @@
   font-size: 0.75rem;
   color: #526052;
 }
+.commute-preview {
+  display: grid;
+  gap: 14px;
+}
+.commute-panel .commute-preview > p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #526052;
+}
+.commute-example {
+  position: relative;
+  padding: 22px 20px 20px;
+  border-radius: 10px;
+  border: 1px dashed #a7b3a6;
+  background: #f4f6ee;
+}
+.commute-example-badge {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: #fffdf6;
+  background: #526052;
+  font-size: 11px;
+  font-weight: 700;
+}
+.commute-example .commute-example-advice {
+  margin: 0 0 8px;
+  color: #19251e;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.commute-example .commute-example-line {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.commute-example-line span {
+  color: #596259;
+}
+.commute-example-line strong {
+  color: #1752de;
+}
 @media (max-width: 900px) {
   .commute-panel {
     display: contents;
