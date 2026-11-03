@@ -77,23 +77,22 @@ const ToolBtn = styled.button`
   min-width: 40px;
   height: 40px;
   padding: 0 12px;
-  border: 1px solid #303847;
+  border: 1px solid #a7b3a6;
   border-radius: 8px;
-  color: #e9eef7;
-  background: rgb(14 18 26 / 0.88);
+  color: #19251e;
+  background: #fffdf6;
   font: inherit;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  backdrop-filter: blur(12px);
   user-select: none;
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: #202838;
-    border-color: #434f63;
+    background: #ffe55b;
+    border-color: #19251e;
   }
   &:disabled {
     opacity: 0.6;

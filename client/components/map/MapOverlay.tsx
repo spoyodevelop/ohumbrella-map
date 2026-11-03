@@ -116,7 +116,6 @@ function getDefaultPop(selectedRegion?: MapRegion): number | null {
 export function MapOverlay({
   selectedRegion,
   sidoCode,
-  scale,
 
   onCloseDetail,
   layer = "pop",
@@ -164,7 +163,7 @@ export function MapOverlay({
             )}
           </HeaderRow>
 
-          {visual && (
+          {!isSurprise && visual && (
             <LiveRainBanner $status={visual.status}>
               <RainIcon>{visual.icon}</RainIcon>
               <RainInfo>
@@ -288,10 +287,6 @@ export function MapOverlay({
           <span>100%</span>
         </Legend>
       )}
-
-      <DebugReadout>
-        <span>scale {scale.toFixed(2)}×</span>
-      </DebugReadout>
     </>
   );
 }
@@ -299,7 +294,7 @@ export function MapOverlay({
 const DetailCard = styled.aside`
   position: absolute;
   z-index: 2;
-  top: 16px;
+  top: 72px;
   left: 16px;
   display: grid;
   gap: 12px;
@@ -308,10 +303,9 @@ const DetailCard = styled.aside`
   padding: 16px;
   border: 1px solid rgba(56, 189, 248, 0.28);
   border-radius: 14px;
-  color: #aab5c6;
-  background: rgb(14 18 26 / 0.95);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  color: #526052;
+  background: #fffdf6;
+
   animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   @keyframes popIn {
@@ -326,9 +320,11 @@ const DetailCard = styled.aside`
   }
 
   @media (max-width: 640px) {
-    top: 12px;
+    top: 200px;
     left: 12px;
     right: 12px;
+    max-height: 260px;
+    overflow-y: auto;
     max-width: none;
     min-width: auto;
   }
@@ -350,7 +346,7 @@ const TitleGroup = styled.div`
 const RegionName = styled.span`
   font-size: 1.05rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #19251e;
 `;
 
 const CloseBtn = styled.button`
@@ -363,21 +359,21 @@ const CloseBtn = styled.button`
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  color: #526052;
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.18);
-    color: #f1f5f9;
+    color: #19251e;
   }
 `;
 
 const TempBadge = styled.span`
   font-size: 0.78rem;
   font-weight: 600;
-  color: #38bdf8;
+  color: #1752de;
   background: rgba(56, 189, 248, 0.14);
   padding: 2px 8px;
   border-radius: 6px;
@@ -390,9 +386,9 @@ const bannerBorderMap: Record<WeatherStatus, string> = {
 };
 
 const bannerBgMap: Record<WeatherStatus, string> = {
-  rain: "linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(37, 99, 235, 0.2))",
-  snow: "linear-gradient(135deg, rgba(88, 28, 135, 0.4), rgba(147, 51, 234, 0.2))",
-  summary: "rgba(30, 41, 59, 0.45)",
+  rain: "#e2ecff",
+  snow: "#eee3ff",
+  summary: "#edf2f6",
 };
 
 // 기온과 강수형태를 제공하는 실황 카드
@@ -419,12 +415,12 @@ const RainInfo = styled.div`
 const RainTitle = styled.div`
   font-size: 0.85rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #19251e;
 `;
 
 const RainSub = styled.div`
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: #526052;
 `;
 
 const StatsGrid = styled.div`
@@ -439,7 +435,7 @@ const StatBox = styled.div<{ record?: boolean }>`
   padding: 10px 12px;
   border-radius: 10px;
   background: ${(props) =>
-    props.record ? "rgb(var(--record-rgb) / 0.08)" : "rgba(30, 41, 59, 0.35)"};
+    props.record ? "rgb(var(--record-rgb) / 0.08)" : "#edf2f6"};
   border: 1px solid
     ${(props) =>
       props.record ? "rgb(var(--record-rgb) / 0.32)" : "rgba(51, 65, 85, 0.3)"};
@@ -456,7 +452,7 @@ const StatLabelRow = styled.div`
 const StatLabel = styled.div`
   font-size: 0.68rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: #526052;
   letter-spacing: -0.02em;
   white-space: nowrap;
 `;
@@ -488,12 +484,12 @@ const StatVal = styled.div<{ record?: boolean }>`
   font-size: ${(props) => (props.record ? "1.7rem" : "1.3rem")};
   font-weight: 800;
   line-height: 1.15;
-  color: ${(props) => (props.record ? "var(--record)" : "#cbd5e1")};
+  color: ${(props) => (props.record ? "var(--record)" : "#19251e")};
 `;
 
 const StatSubText = styled.div`
   font-size: 0.62rem;
-  color: #64748b;
+  color: #526052;
   margin-top: 3px;
 `;
 
@@ -507,9 +503,9 @@ const GuideBanner = styled.div`
   border: 1px dashed #334155;
   border-radius: 10px;
   font-size: 0.8rem;
-  color: #64748b;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(8px);
+  color: #526052;
+  background: #fffdf6;
+
   pointer-events: none;
 
   @media (max-width: 640px) {
@@ -517,6 +513,7 @@ const GuideBanner = styled.div`
     left: 12px;
     font-size: 0.74rem;
     padding: 6px 10px;
+    max-width: calc(100% - 130px);
   }
 `;
 
@@ -527,7 +524,7 @@ const Legend = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #98a3b5;
+  color: #526052;
   font-size: 0.72rem;
 
   @media (max-width: 640px) {
@@ -541,27 +538,4 @@ const LegendGradient = styled.div`
   height: 7px;
   border-radius: 999px;
   background: linear-gradient(90deg, hsl(211 35% 78%), hsl(211 80% 36%));
-`;
-
-const DebugReadout = styled.div`
-  position: absolute;
-  bottom: 18px;
-  left: 18px;
-  display: flex;
-  gap: 14px;
-  color: #758095;
-  font:
-    600 0.72rem/1.2 ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
-  letter-spacing: 0;
-  text-transform: none;
-
-  @media (max-width: 640px) {
-    bottom: 12px;
-    left: 12px;
-    flex-direction: column;
-    gap: 2px;
-  }
 `;

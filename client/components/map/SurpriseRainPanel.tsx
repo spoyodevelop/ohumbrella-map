@@ -61,11 +61,11 @@ export function SurpriseRainPanel({
   return (
     <Box>
       <Label>예보 강수확률 {data.maxPop}% 이하였는데 비가 온 시간</Label>
-      <Count>{count}번</Count>
+      <Count>{count}건</Count>
       <Muted>
         {count === 0
           ? `${formatDay(data.since)}~${formatDay(data.until)} 기록에는 없었어요`
-          : `${heavyCount > 0 ? `${data.heavyMm}mm 이상 ${heavyCount}번 · ` : ""}${
+          : `${heavyCount > 0 ? `${data.heavyMm}mm 이상 ${heavyCount}건 · ` : ""}${
               sido ? `시군구 ${sido.regionCount}곳 · ` : ""
             }${formatDay(data.since)}~${formatDay(data.until)} 기록`}
       </Muted>
@@ -84,7 +84,7 @@ export function SurpriseRainPanel({
             <Row key={r.name}>
               <span>{r.name}</span>
               <RowMeta>
-                {r.count}번
+                {r.count}건
                 {r.heavyCount > 0 && (
                   <Heavy>
                     {" "}
@@ -98,8 +98,8 @@ export function SurpriseRainPanel({
       )}
 
       <Note>
-        강수확률 {data.maxPop}%는 열 번 중 {data.maxPop / 10}번쯤은 비가 올 수
-        있다는 예보예요. 비가 온 기준은 기상청 초단기실황이에요.
+        한 지역의 1시간 관측을 1건으로 세어요. 이어지는 비도 여러 건일 수
+        있어요. 비가 온 기준은 기상청 초단기실황이에요.
       </Note>
     </Box>
   );
@@ -127,9 +127,9 @@ function EventRow({
 export function SurpriseRainLegend({ maxCount }: { maxCount: number }) {
   return (
     <>
-      <span>0번</span>
+      <span>0건</span>
       <LegendBar />
-      <span>{maxCount > 0 ? `${maxCount}번` : "—"}</span>
+      <span>{maxCount > 0 ? `${maxCount}건` : "—"}</span>
     </>
   );
 }
@@ -144,9 +144,9 @@ const Box = styled.div`
 `;
 
 const Label = styled.div`
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: #526052;
   letter-spacing: -0.02em;
 `;
 
@@ -158,14 +158,14 @@ const Count = styled.div`
 `;
 
 const Muted = styled.div`
-  font-size: 0.68rem;
-  color: #94a3b8;
+  font-size: 0.78rem;
+  color: #526052;
 `;
 
 const EventList = styled.ul`
   display: grid;
   gap: 2px;
-  max-height: 168px;
+  max-height: 300px;
   margin: 6px 0 0;
   padding: 0;
   overflow-y: auto;
@@ -173,7 +173,7 @@ const EventList = styled.ul`
   overscroll-behavior: contain;
 
   @media (max-width: 640px) {
-    max-height: 92px;
+    max-height: 220px;
   }
 `;
 
@@ -185,13 +185,13 @@ const Row = styled.li<{ $heavy?: boolean }>`
   border-radius: 6px;
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
-  color: ${(props) => (props.$heavy ? "#f8fafc" : "#aab5c6")};
+  color: ${(props) => (props.$heavy ? "#19251e" : "#394c3d")};
   background: ${(props) =>
     props.$heavy ? "rgb(var(--record-rgb) / 0.14)" : "transparent"};
 `;
 
 const RowMeta = styled.span`
-  color: #94a3b8;
+  color: #526052;
   white-space: nowrap;
 `;
 
@@ -202,9 +202,9 @@ const Heavy = styled.strong`
 
 const Note = styled.p`
   margin: 6px 0 0;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   line-height: 1.45;
-  color: #64748b;
+  color: #526052;
   word-break: keep-all;
 `;
 
