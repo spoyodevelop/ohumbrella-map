@@ -52,7 +52,8 @@ export function MapHeader({
               이 동네 기록 보기 <span aria-hidden="true">↗</span>
             </button>
             <p className="featured-caption">
-              최근 관측 시각의 기록 중 강수량이 큰 사례예요.
+              {/^(11|31)/.test(story.code) ? "서울·경기" : "전국"}의 최근 관측
+              시각 기록 중 강수량이 큰 사례예요.
             </p>
           </>
         ) : (

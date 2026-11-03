@@ -19,6 +19,9 @@ export function KoreaMap() {
   const [layer, setLayer] = useState<MapLayerKind>("surprise");
   const surpriseRain = useSurpriseRain(true);
   const stories = getRainStories(surpriseRain.data, mapState.sidos);
+  // Stories are newest first; prefer Seoul/Gyeonggi without filtering the national log.
+  const featuredStory =
+    stories.find((story) => /^(11|31)/.test(story.code)) ?? stories[0];
   function showStory(code: string) {
     setSearchMapError("");
     setLayer("surprise");
@@ -50,7 +53,7 @@ export function KoreaMap() {
   return (
     <main className="rain-page">
       <MapHeader
-        story={stories[0]}
+        story={featuredStory}
         data={surpriseRain.data}
         errorMessage={surpriseRain.errorMessage}
         onSelect={showStory}
