@@ -124,6 +124,7 @@ export function startWorker(
 
   async function collectForecast(
     round: ReturnType<typeof currentForecastRound>,
+    isRetry = false,
   ): Promise<void> {
     try {
       await syncForecasts(round);
@@ -133,7 +134,7 @@ export function startWorker(
       pendingForecastRound = round.key;
       console.error("[워커 단기예보 에러]", err);
       reportServerError(err, "worker.forecast");
-      await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
+      if (isRetry) await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
     }
   }
 
@@ -154,7 +155,8 @@ export function startWorker(
     }
     console.log(`[워커] 단기예보 ${round.key} 재시도`);
     await enqueue(`forecast:${round.key}`, async () => {
-      if (pendingForecastRound === round.key) await collectForecast(round);
+      if (pendingForecastRound === round.key)
+        await collectForecast(round, true);
     });
   });
 
