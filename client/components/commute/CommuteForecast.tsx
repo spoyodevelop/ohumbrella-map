@@ -176,7 +176,7 @@ function PlaceLadders({
           </ol>
         </div>
       ))}
-      <Link to="/about">어떻게 세었나요? →</Link>
+      <Link to="/about#how">어떻게 세었나요? →</Link>
     </section>
   );
 }
