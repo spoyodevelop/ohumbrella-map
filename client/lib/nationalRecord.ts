@@ -22,3 +22,18 @@ export function nationalRecord(
   return samples ? { rate: (100 * rain) / samples, samples } : null;
 }
 
+// 표본이 적은 높은 확률 구간을 하나로 묶는다.
+export function combinedRecord(
+  stats: readonly SidoStat[],
+  pops: readonly number[],
+): NationalRecord | null {
+  let samples = 0;
+  let rain = 0;
+  for (const pop of pops) {
+    const record = nationalRecord(stats, pop);
+    if (!record) continue;
+    samples += record.samples;
+    rain += (record.rate * record.samples) / 100;
+  }
+  return samples ? { rate: (100 * rain) / samples, samples } : null;
+}

@@ -12,6 +12,7 @@ import "./lib/region.css";
 import { getRainStories, RainStories } from "./components/map/RainStories";
 import { NeighborhoodFinder } from "./components/map/NeighborhoodFinder";
 import { RainLadder } from "./components/map/RainLadder";
+import { ForecastCalibration } from "./components/map/ForecastCalibration";
 import { SurpriseRainPanel } from "./components/map/SurpriseRainPanel";
 import "./rain-page.css";
 
@@ -241,6 +242,7 @@ export function KoreaMap() {
       </section>
       <footer className="rain-footer">
         <RainLadder stats={sidoStats} maxPop={maxPop} />
+        <ForecastCalibration stats={sidoStats} maxPop={maxPop} />
         <p>자료제공 및 출처: 기상청 단기예보 · 초단기실황</p>
       </footer>
     </main>

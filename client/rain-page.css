@@ -551,16 +551,138 @@
   line-height: 1.6;
   color: #596259;
 }
+.forecast-calibration {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 40px;
+  align-items: center;
+  margin: 0 0 20px;
+  padding: 32px 36px;
+  border: 1.5px solid #26362b;
+  border-radius: 4px;
+  background: #fff6c7;
+}
+.calibration-copy h2 {
+  margin: 0 0 12px;
+  color: #19251e;
+  font-size: 28px;
+  letter-spacing: -0.05em;
+}
+.rain-footer .calibration-copy p {
+  margin: 0 0 8px;
+  color: #19251e;
+  font-size: 15px;
+  line-height: 1.75;
+  word-break: keep-all;
+}
+.rain-footer .calibration-copy p + p {
+  color: #596259;
+  font-size: 13px;
+}
+.calibration-copy b {
+  color: #19251e;
+  background: #ffe55b;
+  padding: 0 3px;
+}
+.calibration-chart {
+  padding: 20px;
+  border-radius: 8px;
+  background: #fffdf6;
+  border: 1px solid #e8dc9c;
+}
+.rain-footer .calibration-chart .calibration-caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  color: #596259;
+  font-size: 12px;
+}
+.calibration-key-bar {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  background: #26362b;
+}
+.calibration-key-tick {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  margin-left: 8px;
+  background: #e0453a;
+}
+.calibration-chart ol {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.calibration-chart li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #19251e;
+}
+.calibration-label {
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: right;
+}
+.calibration-track {
+  position: relative;
+  height: 18px;
+  border-radius: 4px;
+  background: #ecebe2;
+}
+.calibration-bar {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 4px;
+  background: #26362b;
+}
+.calibration-chart li.is-quiet .calibration-bar {
+  background: var(--record);
+}
+.calibration-tick {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: #e0453a;
+}
+.calibration-rate {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+}
+.calibration-chart small {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #596259;
+}
 @media (max-width: 900px) {
-  .rain-ladder {
+  .rain-ladder,
+  .forecast-calibration {
     grid-template-columns: 1fr;
     gap: 20px;
     padding: 24px 20px;
   }
 }
 @media (max-width: 700px) {
-  .ladder-copy h2 {
+  .ladder-copy h2,
+  .calibration-copy h2 {
     font-size: 24px;
+  }
+  .calibration-chart li {
+    grid-template-columns: 58px minmax(0, 1fr) 48px;
+    gap: 8px;
   }
   .ladder-chart {
     padding: 16px;
