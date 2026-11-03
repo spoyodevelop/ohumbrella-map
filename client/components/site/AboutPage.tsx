@@ -2,11 +2,16 @@ import styled from "@emotion/styled";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { SidoStatsResponse } from "../../../shared/weather";
+import { loadSurpriseRain } from "../../api/surpriseRain";
+import { formatDay } from "../../lib/formatTime";
 import { fetchJson } from "../../lib/http";
 import { nationalRecord, type NationalRecord } from "../../lib/nationalRecord";
 
 export function AboutPage() {
   const [record, setRecord] = useState<NationalRecord | null>(null);
+  const [period, setPeriod] = useState<{ since: string; until: string } | null>(
+    null,
+  );
   const { hash } = useLocation();
   // 다른 페이지의 "어떻게 세었나요?" 링크(#how)로 들어오면 그 절로 바로 이동한다.
   useEffect(() => {
@@ -17,6 +22,12 @@ export function AboutPage() {
     fetchJson<SidoStatsResponse>("/api/weather/sido-stats")
       .then((res) => {
         if (active) setRecord(nationalRecord(res.stats, 30));
+      })
+      .catch(() => {});
+    loadSurpriseRain()
+      .then((res) => {
+        if (active && res.since && res.until)
+          setPeriod({ since: res.since, until: res.until });
       })
       .catch(() => {});
     return () => {
@@ -91,6 +102,8 @@ export function AboutPage() {
         </p>
       </Example>
 
+      {period && <CollectingNote {...period} />}
+
       <Story>
         <h2>왜 만들었나요?</h2>
         <p>
@@ -151,6 +164,45 @@ export function AboutPage() {
       <Credit>자료제공 및 출처: 기상청 단기예보 · 초단기실황</Credit>
       <Link to="/">지도로 돌아가기</Link>
     </Page>
+  );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 짝지은 기록이 1년이 안 되면, 무엇이 얼마나 쌓였고 무엇이 아직 부족한지 밝힌다.
+function CollectingNote({ since, until }: { since: string; until: string }) {
+  const days =
+    (Date.parse(until.slice(0, 10)) - Date.parse(since.slice(0, 10))) / DAY_MS;
+  if (!(days >= 0) || days >= 365) return null;
+  const firstMonth = Number(since.slice(5, 7));
+  const lastMonth = Number(until.slice(5, 7));
+  return (
+    <Note>
+      <h2>예보와 실제 비를 짝지은 기록, 아직 쌓는 중이에요</h2>
+      <p>
+        처음 버전(V1)은 17개 시도의 기록을 30개월 넘게 쌓았어요. 지금 버전(V2)은
+        252개 시군구로 넓히면서 동네별 기록을 <b>{formatDay(since)}</b>부터 새로
+        모으기 시작해서, 아직 기록이 넉넉하지 않아요.
+      </p>
+      <p>
+        {firstMonth === lastMonth
+          ? `${firstMonth}월`
+          : `${firstMonth}월부터 ${lastMonth}월까지`}
+        의 날씨만 담겨 있어서, 장마철이나 눈 오는 겨울처럼 다른 계절을 지나면
+        숫자가 달라질 수 있어요.
+      </p>
+      <ul>
+        <li>
+          70% 이상 같은 높은 확률 예보는 드물어서 기록이 적어요. 그래서 몇몇
+          화면에서는 묶어서 보여주거나 기록이 적은 확률을 숨겨요.
+        </li>
+        <li>
+          전국으로는 수십만 시간이 쌓였지만, 한 동네의 한 확률로 쪼개면
+          수십~수백 번이에요.
+        </li>
+      </ul>
+      <p>V1처럼 기록이 쌓일수록 숫자도 단단해질 거예요.</p>
+    </Note>
   );
 }
 
@@ -318,6 +370,38 @@ const Example = styled.div`
 
   b {
     color: #19251e;
+  }
+`;
+
+const Note = styled.div`
+  margin: 24px 0 0;
+  padding: 18px 20px;
+  border: 1px dashed #a7b3a6;
+  border-radius: 12px;
+  background: #f4f6ee;
+
+  && h2 {
+    margin: 0 0 10px;
+  }
+
+  && p {
+    margin: 0 0 10px;
+  }
+
+  && p:last-child {
+    margin: 0;
+  }
+
+  b {
+    color: #19251e;
+  }
+
+  ul {
+    margin: 0 0 10px;
+    padding-left: 18px;
+    color: #526052;
+    line-height: 1.7;
+    word-break: keep-all;
   }
 `;
 
