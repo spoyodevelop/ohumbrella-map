@@ -83,9 +83,15 @@ export function SurpriseRainPanel({
   return (
     <Box>
       <Label>
-        {records.length
-          ? "비 올 확률이 낮았는데, 비가 왔어요."
-          : "이 기간에는 해당 기록이 없어요."}
+        {records.length ? (
+          <>
+            강수확률 {data.maxPop}% 이하 예보에서
+            <br />
+            <RainEmphasis>비가 관측된</RainEmphasis> 시간 {totalRecords}건
+          </>
+        ) : (
+          "이 기간에는 해당 기록이 없어요."
+        )}
       </Label>
       {data.since && data.until && (
         <Muted>
@@ -159,6 +165,11 @@ const Label = styled.div`
   font-weight: 600;
   color: #526052;
   letter-spacing: -0.02em;
+`;
+
+const RainEmphasis = styled.strong`
+  color: var(--record);
+  font-weight: 700;
 `;
 
 const Muted = styled.div`
