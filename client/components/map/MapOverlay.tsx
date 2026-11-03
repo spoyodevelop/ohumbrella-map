@@ -297,9 +297,11 @@ const DetailCard = styled.aside`
   top: 72px;
   left: 16px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   min-width: 250px;
   max-width: 320px;
+  box-sizing: border-box;
   padding: 16px;
   border: 1px solid rgba(56, 189, 248, 0.28);
   border-radius: 14px;
@@ -425,13 +427,14 @@ const RainSub = styled.div`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 2px;
 `;
 
 // Amber marks 아 맞다 우산's own records; KMA forecasts stay neutral.
 const StatBox = styled.div<{ record?: boolean }>`
+  min-width: 0;
   padding: 10px 12px;
   border-radius: 10px;
   background: ${(props) =>
@@ -444,8 +447,9 @@ const StatBox = styled.div<{ record?: boolean }>`
 const StatLabelRow = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
-
+  gap: 4px 6px;
   min-height: 24px;
 `;
 
@@ -467,7 +471,7 @@ const PopSelect = styled.select`
   outline: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-left: 6px;
+  max-width: 100%;
 
   &:hover {
     background: rgb(var(--record-rgb) / 0.22);
