@@ -10,6 +10,7 @@ import { useKoreaMap } from "./hooks/useKoreaMap";
 import { useSurpriseRain } from "./hooks/useSurpriseRain";
 import "./lib/region.css";
 import { getRainStories, RainStories } from "./components/map/RainStories";
+import { NeighborhoodFinder } from "./components/map/NeighborhoodFinder";
 import { SurpriseRainPanel } from "./components/map/SurpriseRainPanel";
 import "./rain-page.css";
 
@@ -31,9 +32,7 @@ export function KoreaMap() {
   // Stories are newest first; prefer Seoul/Gyeonggi without filtering the national log.
   const featuredStory =
     stories.find((story) => /^(11|31)/.test(story.code)) ?? stories[0];
-  function showStory(code: string) {
-    setSearchMapError("");
-    setLayer("surprise");
+  function scrollToMap() {
     document.querySelector(".record-sidebar")?.scrollTo({ top: 0 });
     document.getElementById("rain-map")?.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -41,6 +40,11 @@ export function KoreaMap() {
         : "smooth",
       block: "start",
     });
+  }
+  function showStory(code: string) {
+    setSearchMapError("");
+    setLayer("surprise");
+    scrollToMap();
     void mapState.focusRegionByCode(code).catch(() => {
       setSearchMapError("지도를 불러오지 못했어요. 다시 선택해 주세요.");
     });
@@ -116,8 +120,6 @@ export function KoreaMap() {
               onZoomIn={mapState.zoomIn}
               onZoomOut={mapState.zoomOut}
               onShowNational={mapState.showNationalMap}
-              onLocate={mapState.locateUser}
-              isLocating={mapState.isLocating}
             />
 
             {mapState.loading && <p className="map-state">지도 불러오는 중…</p>}
@@ -213,7 +215,17 @@ export function KoreaMap() {
                   전국 기록으로 돌아가기 ↗
                 </button>
               </section>
-            ) : null}
+            ) : (
+              <NeighborhoodFinder
+                onSelect={showStory}
+                onLocate={() => {
+                  setSearchMapError("");
+                  scrollToMap();
+                  void mapState.locateUser();
+                }}
+                isLocating={mapState.isLocating}
+              />
+            )}
             <RainStories
               stories={stories}
               loading={!surpriseRain.data}
