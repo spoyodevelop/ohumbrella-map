@@ -181,8 +181,12 @@ function CollectingNote({ since, until }: { since: string; until: string }) {
     <Note>
       <h2>예보와 실제 비를 짝지은 기록, 아직 쌓는 중이에요</h2>
       <p>
-        이 기록은 <b>{formatDay(since)}</b>부터 모으기 시작해서 아직 약 {weeks}
-        주치예요.{" "}
+        처음 버전(V1)은 17개 시도의 기록을 30개월 넘게 쌓았어요. 지금 버전(V2)은
+        252개 시군구로 넓히면서 동네별 기록을 <b>{formatDay(since)}</b>부터 새로
+        모으기 시작해서, 아직 약 {weeks}
+        주치예요.
+      </p>
+      <p>
         {firstMonth === lastMonth
           ? `${firstMonth}월`
           : `${firstMonth}월부터 ${lastMonth}월까지`}
@@ -199,7 +203,7 @@ function CollectingNote({ since, until }: { since: string; until: string }) {
           수십~수백 번이에요.
         </li>
       </ul>
-      <p>V1이 30개월 동안 그랬듯, 기록이 쌓일수록 숫자도 단단해질 거예요.</p>
+      <p>V1처럼 기록이 쌓일수록 숫자도 단단해질 거예요.</p>
     </Note>
   );
 }
