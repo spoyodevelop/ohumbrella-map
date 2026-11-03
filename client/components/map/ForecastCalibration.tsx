@@ -76,8 +76,8 @@ export function ForecastCalibration({
           ))}
         </ol>
         <small>
-          {HIGHER_POPS[0]}% 이상은 표본이 적어 하나로 묶었어요(
-          {higher.samples.toLocaleString("ko-KR")}시간).
+          {HIGHER_POPS[0]}% 이상 예보는 횟수가 적어서 한 줄로 합쳐 보여드려요(
+          {higher.samples.toLocaleString("ko-KR")}건).
         </small>
       </div>
     </section>
