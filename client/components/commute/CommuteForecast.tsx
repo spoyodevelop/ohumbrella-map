@@ -123,6 +123,20 @@ function RecordLine({ top }: { top: CommutePoint }) {
     </>
   );
 }
+// The counts behind the headline, shown without opening the story.
+function RecordDetail({ top }: { top: CommutePoint }) {
+  const { rainCount, samples } = top.record!;
+  return (
+    <p className="commute-record-detail">
+      {shortName(top.place)}에서 {popOf(top)}% 예보 {samples}번 중{" "}
+      {rainCount === 0
+        ? "한 번도 비가 오지 않았어요"
+        : `${rainCount}번 비가 왔어요`}{" "}
+      ({((100 * rainCount) / samples).toFixed(1)}%).{" "}
+      <Link to="/about">어떻게 세었나요? →</Link>
+    </p>
+  );
+}
 // Every POP the short-term forecast issues; it skips from 30% to 60%.
 const STORY_POPS = [0, 20, 30, 60, 70, 80, 90, 100];
 function Story({
@@ -231,6 +245,7 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
                 <RecordLine top={top} />
               </p>
             )}
+            {top.record && <RecordDetail top={top} />}
           </>
         ) : (
           <strong>

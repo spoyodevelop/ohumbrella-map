@@ -277,6 +277,17 @@
 .commute-headline button[aria-expanded="true"]::after {
   content: " ⌄";
 }
+.commute-headline .commute-record-detail {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #465649;
+  word-break: keep-all;
+}
+.commute-record-detail a {
+  color: #1752de;
+  white-space: nowrap;
+}
 .commute-story {
   padding: 14px;
   border: 1px solid #c9cec2;
