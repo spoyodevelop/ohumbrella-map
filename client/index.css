@@ -17,10 +17,12 @@
   --record: #fbbf24;
   --record-rgb: 251 191 36;
 
-  /* 아니 땐 비 지도 단계. 넓은 면적을 칠하므로 --record보다 어둡고 차분하게 둔다. */
+  /* 아니 땐 비 지도 단계. 넓은 면적에 amber를 칠하면 눈이 피로해 지도만 라일락을 쓴다.
+     위계는 명도로 읽히도록 low는 배경 가까이, high는 밝게 둔다. */
   --surprise-map-empty: #1b212d;
-  --surprise-map-low: #33301f;
-  --surprise-map-high: #c4983f;
+  --surprise-map-low: #2c2a3d;
+  --surprise-map-mid: #6f63a3;
+  --surprise-map-high: #d9cff5;
 }
 
 html {

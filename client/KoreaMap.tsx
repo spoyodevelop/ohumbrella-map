@@ -150,6 +150,7 @@ export function KoreaMap() {
                 }
               }}
               fillOf={fillOf}
+              layer={layer}
               onRegionSelect={(region) => {
                 setSearchMapError("");
                 mapState.selectRegion(region);
