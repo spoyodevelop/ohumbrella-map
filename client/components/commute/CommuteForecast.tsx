@@ -9,12 +9,6 @@ import type {
   PopRecord,
 } from "../../../shared/commute";
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-const pointLabels: Record<CommutePointKind, string> = {
-  leaveHome: "집에서 출발",
-  arriveWork: "목적지 도착",
-  leaveWork: "목적지에서 출발",
-  arriveHome: "집 도착",
-};
 const precipitation: Record<number, string> = {
   1: "비",
   2: "비/눈",
@@ -36,14 +30,6 @@ function when(day: CommuteDay, point: CommutePoint) {
 function shortName(name: string) {
   const words = name.split(" ");
   return words.length > 1 ? words.slice(1).join(" ") : name;
-}
-function reading(point: CommutePoint) {
-  if (point.status === "elapsed") return "지난 시간";
-  const pty = point.forecast?.pty?.value;
-  const pop = point.forecast?.pop;
-  const parts = [pop ? `${pop.value}%` : "예보 없음"];
-  if (pty) parts.push(precipitation[pty]);
-  return parts.join(" · ");
 }
 const popOf = (p: CommutePoint) => p.forecast!.pop!.value;
 const rateOf = (p: CommutePoint) =>
@@ -118,84 +104,84 @@ function RecordLine({ top }: { top: CommutePoint }) {
     <>
       {lead}
       <span className="commute-record-part">
-        비가 {often ? "실제로도" : "실제로는"} {recordSentence(top.record)}
+        {shortName(top.place)}에선 비가 {often ? "실제로도" : "실제로는"}{" "}
+        {recordSentence(top.record)}
+      </span>
+      <span className="commute-record-count">
+        같은 확률 예보 {top.record.samples}번 기록
       </span>
     </>
   );
 }
-// Every POP the short-term forecast issues; it skips from 30% to 60%.
-const STORY_POPS = [0, 20, 30, 60, 70, 80, 90, 100];
-function Story({
+type Leg = "go" | "back";
+const legPoints: Record<Leg, CommutePointKind[]> = {
+  go: ["leaveHome", "arriveWork"],
+  back: ["leaveWork", "arriveHome"],
+};
+// One row per leg: the higher POP of its two points, plus any precipitation type.
+function legReading(points: CommutePoint[]) {
+  const upcoming = points.filter((p) => p.status !== "elapsed");
+  if (!upcoming.length) return "지난 시간";
+  const known = upcoming.filter((p) => p.status === "ok");
+  if (!known.length) return "예보 없음";
+  const pop = Math.max(...known.map(popOf));
+  const pty = known.find((p) => p.forecast?.pty?.value)?.forecast?.pty?.value;
+  return pty ? `${pop}% · ${precipitation[pty]}` : `${pop}%`;
+}
+// Observed rain rate by forecast POP for each commute place; the POPs in
+// today's forecast are highlighted. Thin buckets are left out.
+const MIN_SAMPLES = 10;
+function PlaceLadders({
   places,
-  initial,
+  day,
 }: {
   places: PlaceRecords[] | null;
-  initial: CommutePoint | null;
+  day: CommuteDay;
 }) {
-  const start =
-    places?.find((p) => p.place.name === initial?.place) ?? places?.[0];
-  const [code, setCode] = useState(start?.place.code ?? "");
-  const [pop, setPop] = useState(initial ? popOf(initial) : 30);
-  const current = places?.find((p) => p.place.code === code);
-  const record = current?.records.find((r) => r.pop === pop);
+  const shown = (places ?? [])
+    .map(({ place, records }) => ({
+      place,
+      records: records.filter((r) => r.samples >= MIN_SAMPLES),
+      current: new Set(
+        day.points
+          .filter((p) => p.status === "ok" && p.place === place.name)
+          .map(popOf),
+      ),
+    }))
+    .filter(({ records }) => records.length > 0);
+  if (!shown.length) return null;
   return (
-    <section className="commute-story" aria-label="아 맞다 우산 이야기">
-      {current ? (
-        <div className="commute-story-query">
-          <p>
-            {places!.length > 1 ? (
-              <select
-                aria-label="지역"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              >
-                {places!.map(({ place }) => (
-                  <option key={place.code} value={place.code}>
-                    {shortName(place.name)}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              shortName(current.place.name)
-            )}
-            에서 기상청 강수확률이{" "}
-            <select
-              aria-label="기상청 강수확률"
-              value={pop}
-              onChange={(e) => setPop(Number(e.target.value))}
-            >
-              {STORY_POPS.map((value) => (
-                <option key={value} value={value}>
-                  {value}%
-                </option>
-              ))}
-            </select>
-            일 때
-          </p>
-          <strong>
-            {!record
-              ? "아직 이 확률의 기록이 없어요"
-              : record.rainCount === 0
-                ? `${record.samples}번 중 한 번도 비가 오지 않았어요`
-                : `${record.samples}번 중 ${record.rainCount}번 비가 왔어요`}
-            {record && " "}
-            {record && (
-              <span className="commute-story-rate">
-                ({((100 * record.rainCount) / record.samples).toFixed(1)}%)
-              </span>
-            )}
-          </strong>
+    <section className="commute-ladders" aria-label="동네별 강수확률 기록">
+      <h3>강수확률별로, 실제로는?</h3>
+      <p>같은 확률 예보 뒤 실제로 비가 관측된 비율이에요.</p>
+      {shown.map(({ place, records, current }) => (
+        <div key={place.code} className="commute-ladder">
+          <strong>{shortName(place.name)}</strong>
+          <ol>
+            {records.map((r) => {
+              const rate = (100 * r.rainCount) / r.samples;
+              return (
+                <li
+                  key={r.pop}
+                  className={current.has(r.pop) ? "is-current" : undefined}
+                >
+                  <span>{r.pop}%</span>
+                  <span className="commute-ladder-track" aria-hidden="true">
+                    <span style={{ width: `${rate}%` }} />
+                  </span>
+                  <span>{rate.toFixed(1)}%</span>
+                </li>
+              );
+            })}
+          </ol>
         </div>
-      ) : (
-        <p>지금은 기록을 불러오지 못했어요.</p>
-      )}
-      <Link to="/about">이 숫자는 어디서 왔나요? →</Link>
+      ))}
+      <Link to="/about">어떻게 세었나요? →</Link>
     </section>
   );
 }
 export function CommuteForecast({ data }: { data: CommuteResponse }) {
   const [selected, setSelected] = useState(data.defaultDay);
-  const [storyOpen, setStoryOpen] = useState(false);
   const day = data.days.find((d) => d.key === selected) ?? data.days[0];
   const top = headlinePoint(day);
   return (
@@ -218,19 +204,9 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
             {noUmbrella(day) && (
               <p className="commute-advice">우산 없이 나가도 괜찮겠어요</p>
             )}
-            {top.record ? (
-              <button
-                type="button"
-                aria-expanded={storyOpen}
-                onClick={() => setStoryOpen((open) => !open)}
-              >
-                <RecordLine top={top} />
-              </button>
-            ) : (
-              <p>
-                <RecordLine top={top} />
-              </p>
-            )}
+            <p className="commute-record-line">
+              <RecordLine top={top} />
+            </p>
           </>
         ) : (
           <strong>
@@ -240,29 +216,33 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
           </strong>
         )}
       </div>
-      {storyOpen && <Story places={data.places} initial={top} />}
       <ol className="commute-points">
-        {day.points.map((point) => (
-          <li
-            key={point.kind}
-            className={[
-              point.status === "elapsed" && "is-elapsed",
-              point.rain && "is-rain",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <span>
-              {pointLabels[point.kind]} · {when(day, point)}
-            </span>
-            <span>{reading(point)}</span>
-          </li>
-        ))}
+        {(["go", "back"] as const).map((leg) => {
+          const points = day.points.filter((p) =>
+            legPoints[leg].includes(p.kind),
+          );
+          if (!points.length) return null;
+          return (
+            <li
+              key={leg}
+              className={[
+                points.every((p) => p.status === "elapsed") && "is-elapsed",
+                points.some((p) => p.rain) && "is-rain",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <span>
+                {leg === "go" ? "가는 길" : "오는 길"} · {when(day, points[0])}–
+                {when(day, points[points.length - 1])}
+              </span>
+              <span>{legReading(points)}</span>
+            </li>
+          );
+        })}
       </ol>
-      <small>
-        기록은 지난 예보와 실제 날씨를 비교한 참고 자료예요. 자료제공: 기상청 ·
-        한국 시간 기준
-      </small>
+      <PlaceLadders places={data.places} day={day} />
+      <small>자료: 기상청 단기예보·초단기실황</small>
     </div>
   );
 }

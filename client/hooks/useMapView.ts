@@ -2,11 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MapPoint, MapRegion, MapView } from "../types";
 import { MAP_CENTER } from "../constants/map";
 
-const INITIAL_SCALE = 1.65;
+const INITIAL_SCALE = 1;
 const INITIAL_VIEW: MapView = {
   scale: INITIAL_SCALE,
-  x: MAP_CENTER.x - MAP_CENTER.x * INITIAL_SCALE + 60.0,
-  y: MAP_CENTER.y - MAP_CENTER.y * INITIAL_SCALE + 100.0,
+  x: MAP_CENTER.x - MAP_CENTER.x * INITIAL_SCALE,
+  y: MAP_CENTER.y - MAP_CENTER.y * INITIAL_SCALE,
 };
 const MIN_SCALE = 0.8;
 const MAX_SCALE = 12;

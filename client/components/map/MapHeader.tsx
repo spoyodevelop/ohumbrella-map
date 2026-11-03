@@ -1,110 +1,75 @@
-import styled from "@emotion/styled";
-import type { MapRegion } from "../../types";
+import type { SurpriseRainResponse } from "../../api/surpriseRain";
+import { StoryNumbers, type RainStory } from "./RainStories";
+import { formatHour } from "../../lib/formatTime";
 
-interface MapHeaderProps {
-  currentSido: MapRegion | undefined;
-  weatherTime?: string;
-}
-
-export function MapHeader({ currentSido, weatherTime }: MapHeaderProps) {
+export function MapHeader({
+  story,
+  data,
+  errorMessage,
+  onSelect,
+}: {
+  story?: RainStory;
+  data: SurpriseRainResponse | null;
+  errorMessage: string;
+  onSelect: (code: string) => void;
+}) {
   return (
-    <Header>
-      <div>
-        <Eyebrow>
-          아 맞다 우산 <BetaBadge>beta</BetaBadge>
-        </Eyebrow>
-        <Title>강수확률 30%, 우산 챙겨야 할까?</Title>
-        <Subtitle>
-          {currentSido?.name ?? "전국 252개 시군구"}의 예보와 실제 비를 매시간
-          기록하고 있어요
-        </Subtitle>
+    <header className="rain-hero">
+      <div className="hero-copy">
+        <h1>
+          아 맞다 <span>우산!</span>
+        </h1>
+        <p className="hero-description">
+          우산 안 챙겼는데 비 온 적 있죠?
+          <br />
+          강수확률이 낮았는데도 비가 온 기록을 모았어요.
+        </p>
+        <a className="explore-link" href="#rain-map">
+          지도에서 보기 <span aria-hidden="true">↓</span>
+        </a>
       </div>
-      {weatherTime && (
-        <Status>
-          <div>실황 기준 시각</div>
-          <strong>{weatherTime}</strong>
-          <KmaCredit>자료제공 및 출처: 기상청</KmaCredit>
-        </Status>
-      )}
-    </Header>
+      <section className="featured-story" aria-label="대표 관측 기록">
+        <div className="featured-top">
+          <span className="record-stamp">예보와 실제 강수량</span>
+          <span className="rain-mark" aria-hidden="true">
+            ☂
+          </span>
+        </div>
+        {story ? (
+          <>
+            <p className="featured-place">{story.name}</p>
+            <p className="featured-time">
+              <time dateTime={story.time}>{formatHour(story.time)}</time> 관측
+            </p>
+            <StoryNumbers story={story} />
+            <button
+              className="featured-link"
+              onClick={() => onSelect(story.code)}
+            >
+              이 동네 기록 보기 <span aria-hidden="true">↗</span>
+            </button>
+            <p className="featured-caption">
+              {/^(11|31)/.test(story.code) ? "서울·경기" : "전국"}의 최근 관측
+              시각 기록 중 강수량이 큰 사례예요.
+            </p>
+          </>
+        ) : (
+          <div className="featured-empty" role="status">
+            <h2>
+              {errorMessage
+                ? "기록을 잠시 불러올 수 없어요."
+                : data
+                  ? "이 기간에는 해당 기록이 없어요."
+                  : "기록을 불러오는 중이에요."}
+            </h2>
+            <p>
+              {errorMessage
+                ? "잠시 후 새로고침해 주세요."
+                : "기상청 예보와 시간별 강수 관측을 비교합니다."}
+            </p>
+          </div>
+        )}
+      </section>
+    </header>
   );
 }
-
-const Header = styled.header`
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
-`;
-
-const Eyebrow = styled.p`
-  margin: 0;
-  color: #758095;
-  font:
-    600 0.72rem/1.2 ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-`;
-
-const Title = styled.h1`
-  margin: 4px 0 0;
-  color: #f5f7fb;
-  font-size: clamp(1.8rem, 5vw, 3.3rem);
-  line-height: 1;
-  letter-spacing: -0.055em;
-`;
-
-const Subtitle = styled.p`
-  margin: 10px 0 0;
-  color: #9aa6b8;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  word-break: keep-all;
-`;
-
-const Status = styled.div`
-  color: #758095;
-  font:
-    600 0.72rem/1.2 ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-align: right;
-
-  strong {
-    color: #dce5f2;
-    font-size: 1rem;
-  }
-`;
-
-const KmaCredit = styled.span`
-  display: block;
-  margin-top: 4px;
-  color: #4a5568;
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  white-space: nowrap;
-`;
-
-const BetaBadge = styled.span`
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 6px;
-  border: 1px solid #3a5a8a;
-  border-radius: 4px;
-  background: rgb(30 60 110 / 0.35);
-  color: #7eb8f7;
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
-  vertical-align: middle;
-  position: relative;
-  top: -1px;
-`;

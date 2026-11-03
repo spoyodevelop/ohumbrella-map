@@ -72,7 +72,9 @@ export function useKoreaMap() {
     clearSelection,
     selectedRegion,
     regions: visibleRegions,
+    sidos: mapData.sidos,
     weatherTime: mapData.weatherTime,
+    sidoStatsMap: mapData.sidoStatsMap,
     loading: mapData.loading,
     error: mapData.error,
   };

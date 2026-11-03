@@ -1,10 +1,5 @@
 import { useState } from "react";
 import type { MapRegion } from "./types";
-import type { CommutePlace } from "../shared/commute";
-import type { PlaceTarget } from "./components/commute/CommuteSettings";
-import { useCommuteSettings } from "./hooks/useCommuteSettings";
-import { CommuteSettings } from "./components/commute/CommuteSettings";
-import styled from "@emotion/styled";
 import { MapHeader } from "./components/map/MapHeader";
 import { MapLayerSwitch } from "./components/map/MapLayerSwitch";
 import { MapOverlay, type MapLayerKind } from "./components/map/MapOverlay";
@@ -14,15 +9,43 @@ import { surpriseRainColor, surpriseRainCount } from "./lib/surpriseRain";
 import { useKoreaMap } from "./hooks/useKoreaMap";
 import { useSurpriseRain } from "./hooks/useSurpriseRain";
 import "./lib/region.css";
+import { getRainStories, RainStories } from "./components/map/RainStories";
+import { NeighborhoodFinder } from "./components/map/NeighborhoodFinder";
+import { RainLadder } from "./components/map/RainLadder";
+import { ForecastCalibration } from "./components/map/ForecastCalibration";
+import { CommuteTeaser } from "./components/map/CommuteTeaser";
+import { SurpriseRainPanel } from "./components/map/SurpriseRainPanel";
+import { formatPeriod } from "./lib/formatTime";
+import "./rain-page.css";
 
 export function KoreaMap() {
   const mapState = useKoreaMap();
-  const commute = useCommuteSettings();
-  const [activePlace, setActivePlace] = useState<PlaceTarget | null>(null);
-  const [hideDetails, setHideDetails] = useState(false);
   const [searchMapError, setSearchMapError] = useState("");
-  const [layer, setLayer] = useState<MapLayerKind>("pop");
-  const surpriseRain = useSurpriseRain(layer === "surprise");
+  const [layer, setLayer] = useState<MapLayerKind>("surprise");
+  const surpriseRain = useSurpriseRain(true);
+  const sidoStats = Object.values(mapState.sidoStatsMap);
+  const maxPop = surpriseRain.data?.maxPop ?? 20;
+  const stories = getRainStories(surpriseRain.data, mapState.sidos);
+  // Stories are newest first; prefer Seoul/Gyeonggi without filtering the national log.
+  const featuredStory =
+    stories.find((story) => /^(11|31)/.test(story.code)) ?? stories[0];
+  function scrollToMap() {
+    document.querySelector(".record-sidebar")?.scrollTo({ top: 0 });
+    document.getElementById("rain-map")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+      block: "start",
+    });
+  }
+  function showStory(code: string) {
+    setSearchMapError("");
+    setLayer("surprise");
+    scrollToMap();
+    void mapState.focusRegionByCode(code).catch(() => {
+      setSearchMapError("지도를 불러오지 못했어요. 다시 선택해 주세요.");
+    });
+  }
   // 보이는 단계(시도/시군구) 안에서 가장 많은 곳을 진한 색 기준으로 삼는다.
   const surpriseMaxCount = mapState.regions.reduce(
     (max, region) =>
@@ -37,167 +60,183 @@ export function KoreaMap() {
             surpriseMaxCount,
           )
       : undefined;
-  function choosePlace(key: PlaceTarget, place: CommutePlace) {
-    setSearchMapError("");
-    commute.setDraft((s) => ({ ...s, [key]: place }));
-    setActivePlace(null);
-    setHideDetails(true);
-  }
-
   return (
-    <Shell>
+    <main className="rain-page">
       <MapHeader
-        currentSido={mapState.currentSido}
-        weatherTime={mapState.weatherTime}
+        story={featuredStory}
+        data={surpriseRain.data}
+        errorMessage={surpriseRain.errorMessage}
+        onSelect={showStory}
       />
-
-      <Workspace>
-        <Stage aria-label="대한민국 행정구역 강수 확률 지도">
-          <MapToolbar
-            onZoomIn={mapState.zoomIn}
-            onZoomOut={mapState.zoomOut}
-            onShowNational={mapState.showNationalMap}
-            onLocate={mapState.locateUser}
-            isLocating={mapState.isLocating}
-          />
-
-          {mapState.loading && <LoadState>지도 불러오는 중…</LoadState>}
-          {(mapState.error || searchMapError) && (
-            <LoadError role="status">
-              {searchMapError ||
-                `데이터를 읽지 못했습니다. (${mapState.error})`}
-            </LoadError>
-          )}
-
-          <MapSvg
-            svgRef={mapState.svgRef}
-            regions={mapState.regions}
-            isDragging={mapState.isDragging}
-            isWheelZooming={mapState.isWheelZooming}
-            sidoCode={mapState.sidoCode}
-            sigunguCode={mapState.sigunguCode}
-            currentSidoName={mapState.currentSido?.name}
-            onPointerDown={mapState.handlePointerDown}
-            onPointerMove={mapState.handlePointerMove}
-            onPointerUp={mapState.handlePointerUp}
-            onBackgroundClick={() => {
-              if (mapState.sigunguCode !== undefined) {
-                mapState.clearSelection();
-              } else if (mapState.sidoCode !== undefined) {
-                mapState.showNationalMap();
-              }
-            }}
-            fillOf={fillOf}
-            layer={layer}
-            onRegionSelect={(region) => {
-              if (!mapState.selectRegion(region)) return;
-              if (activePlace && region.code.length === 5) {
-                choosePlace(activePlace, {
-                  code: region.code,
-                  name: `${mapState.currentSido?.name ?? ""} ${region.name}`.trim(),
-                });
-              } else if (!activePlace) setHideDetails(false);
-            }}
-          />
-
-          {!activePlace && !hideDetails && (
-            <MapOverlay
-              key={mapState.selectedRegion?.code ?? "no-selection"}
-              selectedRegion={mapState.selectedRegion}
-              sidoCode={mapState.sidoCode}
-              scale={mapState.view.scale}
-              isSimgunguLod={mapState.sidoCode !== undefined}
-              onCloseDetail={mapState.clearSelection}
-              layer={layer}
-              surpriseRain={surpriseRain.data}
-              surpriseRainError={surpriseRain.errorMessage}
-              surpriseMaxCount={surpriseMaxCount}
-            />
-          )}
+      <section
+        id="rain-map"
+        className="rain-explorer"
+        aria-labelledby="map-heading"
+      >
+        <div className="explorer-heading">
+          <div>
+            <h2 id="map-heading">비가 안 온다고 한 것 같은데… 비가 왔네?</h2>
+          </div>
           <MapLayerSwitch layer={layer} onChange={setLayer} />
-        </Stage>
-        <CommuteSettings
-          settings={commute}
-          activePlace={activePlace}
-          onActivate={setActivePlace}
-          onChoose={(key, place) => {
-            choosePlace(key, place);
-            void mapState.focusRegionByCode(place.code).catch(() => {
-              setSearchMapError("장소는 설정했지만 지도를 불러오지 못했어요.");
-            });
-          }}
-        />
-      </Workspace>
-    </Shell>
+        </div>
+        {layer === "surprise" ? (
+          <>
+            <p className="map-description">
+              강수확률이 {surpriseRain.data?.maxPop ?? 20}% 이하였는데 실제로
+              비가 온 지역이에요.
+            </p>
+            <p className="record-period">
+              {surpriseRain.data?.since && surpriseRain.data.until
+                ? `${formatPeriod(surpriseRain.data.since, surpriseRain.data.until)} 기록`
+                : surpriseRain.errorMessage
+                  ? "기록 기간을 불러오지 못했어요."
+                  : surpriseRain.data
+                    ? "아직 기록된 기간이 없어요."
+                    : "기록 기간을 불러오는 중이에요."}
+            </p>
+          </>
+        ) : (
+          <p className="record-period">
+            기상청 단기예보 강수확률 · 실황 기준{" "}
+            {mapState.weatherTime ?? "자료 불러오는 중"}
+          </p>
+        )}
+        <div className="rain-workspace">
+          <section
+            className="map-stage"
+            aria-label={
+              layer === "surprise"
+                ? "대한민국 아니 땐 비 기록 지도"
+                : "대한민국 강수확률 지도"
+            }
+          >
+            <MapToolbar
+              onZoomIn={mapState.zoomIn}
+              onZoomOut={mapState.zoomOut}
+              onShowNational={mapState.showNationalMap}
+            />
+
+            {mapState.loading && <p className="map-state">지도 불러오는 중…</p>}
+            {layer === "surprise" && !surpriseRain.data && (
+              <p className="map-state" role="status">
+                {surpriseRain.errorMessage
+                  ? "비 기록을 불러오지 못했어요. 잠시 후 새로고침해 주세요."
+                  : "비 기록을 불러오는 중…"}
+              </p>
+            )}
+            {(mapState.error || searchMapError) && (
+              <p className="map-state map-error" role="status">
+                {searchMapError ||
+                  `데이터를 읽지 못했습니다. (${mapState.error})`}
+              </p>
+            )}
+
+            <MapSvg
+              svgRef={mapState.svgRef}
+              regions={mapState.regions}
+              isDragging={mapState.isDragging}
+              isWheelZooming={mapState.isWheelZooming}
+              sidoCode={mapState.sidoCode}
+              sigunguCode={mapState.sigunguCode}
+              currentSidoName={mapState.currentSido?.name}
+              onPointerDown={mapState.handlePointerDown}
+              onPointerMove={mapState.handlePointerMove}
+              onPointerUp={mapState.handlePointerUp}
+              onBackgroundClick={() => {
+                if (mapState.sigunguCode !== undefined) {
+                  mapState.clearSelection();
+                } else if (mapState.sidoCode !== undefined) {
+                  mapState.showNationalMap();
+                }
+              }}
+              fillOf={fillOf}
+              layer={layer}
+              onRegionSelect={(region) => {
+                setSearchMapError("");
+                mapState.selectRegion(region);
+              }}
+            />
+
+            {layer === "pop" && (
+              <MapOverlay
+                key={mapState.selectedRegion?.code ?? "no-selection"}
+                selectedRegion={mapState.selectedRegion}
+                sidoCode={mapState.sidoCode}
+                scale={mapState.view.scale}
+                isSimgunguLod={mapState.sidoCode !== undefined}
+                onCloseDetail={mapState.clearSelection}
+                layer={layer}
+                surpriseRain={surpriseRain.data}
+                surpriseRainError={surpriseRain.errorMessage}
+                surpriseMaxCount={surpriseMaxCount}
+              />
+            )}
+            {layer === "surprise" && surpriseRain.data && (
+              <div className="map-record-legend">
+                <span>기록 없음</span>
+                <span className="map-color-scale" />
+                <span>많음</span>
+              </div>
+            )}
+            {layer === "surprise" && (
+              <p className="map-hint">
+                {mapState.currentSido
+                  ? `${mapState.currentSido.name} · 구/군을 선택해 보세요`
+                  : "지역을 눌러 그 동네의 기록을 살펴보세요"}
+              </p>
+            )}
+          </section>
+          <div className="record-sidebar">
+            {layer === "surprise" && mapState.selectedRegion ? (
+              <section className="selected-record" aria-live="polite">
+                <div className="selected-heading">
+                  <h3>{mapState.selectedRegion.name}</h3>
+                  <button
+                    onClick={mapState.clearSelection}
+                    aria-label="지역 선택 해제"
+                  >
+                    닫기 ×
+                  </button>
+                </div>
+                <SurpriseRainPanel
+                  data={surpriseRain.data}
+                  errorMessage={surpriseRain.errorMessage}
+                  selectedRegion={mapState.selectedRegion}
+                />
+                <button
+                  className="all-records"
+                  onClick={mapState.showNationalMap}
+                >
+                  전국 기록으로 돌아가기 ↗
+                </button>
+              </section>
+            ) : (
+              <NeighborhoodFinder
+                onSelect={showStory}
+                onLocate={() => {
+                  setSearchMapError("");
+                  scrollToMap();
+                  void mapState.locateUser();
+                }}
+                isLocating={mapState.isLocating}
+              />
+            )}
+            <RainStories
+              stories={stories}
+              loading={!surpriseRain.data}
+              errorMessage={surpriseRain.errorMessage}
+              onSelect={showStory}
+              selectedCode={mapState.sigunguCode}
+            />
+          </div>
+        </div>
+      </section>
+      <footer className="rain-footer">
+        <RainLadder stats={sidoStats} maxPop={maxPop} />
+        <ForecastCalibration stats={sidoStats} maxPop={maxPop} />
+        <CommuteTeaser />
+        <p>자료제공 및 출처: 기상청 단기예보 · 초단기실황</p>
+      </footer>
+    </main>
   );
 }
-
-const Shell = styled.main`
-  width: min(100%, 1600px);
-  min-height: 100svh;
-  margin: 0 auto;
-  padding: 28px;
-  box-sizing: border-box;
-
-  @media (max-width: 640px) {
-    padding: 16px;
-  }
-`;
-
-const Workspace = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
-  gap: 20px;
-  height: min(78svh, 880px);
-  min-height: 560px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    height: auto;
-    min-height: 0;
-  }
-`;
-
-const Stage = styled.section`
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid #242a35;
-  border-radius: 14px;
-  background: radial-gradient(
-    circle at 50% 48%,
-    #171d28 0,
-    #0d1118 52%,
-    #080a0f 100%
-  );
-  box-shadow: 0 22px 70px rgb(0 0 0 / 0.35);
-
-  @media (max-width: 900px) {
-    grid-row: 2;
-    height: 65svh;
-    min-height: 460px;
-    border-radius: 10px;
-  }
-`;
-
-const LoadState = styled.p`
-  position: absolute;
-  z-index: 3;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  margin: 0;
-  padding: 8px 12px;
-  border: 1px solid #303847;
-  border-radius: 8px;
-  color: #cbd5e1;
-  background: rgb(14 18 26 / 0.84);
-`;
-
-const LoadError = styled.p`
-  position: absolute;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  color: #ff8f8f;
-`;

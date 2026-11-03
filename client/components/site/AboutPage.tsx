@@ -3,24 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { SidoStatsResponse } from "../../../shared/weather";
 import { fetchJson } from "../../lib/http";
-
-interface NationalRecord {
-  rate: number;
-  samples: number;
-}
-// Sido buckets carry rates rounded to 0.1%, so the national rate is weighted
-// by samples; the rounding stays well under the 0.1% shown.
-function nationalRecord(res: SidoStatsResponse, pop: number) {
-  let samples = 0;
-  let rain = 0;
-  for (const stat of res.stats) {
-    const bucket = stat.stats[pop];
-    if (!bucket) continue;
-    samples += bucket.samples;
-    rain += (bucket.rate * bucket.samples) / 100;
-  }
-  return samples ? { rate: (100 * rain) / samples, samples } : null;
-}
+import { nationalRecord, type NationalRecord } from "../../lib/nationalRecord";
 
 export function AboutPage() {
   const [record, setRecord] = useState<NationalRecord | null>(null);
@@ -28,7 +11,7 @@ export function AboutPage() {
     let active = true;
     fetchJson<SidoStatsResponse>("/api/weather/sido-stats")
       .then((res) => {
-        if (active) setRecord(nationalRecord(res, 30));
+        if (active) setRecord(nationalRecord(res.stats, 30));
       })
       .catch(() => {});
     return () => {
@@ -141,6 +124,9 @@ export function AboutPage() {
 }
 
 const Page = styled.main`
+  color: #19251e;
+  --record: #1752de;
+  --record-rgb: 23 82 222;
   width: min(100%, 720px);
   margin: 0 auto;
   padding: 48px 28px;
@@ -157,12 +143,12 @@ const Page = styled.main`
   h2 {
     margin: 0 0 10px;
     font-size: 1.05rem;
-    color: #e9eef7;
+    color: #19251e;
   }
 
   p {
     margin: 0 0 16px;
-    color: #b4bfcf;
+    color: #526052;
     line-height: 1.7;
     word-break: keep-all;
   }
@@ -170,9 +156,9 @@ const Page = styled.main`
   section {
     margin: 32px 0 24px;
     padding: 20px;
-    border: 1px solid #303847;
+    border: 1px solid #c9cec2;
     border-radius: 12px;
-    background: #101722;
+    background: #fffdf6;
   }
 
   section p {
@@ -180,7 +166,7 @@ const Page = styled.main`
   }
 
   a {
-    color: #b9daf7;
+    color: #1752de;
   }
 
   /* Amber marks 아 맞다 우산's own findings, as on the map and panel. */
@@ -211,9 +197,9 @@ const Steps = styled.ol`
     column-gap: 12px;
     align-items: start;
     padding: 12px 14px;
-    border: 1px solid #252e3c;
+    border: 1px solid #c9cec2;
     border-radius: 10px;
-    background: #0d131c;
+    background: #fffdf6;
     counter-increment: step;
   }
 
@@ -227,15 +213,15 @@ const Steps = styled.ol`
     border-radius: 50%;
     color: #0b1220;
     font-weight: 800;
-    background: #94a3b8;
+    background: #ffe55b;
   }
 
   b {
-    color: #e9eef7;
+    color: #19251e;
   }
 
   span {
-    color: #b4bfcf;
+    color: #526052;
     line-height: 1.6;
     word-break: keep-all;
   }
@@ -261,7 +247,7 @@ const Example = styled.div`
   }
 
   b {
-    color: #e9eef7;
+    color: #19251e;
   }
 `;
 
@@ -285,22 +271,22 @@ const Figures = styled.div`
 
   div {
     padding: 18px;
-    border: 1px solid #303847;
+    border: 1px solid #c9cec2;
     border-radius: 12px;
-    background: #101722;
+    background: #fffdf6;
   }
 
   span,
   small {
     display: block;
-    color: #758095;
+    color: #526052;
     font-size: 0.78rem;
     word-break: keep-all;
   }
 
   .forecast {
     margin-top: 10px;
-    color: #94a3b8;
+    color: #526052;
     font-size: 1rem;
     font-weight: 600;
   }
@@ -334,7 +320,7 @@ const Expansion = styled.div`
 const Eyebrow = styled.p`
   && {
     margin: 0 0 10px;
-    color: #758095;
+    color: #526052;
     font:
       600 0.72rem/1.2 ui-monospace,
       SFMono-Regular,
