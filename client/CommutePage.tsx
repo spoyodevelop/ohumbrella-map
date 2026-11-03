@@ -110,7 +110,7 @@ const Shell = styled.main`
   width: min(100%, 1360px);
   min-height: 100svh;
   margin: 0 auto;
-  padding: 28px;
+  padding: 40px;
   box-sizing: border-box;
 
   @media (max-width: 640px) {
@@ -138,15 +138,9 @@ const Stage = styled.section`
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid #242a35;
+  border: 1px solid #a7b3a6;
   border-radius: 14px;
-  background: radial-gradient(
-    circle at 50% 48%,
-    #171d28 0,
-    #0d1118 52%,
-    #080a0f 100%
-  );
-  box-shadow: 0 22px 70px rgb(0 0 0 / 0.35);
+  background: #e9eee7;
 
   @media (max-width: 900px) {
     grid-row: 2;
@@ -163,15 +157,15 @@ const LoadState = styled.p`
   transform: translate(-50%, -50%);
   margin: 0;
   padding: 8px 12px;
-  border: 1px solid #303847;
+  border: 1px solid #c9cec2;
   border-radius: 8px;
-  color: #cbd5e1;
-  background: rgb(14 18 26 / 0.84);
+  color: #19251e;
+  background: #fffdf6;
 `;
 
 const LoadError = styled.p`
   position: absolute;
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
-  color: #ff8f8f;
+  color: #a82c1b;
 `;
