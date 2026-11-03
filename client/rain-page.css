@@ -667,9 +667,94 @@
   line-height: 1.6;
   color: #596259;
 }
+.commute-teaser {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 40px;
+  align-items: center;
+  margin: 0 0 20px;
+  padding: 32px 36px;
+  border: 1.5px solid #26362b;
+  border-radius: 4px;
+  background: #fffdf6;
+}
+.teaser-copy h2 {
+  margin: 0 0 12px;
+  color: #19251e;
+  font-size: 28px;
+  letter-spacing: -0.05em;
+}
+.rain-footer .teaser-copy p {
+  margin: 0 0 18px;
+  color: #19251e;
+  font-size: 15px;
+  line-height: 1.75;
+  word-break: keep-all;
+}
+.teaser-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1.5px solid #19251e;
+  border-radius: 10px;
+  color: #19251e;
+  background: #ffe55b;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.teaser-link:hover {
+  background: #ffd91f;
+}
+.teaser-link:focus-visible {
+  outline: 2px solid #6ebaff;
+  outline-offset: 2px;
+}
+.teaser-example {
+  position: relative;
+  padding: 22px 20px 20px;
+  border-radius: 10px;
+  border: 1px dashed #a7b3a6;
+  background: #f4f6ee;
+}
+.teaser-badge {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: #fffdf6;
+  background: #526052;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rain-footer .teaser-example .teaser-advice {
+  margin: 0 0 8px;
+  color: #19251e;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.rain-footer .teaser-example .teaser-line {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.teaser-line span {
+  color: #596259;
+}
+.teaser-line strong {
+  color: var(--record);
+}
 @media (max-width: 900px) {
   .rain-ladder,
-  .forecast-calibration {
+  .forecast-calibration,
+  .commute-teaser {
     grid-template-columns: 1fr;
     gap: 20px;
     padding: 24px 20px;
@@ -677,7 +762,8 @@
 }
 @media (max-width: 700px) {
   .ladder-copy h2,
-  .calibration-copy h2 {
+  .calibration-copy h2,
+  .teaser-copy h2 {
     font-size: 24px;
   }
   .calibration-chart li {
