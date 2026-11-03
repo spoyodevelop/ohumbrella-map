@@ -7,13 +7,13 @@ interface MapLayerSwitchProps {
 }
 
 const LAYERS: { value: MapLayerKind; label: string }[] = [
-  { value: "surprise", label: "아니 땐 비" },
-  { value: "pop", label: "현재 예보" },
+  { value: "surprise", label: "비가 왔던 곳" },
+  { value: "pop", label: "지금 강수확률" },
 ];
 
 export function MapLayerSwitch({ layer, onChange }: MapLayerSwitchProps) {
   return (
-    <Switch role="radiogroup" aria-label="지도 레이어">
+    <Switch role="radiogroup" aria-label="지도에서 볼 정보">
       {LAYERS.map(({ value, label }) => (
         <Option
           key={value}

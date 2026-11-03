@@ -16,12 +16,12 @@ export function MapHeader({
     <header className="rain-hero">
       <div className="hero-copy">
         <h1>
-          아 맞다 <span>우산</span>
+          아 맞다 <span>우산!</span>
         </h1>
         <p className="hero-description">
-          강수확률 {data?.maxPop ?? 20}% 이하였는데
+          우산 안 챙겼는데 비 온 적 있죠?
           <br />
-          비가 온 기록을 모았어요.
+          강수확률이 낮았는데도 비가 온 기록을 모았어요.
         </p>
         <a className="explore-link" href="#rain-map">
           지도에서 보기 <span aria-hidden="true">↓</span>

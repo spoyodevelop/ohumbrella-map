@@ -13,6 +13,15 @@ import { getRainStories, RainStories } from "./components/map/RainStories";
 import { SurpriseRainPanel } from "./components/map/SurpriseRainPanel";
 import "./rain-page.css";
 
+function formatRecordPeriod(since: string, until: string) {
+  const showYear = since.slice(0, 4) !== until.slice(0, 4);
+  const format = (value: string) => {
+    const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+    return `${showYear ? `${year}년 ` : ""}${month}월 ${day}일`;
+  };
+  return `${format(since)}~${format(until)} 기록`;
+}
+
 export function KoreaMap() {
   const mapState = useKoreaMap();
   const [searchMapError, setSearchMapError] = useState("");
@@ -65,26 +74,35 @@ export function KoreaMap() {
       >
         <div className="explorer-heading">
           <div>
-            <h2 id="map-heading">아니 땐 비 기록</h2>
+            <h2 id="map-heading">비가 안 온다고 한 것 같은데… 비가 왔네?</h2>
           </div>
           <MapLayerSwitch layer={layer} onChange={setLayer} />
         </div>
-        <p className="record-period">
-          {layer === "surprise" ? (
-            <>
+        {layer === "surprise" ? (
+          <>
+            <p className="map-description">
+              강수확률이 {surpriseRain.data?.maxPop ?? 20}% 이하였는데 실제로
+              비가 온 지역이에요.
+            </p>
+            <p className="record-period">
               {surpriseRain.data?.since && surpriseRain.data.until
-                ? `${surpriseRain.data.since.slice(0, 10)} — ${surpriseRain.data.until.slice(0, 10)} · KST 기록`
-                : "관측 기록 수집 중"}{" "}
-              · 예보 강수확률 {surpriseRain.data?.maxPop ?? 20}% 이하에서 관측된
-              비
-            </>
-          ) : (
-            <>
-              기상청 단기예보 강수확률 · 실황 기준{" "}
-              {mapState.weatherTime ?? "자료 불러오는 중"}
-            </>
-          )}
-        </p>
+                ? formatRecordPeriod(
+                    surpriseRain.data.since,
+                    surpriseRain.data.until,
+                  )
+                : surpriseRain.errorMessage
+                  ? "기록 기간을 불러오지 못했어요."
+                  : surpriseRain.data
+                    ? "아직 기록된 기간이 없어요."
+                    : "기록 기간을 불러오는 중이에요."}
+            </p>
+          </>
+        ) : (
+          <p className="record-period">
+            기상청 단기예보 강수확률 · 실황 기준{" "}
+            {mapState.weatherTime ?? "자료 불러오는 중"}
+          </p>
+        )}
         <div className="rain-workspace">
           <section
             className="map-stage"

@@ -180,9 +180,20 @@
   margin-bottom: 6px;
 }
 .explorer-heading h2 {
+  word-break: keep-all;
+  line-height: 1.4;
   font-size: 32px;
   letter-spacing: -0.055em;
   margin: 0;
+}
+.map-description {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  word-break: keep-all;
+}
+.map-description + .record-period {
+  margin-top: 4px;
 }
 .record-period {
   font-size: 12px;
