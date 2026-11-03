@@ -365,3 +365,19 @@
     padding: 16px;
   }
 }
+
+.commute-page-header {
+  color: #19251e;
+  margin-bottom: 24px;
+}
+.commute-page-header h1 {
+  font-size: clamp(28px, 4vw, 48px);
+  letter-spacing: -0.055em;
+  margin: 8px 0 12px;
+}
+.commute-page-header p {
+  color: #526052;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}

@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router";
+import { CommutePage } from "./CommutePage";
 import { KoreaMap } from "./KoreaMap";
 import { AboutPage } from "./components/site/AboutPage";
 import { SiteNav } from "./components/site/SiteNav";
@@ -10,6 +11,7 @@ export default function App() {
     <>
       <SiteNav />
       <Routes>
+        <Route path="/commute" element={<CommutePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<KoreaMap />} />
       </Routes>

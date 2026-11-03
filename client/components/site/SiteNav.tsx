@@ -7,6 +7,7 @@ export function SiteNav() {
       <NavLink to="/" end>
         아니 땐 비
       </NavLink>
+      <NavLink to="/commute">출퇴근</NavLink>
       <NavLink to="/about">소개</NavLink>
     </Nav>
   );
