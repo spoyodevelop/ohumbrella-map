@@ -9,11 +9,7 @@ import { surpriseRainColor, surpriseRainCount } from "./lib/surpriseRain";
 import { useKoreaMap } from "./hooks/useKoreaMap";
 import { useSurpriseRain } from "./hooks/useSurpriseRain";
 import "./lib/region.css";
-import {
-  getRainStories,
-  pickFeaturedStory,
-  RainStories,
-} from "./components/map/RainStories";
+import { getRainStories, RainStories } from "./components/map/RainStories";
 import { NeighborhoodFinder } from "./components/map/NeighborhoodFinder";
 import { RainLadder } from "./components/map/RainLadder";
 import { ForecastCalibration } from "./components/map/ForecastCalibration";
@@ -30,7 +26,7 @@ export function KoreaMap() {
   const sidoStats = Object.values(mapState.sidoStatsMap);
   const maxPop = surpriseRain.data?.maxPop ?? 20;
   const stories = getRainStories(surpriseRain.data, mapState.sidos);
-  const featuredStory = pickFeaturedStory(stories);
+  const featuredStory = stories[0];
   function scrollToMap() {
     document.querySelector(".record-sidebar")?.scrollTo({ top: 0 });
     document.getElementById("rain-map")?.scrollIntoView({

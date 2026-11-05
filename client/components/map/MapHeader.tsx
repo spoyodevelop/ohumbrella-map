@@ -1,5 +1,5 @@
 import type { SurpriseRainResponse } from "../../api/surpriseRain";
-import { FEATURED_MIN_MM, StoryNumbers, type RainStory } from "./RainStories";
+import { StoryNumbers, type RainStory } from "./RainStories";
 import { formatHour } from "../../lib/formatTime";
 
 export function MapHeader({
@@ -49,9 +49,7 @@ export function MapHeader({
               이 동네 기록 보기 <span aria-hidden="true">↗</span>
             </button>
             <p className="featured-caption">
-              {story.rn1 >= FEATURED_MIN_MM
-                ? `한 시간에 ${FEATURED_MIN_MM}mm 이상 내린 가장 최근 기록이에요.`
-                : "가장 최근 관측 기록이에요."}
+              전국에서 가장 최근에 관측된 기록이에요.
             </p>
           </>
         ) : (
