@@ -80,6 +80,8 @@ export function NeighborhoodFinder({
               <button
                 type="button"
                 className={index === highlight ? "is-highlighted" : ""}
+                data-umami-event="region-select"
+                data-umami-event-source="search"
                 onClick={() => choose(region)}
               >
                 {region.name}
@@ -100,6 +102,8 @@ export function NeighborhoodFinder({
       <button
         type="button"
         className="locate-button"
+        data-umami-event="region-select"
+        data-umami-event-source="locate"
         onClick={onLocate}
         disabled={isLocating}
       >

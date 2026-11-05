@@ -44,6 +44,8 @@ export function MapHeader({
             <StoryNumbers story={story} />
             <button
               className="featured-link"
+              data-umami-event="region-select"
+              data-umami-event-source="featured"
               onClick={() => onSelect(story.code)}
             >
               이 동네 기록 보기 <span aria-hidden="true">↗</span>
