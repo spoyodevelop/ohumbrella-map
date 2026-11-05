@@ -26,9 +26,7 @@ export function KoreaMap() {
   const sidoStats = Object.values(mapState.sidoStatsMap);
   const maxPop = surpriseRain.data?.maxPop ?? 20;
   const stories = getRainStories(surpriseRain.data, mapState.sidos);
-  // Stories are newest first; prefer Seoul/Gyeonggi without filtering the national log.
-  const featuredStory =
-    stories.find((story) => /^(11|31)/.test(story.code)) ?? stories[0];
+  const featuredStory = stories[0];
   function scrollToMap() {
     document.querySelector(".record-sidebar")?.scrollTo({ top: 0 });
     document.getElementById("rain-map")?.scrollIntoView({
