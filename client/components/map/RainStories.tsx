@@ -9,8 +9,8 @@ export interface RainStory extends SurpriseRainEvent {
   name: string;
 }
 
-// Each region supplies its latest 30 records. Feature the latest available
-// observation, breaking ties by rainfall, then region code for stability.
+// Each region supplies its latest 30 records. List the latest observations
+// first, breaking ties by rainfall, then region code for stability.
 export function getRainStories(
   data: SurpriseRainResponse | null,
   sidos: { code: string; name: string }[] = [],
@@ -35,6 +35,15 @@ export function getRainStories(
         b.rn1 - a.rn1 ||
         a.code.localeCompare(b.code),
     );
+}
+
+// KMA calls 3mm or more an hour moderate rain; the hero card features that.
+export const FEATURED_MIN_MM = 3;
+
+// Stories are newest first; fall back to the newest record when nothing
+// reached FEATURED_MIN_MM.
+export function pickFeaturedStory(stories: RainStory[]): RainStory | undefined {
+  return stories.find((story) => story.rn1 >= FEATURED_MIN_MM) ?? stories[0];
 }
 
 export function StoryNumbers({ story }: { story: RainStory }) {
