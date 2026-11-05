@@ -21,6 +21,8 @@ function RegionPath({ region, fill, selected, onSelect }: RegionPathProps) {
       style={{ fill }}
       className={selected ? "region is-selected" : "region"}
       vectorEffect="non-scaling-stroke"
+      data-umami-event="region-select"
+      data-umami-event-source="map"
       onClick={onSelect}
     >
       <title>{region.name}</title>

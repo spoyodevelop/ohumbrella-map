@@ -15,7 +15,11 @@ export function CommuteTeaser() {
           길의 강수확률을 보여드려요. 그 확률일 때 그 동네에 실제로 비가 온
           기록도 함께요.
         </p>
-        <Link className="teaser-link" to="/commute">
+        <Link
+          className="teaser-link"
+          to="/commute"
+          data-umami-event="commute-teaser"
+        >
           출퇴근길 우산 보기 <span aria-hidden="true">→</span>
         </Link>
       </div>

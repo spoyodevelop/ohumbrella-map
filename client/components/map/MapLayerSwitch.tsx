@@ -22,6 +22,8 @@ export function MapLayerSwitch({ layer, onChange }: MapLayerSwitchProps) {
           aria-checked={layer === value}
           $active={layer === value}
           $record={value === "surprise"}
+          data-umami-event="layer-switch"
+          data-umami-event-to={value}
           onClick={() => onChange(value)}
         >
           {label}

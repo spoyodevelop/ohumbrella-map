@@ -91,6 +91,8 @@ export function RainStories({
         <button
           className="story-card"
           key={`${story.code}-${story.time}`}
+          data-umami-event="region-select"
+          data-umami-event-source="story"
           onClick={() => onSelect(story.code)}
           aria-pressed={selectedCode === story.code}
         >

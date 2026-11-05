@@ -187,6 +187,7 @@ export function CommuteSettings({
         )}
         <button
           className="commute-submit"
+          data-umami-event="commute-submit"
           type="button"
           disabled={!draft.home || !draft.work}
           onClick={() => {
