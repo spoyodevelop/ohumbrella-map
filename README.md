@@ -1,3 +1,5 @@
+<img width="2622" height="1704" alt="CleanShot 2026-11-08 at 01 53 34@2x" src="https://github.com/user-attachments/assets/1de87dc4-bcfc-4f3d-8903-db1f785ddd31" />
+
 # ☂️ 아 맞다 우산
 
 **기상청의 강수확률 예보와 실제 강수 관측을 비교해, 우리 동네에서는 얼마나 자주 비가 왔는지 보여주는 서비스입니다.**
