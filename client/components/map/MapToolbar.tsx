@@ -20,8 +20,8 @@ export function MapToolbar({
       {onLocate && (
         <ToolBtn
           type="button"
-          data-umami-event="region-select"
-          data-umami-event-source="locate"
+          data-track="region_select"
+          data-track-source="locate"
           onClick={onLocate}
           disabled={isLocating}
           aria-label="현재 위치로 이동"

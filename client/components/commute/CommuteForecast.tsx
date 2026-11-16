@@ -192,8 +192,8 @@ export function CommuteForecast({ data }: { data: CommuteResponse }) {
             key={d.key}
             type="button"
             aria-pressed={d.key === day.key}
-            data-umami-event="commute-day"
-            data-umami-event-day={d.key}
+            data-track="commute_day"
+            data-track-day={d.key}
             onClick={() => setSelected(d.key)}
           >
             {dayLabel(d)}
