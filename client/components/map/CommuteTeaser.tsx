@@ -18,7 +18,7 @@ export function CommuteTeaser() {
         <Link
           className="teaser-link"
           to="/commute"
-          data-umami-event="commute-teaser"
+          data-track="commute_teaser"
         >
           출퇴근길 우산 보기 <span aria-hidden="true">→</span>
         </Link>
