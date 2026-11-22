@@ -1,3 +1,9 @@
+// 실황은 매시 40~58분 2분 간격으로 확인한다. 58분이 그 회차의 마지막 확인이다.
+export function isLastNcstCheckOfRound(d = new Date()): boolean {
+  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return kst.getUTCMinutes() >= 58;
+}
+
 export function getNcstBaseDateTime(d = new Date()) {
   const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
   let hours = kst.getUTCHours();
