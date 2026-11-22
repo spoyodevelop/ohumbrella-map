@@ -13,6 +13,7 @@ import {
   type KmaObservationItem,
 } from "./kmaParse.ts";
 import { fetchKmaWithRetry, type KmaFetchResult } from "./kmaClient.ts";
+import { exceedsGridFailureLimit } from "./gridFailures.ts";
 import {
   upsertObservationsBatch,
   upsertObservationReadModelBatch,
@@ -104,6 +105,7 @@ export async function syncObservations(
   const observationsToInsert: ObservationRecord[] = [];
   const hourlyToInsert: ObservationReadModelRecord[] = [];
   let missingGrids = 0;
+  const failedGridKeys: string[] = [];
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -116,10 +118,16 @@ export async function syncObservations(
         try {
           result = await fetchKmaWithRetry<KmaObservationItem>(ncstUrl, 3, 400);
         } catch (error) {
-          throw new Error(
-            `실황 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`,
-            { cause: error },
+          console.warn(
+            `[실황 요청 실패] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`,
+            error,
           );
+          return {
+            obsList: [],
+            hourList: [],
+            missing: false,
+            failedGridKey: grid.gridKey,
+          };
         }
         if (result.kind === "no-data") {
           console.warn(
@@ -173,6 +181,7 @@ export async function syncObservations(
       observationsToInsert.push(...res.obsList);
       hourlyToInsert.push(...res.hourList);
       if (res.missing) missingGrids++;
+      if (res.failedGridKey) failedGridKeys.push(res.failedGridKey);
     }
 
     console.log(
@@ -193,13 +202,21 @@ export async function syncObservations(
   // 이 관측 시각에 매칭되는 예보들로 정확도 집계 누적
   await syncAccuracyForObservationTime(obsTimeStr);
 
-  if (missingGrids > 0) {
+  if (exceedsGridFailureLimit(failedGridKeys.length, distinctGrids.length)) {
+    throw new Error(
+      `실황 수집 실패: ${ncstDate} ${ncstTime} 격자 ${failedGridKeys.length}/${distinctGrids.length}개 요청 실패`,
+    );
+  }
+
+  if (missingGrids > 0 || failedGridKeys.length > 0) {
     reportServerWarning(
-      "실황 수집에서 일부 격자 자료 없음",
+      "실황 수집에서 일부 격자 누락",
       "worker.observation",
       {
         baseTime: obsTimeStr,
         missingGrids,
+        failedGrids: failedGridKeys.length,
+        failedGridKeys: failedGridKeys.join(","),
         totalGrids: distinctGrids.length,
       },
     );
@@ -230,6 +247,7 @@ export async function syncForecasts(
   }[] = [];
   let missingGrids = 0;
   let invalidPopGrids = 0;
+  const failedGridKeys: string[] = [];
   const chunkSize = 12;
 
   for (let i = 0; i < distinctGrids.length; i += chunkSize) {
@@ -242,10 +260,17 @@ export async function syncForecasts(
         try {
           result = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
         } catch (error) {
-          throw new Error(
-            `예보 격자 ${grid.gridKey} (${gridRegionNames(grid)}) 요청 실패`,
-            { cause: error },
+          console.warn(
+            `[예보 요청 실패] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`,
+            error,
           );
+          return {
+            fcstList: [] as ForecastRecord[],
+            popUpdates: [],
+            missing: false,
+            invalidPop: false,
+            failedGridKey: grid.gridKey,
+          };
         }
         if (result.kind === "no-data") {
           console.warn(
@@ -316,6 +341,8 @@ export async function syncForecasts(
       forecastPopUpdates.push(...res.popUpdates);
       if (res.missing) missingGrids++;
       if (res.invalidPop) invalidPopGrids++;
+      if ("failedGridKey" in res && res.failedGridKey)
+        failedGridKeys.push(res.failedGridKey);
     }
 
     console.log(
@@ -334,11 +361,19 @@ export async function syncForecasts(
   await syncAccuracyForForecastBaseTime(baseTimeStr);
   await updateLatestForecastReadModelBatch(forecastPopUpdates);
 
-  if (missingGrids > 0 || invalidPopGrids > 0) {
+  if (exceedsGridFailureLimit(failedGridKeys.length, distinctGrids.length)) {
+    throw new Error(
+      `예보 수집 실패: ${fcstDate} ${fcstTime} 격자 ${failedGridKeys.length}/${distinctGrids.length}개 요청 실패`,
+    );
+  }
+
+  if (missingGrids > 0 || invalidPopGrids > 0 || failedGridKeys.length > 0) {
     reportServerWarning("예보 수집에서 일부 격자 누락", "worker.forecast", {
       baseTime: baseTimeStr,
       missingGrids,
       invalidPopGrids,
+      failedGrids: failedGridKeys.length,
+      failedGridKeys: failedGridKeys.join(","),
       totalGrids: distinctGrids.length,
     });
   }
