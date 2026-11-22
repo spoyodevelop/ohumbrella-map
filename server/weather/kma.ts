@@ -5,6 +5,7 @@ import {
   calculateLeadHours,
   getNcstBaseDateTime,
   getVilageBaseDateTime,
+  isLastNcstCheckOfRound,
 } from "./kmaTime.ts";
 import {
   parseForecastItems,
@@ -49,7 +50,7 @@ export async function checkCanaryNcstUpdated(
 ) {
   const serviceKey = requireKmaServiceKey();
   const kst = new Date(checkedAt.getTime() + 9 * 60 * 60 * 1000);
-  const lastCheckOfRound = kst.getUTCMinutes() >= 58;
+  const lastCheckOfRound = isLastNcstCheckOfRound(checkedAt);
   const currentHour = kst.getUTCHours();
   const baseDate =
     kst.getUTCFullYear() +

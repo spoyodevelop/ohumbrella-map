@@ -4,6 +4,7 @@ import {
   calculateLeadHours,
   getNcstBaseDateTime,
   getVilageBaseDateTime,
+  isLastNcstCheckOfRound,
 } from "./kmaTime.ts";
 
 test("실황 발표 시각은 한국 시간 40분에 다음 회차로 바뀐다", () => {
@@ -43,4 +44,9 @@ test("단기예보 발표 시각은 한국 시간 15분에 다음 회차로 바�
 test("예보 선행 시간은 날짜가 바뀌어도 계산한다", () => {
   assert.equal(calculateLeadHours("2026-12-31 23:00", "2027-01-01 02:00"), 3);
   assert.equal(calculateLeadHours("2026-09-21 05:00", "2026-09-21 04:00"), 0);
+});
+
+test("실황 마지막 확인은 한국 시간 58분부터다", () => {
+  assert.equal(isLastNcstCheckOfRound(new Date("2026-11-22T02:56:00Z")), false);
+  assert.equal(isLastNcstCheckOfRound(new Date("2026-11-22T02:58:00Z")), true);
 });

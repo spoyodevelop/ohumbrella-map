@@ -4,6 +4,7 @@ import { reportServerError } from "./monitoring.ts";
 import {
   getNcstBaseDateTime,
   getVilageBaseDateTime,
+  isLastNcstCheckOfRound,
 } from "./weather/kmaTime.ts";
 import { createWorkerQueue } from "./workerQueue.ts";
 import {
@@ -92,11 +93,24 @@ export function startWorker(
     await enqueue(
       `observation:${round.baseDate}:${round.baseTime}`,
       async () => {
+        let canary: Awaited<ReturnType<typeof checkCanaryNcstUpdated>>;
         try {
-          const canary = await checkCanaryNcstUpdated(
+          canary = await checkCanaryNcstUpdated(
             lastSyncedObservationRound,
             checkedAt,
           );
+        } catch (err) {
+          // 카나리 1개 요청 실패는 2분 뒤 다음 확인에서 다시 본다.
+          // 회차의 마지막 확인(58분)에서도 실패할 때만 헬스체크를 울린다.
+          console.error("[워커 실황 카나리 에러]", err);
+          reportServerError(err, "worker.observation.canary");
+          if (isLastNcstCheckOfRound(checkedAt)) {
+            await pingHealthcheck(process.env.HEALTHCHECK_NCST_URL, err);
+          }
+          return;
+        }
+
+        try {
           if (canary.updated) {
             console.log(
               `[워커] 새 실황(${canary.baseTime}) 감지! 전국 실황 수집 실행`,
