@@ -13,8 +13,9 @@ import {
   type KmaForecastItem,
   type KmaObservationItem,
 } from "./kmaParse.ts";
-import { fetchKmaWithRetry, type KmaFetchResult } from "./kmaClient.ts";
-import { exceedsGridFailureLimit } from "./gridFailures.ts";
+import { fetchKmaWithRetry } from "./kmaClient.ts";
+import { exceedsGridFailureLimit, GridFailureError } from "./gridFailures.ts";
+import { collectGrids, type GridCollectOptions } from "./gridCollector.ts";
 import {
   upsertObservationsBatch,
   upsertObservationReadModelBatch,
@@ -33,8 +34,6 @@ loadServerEnv();
 
 const BASE_URL =
   "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0";
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function gridRegionNames(grid: DistinctGrid): string {
   return grid.sigunguCodes
@@ -90,6 +89,37 @@ export async function checkCanaryNcstUpdated(
   };
 }
 
+function collectOptions(label: string): GridCollectOptions<DistinctGrid> {
+  return {
+    onChunkDone: (done, total, chunk) =>
+      console.log(
+        `[${label} 진행] ${done} / ${total} 격자 완료... [처리 지역] ${chunk.map(gridRegionNames).join(", ")}`,
+      ),
+    onOutage: (pause, max, chunk) =>
+      console.warn(
+        `[${label} 장애 감지] 묶음 ${chunk.length}개 격자 전부 실패, 잠시 쉬고 다시 시도 (${pause}/${max})`,
+      ),
+  };
+}
+
+function logFailedGrids(
+  label: string,
+  failed: { grid: DistinctGrid; error: unknown }[],
+) {
+  for (const { grid, error } of failed) {
+    console.warn(
+      `[${label} 요청 실패] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`,
+      error,
+    );
+  }
+}
+
+function selectGrids(gridKeys?: string[]): DistinctGrid[] {
+  if (!gridKeys) return distinctGrids;
+  const wanted = new Set(gridKeys);
+  return distinctGrids.filter((grid) => wanted.has(grid.gridKey));
+}
+
 // --------------------------------------------------------------------------
 // 1. [실황 전용 수집] 1시간마다 1회만 호출 (getUltraSrtNcst만 238콜)
 // --------------------------------------------------------------------------
@@ -103,92 +133,63 @@ export async function syncObservations(
 
   console.log(`[실황 수집] 관측기준: ${obsTimeStr} (238개 격자)`);
 
+  const { results, failed, outagePauses } = await collectGrids(
+    distinctGrids,
+    (grid) =>
+      fetchKmaWithRetry<KmaObservationItem>(
+        `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${serviceKey}`,
+        3,
+        400,
+      ),
+    collectOptions("실황"),
+  );
+  logFailedGrids("실황", failed);
+  const failedGridKeys = failed.map((f) => f.grid.gridKey);
+
   const observationsToInsert: ObservationRecord[] = [];
   const hourlyToInsert: ObservationReadModelRecord[] = [];
   let missingGrids = 0;
-  const failedGridKeys: string[] = [];
-  const chunkSize = 12;
 
-  for (let i = 0; i < distinctGrids.length; i += chunkSize) {
-    const chunk = distinctGrids.slice(i, i + chunkSize);
-
-    const chunkResults = await Promise.all(
-      chunk.map(async (grid: DistinctGrid) => {
-        const ncstUrl = `${BASE_URL}/getUltraSrtNcst?pageNo=1&numOfRows=10&dataType=JSON&base_date=${ncstDate}&base_time=${ncstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${serviceKey}`;
-        let result: KmaFetchResult<KmaObservationItem>;
-        try {
-          result = await fetchKmaWithRetry<KmaObservationItem>(ncstUrl, 3, 400);
-        } catch (error) {
-          console.warn(
-            `[실황 요청 실패] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`,
-            error,
-          );
-          return {
-            obsList: [],
-            hourList: [],
-            missing: false,
-            failedGridKey: grid.gridKey,
-          };
-        }
-        if (result.kind === "no-data") {
-          console.warn(
-            `[실황 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`,
-          );
-          return { obsList: [], hourList: [], missing: true };
-        }
-
-        const { pty, rn1, tmp, isRaining } = parseObservationItems(
-          result.items,
-        );
-
-        const obsList: ObservationRecord[] = [];
-        const hourList: ObservationReadModelRecord[] = [];
-
-        for (const code of grid.sigunguCodes) {
-          const sigungu = sigunguMap.get(code);
-          const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
-          const name = sigungu?.name ?? code;
-
-          obsList.push({
-            time: obsTimeStr,
-            sigunguCode: code,
-            sidoCode,
-            name,
-            isRaining,
-            pty,
-            rn1,
-            tmp,
-            createdAt,
-          });
-
-          // 지도 렌더링용 실황 업데이트
-          hourList.push({
-            time: obsTimeStr,
-            sidoCode,
-            sigunguCode: code,
-            name,
-            pty,
-            rn1,
-            tmp,
-            updatedAt: createdAt,
-          });
-        }
-
-        return { obsList, hourList, missing: false };
-      }),
-    );
-
-    for (const res of chunkResults) {
-      observationsToInsert.push(...res.obsList);
-      hourlyToInsert.push(...res.hourList);
-      if (res.missing) missingGrids++;
-      if (res.failedGridKey) failedGridKeys.push(res.failedGridKey);
+  for (const { grid, value: result } of results) {
+    if (result.kind === "no-data") {
+      console.warn(
+        `[실황 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장 건너뜀`,
+      );
+      missingGrids++;
+      continue;
     }
 
-    console.log(
-      `[실황 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료... [처리 지역] ${chunk.map(gridRegionNames).join(", ")}`,
-    );
-    await sleep(150);
+    const { pty, rn1, tmp, isRaining } = parseObservationItems(result.items);
+
+    for (const code of grid.sigunguCodes) {
+      const sigungu = sigunguMap.get(code);
+      const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
+      const name = sigungu?.name ?? code;
+
+      observationsToInsert.push({
+        time: obsTimeStr,
+        sigunguCode: code,
+        sidoCode,
+        name,
+        isRaining,
+        pty,
+        rn1,
+        tmp,
+        createdAt,
+      });
+
+      // 지도 렌더링용 실황 업데이트
+      hourlyToInsert.push({
+        time: obsTimeStr,
+        sidoCode,
+        sigunguCode: code,
+        name,
+        pty,
+        rn1,
+        tmp,
+        updatedAt: createdAt,
+      });
+    }
   }
 
   console.log(`\n[실황 저장] ${observationsToInsert.length}건 DB 저장 완료!`);
@@ -204,40 +205,61 @@ export async function syncObservations(
   await syncAccuracyForObservationTime(obsTimeStr);
 
   if (exceedsGridFailureLimit(failedGridKeys.length, distinctGrids.length)) {
-    throw new Error(
+    throw new GridFailureError(
       `실황 수집 실패: ${ncstDate} ${ncstTime} 격자 ${failedGridKeys.length}/${distinctGrids.length}개 요청 실패`,
+      failedGridKeys,
     );
   }
 
-  if (missingGrids > 0 || failedGridKeys.length > 0) {
-    reportServerWarning(
-      "실황 수집에서 일부 격자 누락",
-      "worker.observation",
-      {
-        baseTime: obsTimeStr,
-        missingGrids,
-        failedGrids: failedGridKeys.length,
-        failedGridKeys: failedGridKeys.join(","),
-        totalGrids: distinctGrids.length,
-      },
-    );
+  if (missingGrids > 0 || failedGridKeys.length > 0 || outagePauses > 0) {
+    reportServerWarning("실황 수집에서 일부 격자 누락", "worker.observation", {
+      baseTime: obsTimeStr,
+      missingGrids,
+      failedGrids: failedGridKeys.length,
+      failedGridKeys: failedGridKeys.join(","),
+      outagePauses,
+      totalGrids: distinctGrids.length,
+    });
   }
 
   return observationsToInsert.length;
 }
 
+export interface ForecastSyncResult {
+  saved: number;
+  failedGridKeys: string[];
+}
+
 // --------------------------------------------------------------------------
 // 2. [단기예보 전용 수집] 3시간마다 딱 1회만 호출 (getVilageFcst만 238콜)
+// gridKeys를 주면 그 격자만 다시 받는다 (실패 격자 재수집용).
 // --------------------------------------------------------------------------
 export async function syncForecasts(
   round = getVilageBaseDateTime(),
-): Promise<number> {
+  gridKeys?: string[],
+): Promise<ForecastSyncResult> {
   const serviceKey = requireKmaServiceKey();
   const { baseDate: fcstDate, baseTime: fcstTime } = round;
   const baseTimeStr = `${fcstDate.slice(0, 4)}-${fcstDate.slice(4, 6)}-${fcstDate.slice(6, 8)} ${fcstTime.slice(0, 2)}:00`;
   const createdAt = new Date().toISOString();
+  const grids = selectGrids(gridKeys);
 
-  console.log(`[단기예보 수집] 발표기준: ${baseTimeStr} (238개 격자)`);
+  console.log(
+    `[단기예보 수집] 발표기준: ${baseTimeStr} (${grids.length}개 격자${gridKeys ? ", 실패 격자 재수집" : ""})`,
+  );
+
+  const { results, failed, outagePauses } = await collectGrids(
+    grids,
+    (grid) =>
+      fetchKmaWithRetry<KmaForecastItem>(
+        `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${serviceKey}`,
+        2,
+        400,
+      ),
+    collectOptions("단기예보"),
+  );
+  logFailedGrids("예보", failed);
+  const failedGridKeys = failed.map((f) => f.grid.gridKey);
 
   const forecastsToInsert: ForecastRecord[] = [];
   const forecastPopUpdates: {
@@ -248,136 +270,99 @@ export async function syncForecasts(
   }[] = [];
   let missingGrids = 0;
   let invalidPopGrids = 0;
-  const failedGridKeys: string[] = [];
-  const chunkSize = 12;
 
-  for (let i = 0; i < distinctGrids.length; i += chunkSize) {
-    const chunk = distinctGrids.slice(i, i + chunkSize);
-
-    const chunkResults = await Promise.all(
-      chunk.map(async (grid: DistinctGrid) => {
-        const fcstUrl = `${BASE_URL}/getVilageFcst?pageNo=1&numOfRows=150&dataType=JSON&base_date=${fcstDate}&base_time=${fcstTime}&nx=${grid.nx}&ny=${grid.ny}&authKey=${serviceKey}`;
-        let result: KmaFetchResult<KmaForecastItem>;
-        try {
-          result = await fetchKmaWithRetry<KmaForecastItem>(fcstUrl, 2, 400);
-        } catch (error) {
-          console.warn(
-            `[예보 요청 실패] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`,
-            error,
-          );
-          return {
-            fcstList: [] as ForecastRecord[],
-            popUpdates: [],
-            missing: false,
-            invalidPop: false,
-            failedGridKey: grid.gridKey,
-          };
-        }
-        if (result.kind === "no-data") {
-          console.warn(
-            `[예보 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`,
-          );
-          return {
-            fcstList: [] as ForecastRecord[],
-            popUpdates: [],
-            missing: true,
-            invalidPop: false,
-          };
-        }
-
-        const fcstList: ForecastRecord[] = [];
-        const popUpdates: {
-          sigunguCode: string;
-          pop: number;
-          sky: number;
-          updatedAt: string;
-        }[] = [];
-        const validForecasts = parseForecastItems(result.items);
-        if (validForecasts.length === 0) {
-          console.warn(
-            `[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`,
-          );
-          return { fcstList, popUpdates, missing: false, invalidPop: true };
-        }
-
-        const currentPop = validForecasts[0].pop;
-        const currentSky = validForecasts[0].sky;
-
-        for (const code of grid.sigunguCodes) {
-          const sigungu = sigunguMap.get(code);
-          const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
-          const name = sigungu?.name ?? code;
-
-          for (const val of validForecasts) {
-            const leadHours = calculateLeadHours(baseTimeStr, val.targetTime);
-            fcstList.push({
-              baseTime: baseTimeStr,
-              targetTime: val.targetTime,
-              sigunguCode: code,
-              sidoCode,
-              name,
-              pop: val.pop,
-              leadHours,
-              sky: val.sky,
-              tmp: val.tmp,
-              createdAt,
-            });
-          }
-
-          // 최신 실황 row에 검증된 예보만 반영한다.
-          popUpdates.push({
-            sigunguCode: code,
-            pop: currentPop,
-            sky: currentSky,
-            updatedAt: createdAt,
-          });
-        }
-
-        return { fcstList, popUpdates, missing: false, invalidPop: false };
-      }),
-    );
-
-    for (const res of chunkResults) {
-      forecastsToInsert.push(...res.fcstList);
-      forecastPopUpdates.push(...res.popUpdates);
-      if (res.missing) missingGrids++;
-      if (res.invalidPop) invalidPopGrids++;
-      if ("failedGridKey" in res && res.failedGridKey)
-        failedGridKeys.push(res.failedGridKey);
+  for (const { grid, value: result } of results) {
+    if (result.kind === "no-data") {
+      console.warn(
+        `[예보 자료 없음] ${grid.gridKey} (${gridRegionNames(grid)}): 저장·지도 갱신 건너뜀`,
+      );
+      missingGrids++;
+      continue;
     }
 
-    console.log(
-      `[단기예보 진행] ${Math.min(i + chunkSize, distinctGrids.length)} / ${distinctGrids.length} 격자 완료... [처리 지역] ${chunk.map(gridRegionNames).join(", ")}`,
-    );
-    await sleep(150);
+    const validForecasts = parseForecastItems(result.items);
+    if (validForecasts.length === 0) {
+      console.warn(
+        `[예보 누락] ${grid.gridKey}: 유효한 POP 값 없음, 저장·지도 갱신 건너뜀`,
+      );
+      invalidPopGrids++;
+      continue;
+    }
+
+    const currentPop = validForecasts[0].pop;
+    const currentSky = validForecasts[0].sky;
+
+    for (const code of grid.sigunguCodes) {
+      const sigungu = sigunguMap.get(code);
+      const sidoCode = sigungu?.sidoCode ?? code.slice(0, 2);
+      const name = sigungu?.name ?? code;
+
+      for (const val of validForecasts) {
+        const leadHours = calculateLeadHours(baseTimeStr, val.targetTime);
+        forecastsToInsert.push({
+          baseTime: baseTimeStr,
+          targetTime: val.targetTime,
+          sigunguCode: code,
+          sidoCode,
+          name,
+          pop: val.pop,
+          leadHours,
+          sky: val.sky,
+          tmp: val.tmp,
+          createdAt,
+        });
+      }
+
+      // 최신 실황 row에 검증된 예보만 반영한다.
+      forecastPopUpdates.push({
+        sigunguCode: code,
+        pop: currentPop,
+        sky: currentSky,
+        updatedAt: createdAt,
+      });
+    }
   }
 
   console.log(`\n[단기예보 저장] ${forecastsToInsert.length}건 DB 저장 완료!`);
+  if (forecastsToInsert.length > 0) {
+    await upsertForecastsBatch(forecastsToInsert);
+    await syncAccuracyForForecastBaseTime(baseTimeStr);
+    await updateLatestForecastReadModelBatch(forecastPopUpdates);
+  }
+
+  // 실패 비율은 재수집이어도 전체 격자 기준으로 본다.
+  if (
+    exceedsGridFailureLimit(failedGridKeys.length, distinctGrids.length) ||
+    (forecastsToInsert.length === 0 && failedGridKeys.length > 0)
+  ) {
+    throw new GridFailureError(
+      `예보 수집 실패: ${fcstDate} ${fcstTime} 격자 ${failedGridKeys.length}/${distinctGrids.length}개 요청 실패`,
+      failedGridKeys,
+    );
+  }
   if (forecastsToInsert.length === 0) {
     throw new Error(
       `예보 수집 실패: ${fcstDate} ${fcstTime}의 모든 격자에 유효한 자료가 없습니다.`,
     );
   }
-  await upsertForecastsBatch(forecastsToInsert);
-  await syncAccuracyForForecastBaseTime(baseTimeStr);
-  await updateLatestForecastReadModelBatch(forecastPopUpdates);
 
-  if (exceedsGridFailureLimit(failedGridKeys.length, distinctGrids.length)) {
-    throw new Error(
-      `예보 수집 실패: ${fcstDate} ${fcstTime} 격자 ${failedGridKeys.length}/${distinctGrids.length}개 요청 실패`,
-    );
-  }
-
-  if (missingGrids > 0 || invalidPopGrids > 0 || failedGridKeys.length > 0) {
+  if (
+    missingGrids > 0 ||
+    invalidPopGrids > 0 ||
+    failedGridKeys.length > 0 ||
+    outagePauses > 0
+  ) {
     reportServerWarning("예보 수집에서 일부 격자 누락", "worker.forecast", {
       baseTime: baseTimeStr,
       missingGrids,
       invalidPopGrids,
       failedGrids: failedGridKeys.length,
       failedGridKeys: failedGridKeys.join(","),
+      outagePauses,
       totalGrids: distinctGrids.length,
+      requestedGrids: grids.length,
     });
   }
 
-  return forecastsToInsert.length;
+  return { saved: forecastsToInsert.length, failedGridKeys };
 }
