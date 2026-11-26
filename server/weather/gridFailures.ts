@@ -10,3 +10,14 @@ export function exceedsGridFailureLimit(
   if (totalGrids <= 0) return false;
   return failedGrids / totalGrids > maxRatio;
 }
+
+// 회차 실패이지만 어떤 격자가 실패했는지 알려서 그 격자만 다시 받게 한다.
+export class GridFailureError extends Error {
+  readonly failedGridKeys: string[];
+
+  constructor(message: string, failedGridKeys: string[]) {
+    super(message);
+    this.failedGridKeys = failedGridKeys;
+    this.name = "GridFailureError";
+  }
+}

@@ -7,6 +7,7 @@ import {
   isLastNcstCheckOfRound,
 } from "./weather/kmaTime.ts";
 import { createWorkerQueue } from "./workerQueue.ts";
+import { GridFailureError } from "./weather/gridFailures.ts";
 import {
   checkCanaryNcstUpdated,
   syncObservations,
@@ -20,7 +21,8 @@ const registerKstSchedule: RegisterSchedule = (expression, task) => {
 };
 
 let lastSyncedObservationRound = "";
-let pendingForecastRound: string | null = null;
+// 재수집할 예보 회차. gridKeys가 없으면 전체 격자를 다시 받는다.
+let pendingForecast: { key: string; gridKeys?: string[] } | null = null;
 let workerStarted = false;
 const enqueue = createWorkerQueue((error) => {
   console.error("[워커 예약 작업 에러]", error);
@@ -138,14 +140,22 @@ export function startWorker(
 
   async function collectForecast(
     round: ReturnType<typeof currentForecastRound>,
+    gridKeys?: string[],
     isRetry = false,
   ): Promise<void> {
     try {
-      await syncForecasts(round);
-      pendingForecastRound = null;
+      const { failedGridKeys } = await syncForecasts(round, gridKeys);
+      // 한도 안의 실패 격자도 다음 재시도 때 조용히 다시 받는다.
+      pendingForecast = failedGridKeys.length
+        ? { key: round.key, gridKeys: failedGridKeys }
+        : null;
       await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL);
     } catch (err) {
-      pendingForecastRound = round.key;
+      pendingForecast = {
+        key: round.key,
+        gridKeys:
+          err instanceof GridFailureError ? err.failedGridKeys : gridKeys,
+      };
       console.error("[워커 단기예보 에러]", err);
       reportServerError(err, "worker.forecast");
       if (isRetry) await pingHealthcheck(process.env.HEALTHCHECK_FCST_URL, err);
@@ -159,18 +169,21 @@ export function startWorker(
     await enqueue(`forecast:${round.key}`, () => collectForecast(round));
   });
 
-  // 실패한 발표 회차만 10분 간격으로 다시 수집한다.
+  // 실패한 발표 회차의 실패 격자만 10분 간격으로 다시 수집한다.
   registerSchedule("5,15,25,35,45,55 * * * *", async () => {
-    if (!pendingForecastRound) return;
+    if (!pendingForecast) return;
     const round = currentForecastRound();
-    if (round.key !== pendingForecastRound) {
-      pendingForecastRound = null;
+    if (round.key !== pendingForecast.key) {
+      pendingForecast = null;
       return;
     }
-    console.log(`[워커] 단기예보 ${round.key} 재시도`);
+    console.log(
+      `[워커] 단기예보 ${round.key} 재시도 (${pendingForecast.gridKeys ? `${pendingForecast.gridKeys.length}개` : "전체"} 격자)`,
+    );
     await enqueue(`forecast:${round.key}`, async () => {
-      if (pendingForecastRound === round.key)
-        await collectForecast(round, true);
+      const pending = pendingForecast;
+      if (pending?.key === round.key)
+        await collectForecast(round, pending.gridKeys, true);
     });
   });
 
